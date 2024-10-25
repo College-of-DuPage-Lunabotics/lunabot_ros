@@ -1,0 +1,1825 @@
+<sdf version='1.7'>
+  <world name='default'>
+    <light name='sun' type='directional'>
+      <cast_shadows>1</cast_shadows>
+      <pose>0 0 10 0 -0 0</pose>
+      <diffuse>0.4 0.4 0.4 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation>
+        <range>500</range>
+        <constant>0.8</constant>
+        <linear>0.02</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <gravity>0 0 -9.81</gravity>
+    <physics type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0 0 0 255</background>
+      <shadows>1</shadows>
+    </scene>
+    <model name='lunar_surface'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='lunar_surface_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://lunar_surface/lunar_surface.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.8</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <pose>0 0 0 0 -0 0</pose>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='lunar_surface'>
+          <geometry>
+            <mesh>
+              <uri>model://lunar_surface/lunar_surface.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <pose>0 0 0 0 -0 0</pose>
+          <material>
+            <script>
+              <uri>model://lunar_surface/materials/scripts</uri>
+              <uri>model://lunar_surface/materials/textures</uri>
+              <name>lunar_surface</name>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_wall_long'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_wall_long_collision'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_wall_long'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 1</size>
+            </box>
+          </geometry>
+        </visual>
+        <pose>0 -2.55 0.1 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_wall_long_2'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_wall_long_2_collision'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_wall_long_2'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 1</size>
+            </box>
+          </geometry>
+        </visual>
+        <pose>0 2.55 0.1 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_wall_short'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_wall_short_collision'>
+          <geometry>
+            <box>
+              <size>0.1 5 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_wall_short'>
+          <geometry>
+            <box>
+              <size>0.1 5 1</size>
+            </box>
+          </geometry>
+        </visual>
+        <pose>3.49 0 0.1 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_wall_short_2'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_wall_short_2_collision'>
+          <geometry>
+            <box>
+              <size>0.1 5 1</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_wall_short_2'>
+          <geometry>
+            <box>
+              <size>0.1 5 1</size>
+            </box>
+          </geometry>
+        </visual>
+        <pose>-3.49 0 0.1 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_glass_short'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_glass_short_collision'>
+          <geometry>
+            <box>
+              <size>0.1 5 2</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_glass_short'>
+          <geometry>
+            <box>
+              <size>0.1 5 2</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/GreyTransparent</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <pose>3.49 0 1.6 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_glass_short_2'>
+      <link name='link'>
+        <collision name='arena_glass_short_2_collision'>
+          <geometry>
+            <box>
+              <size>0.1 5 2</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_glass_short_2'>
+          <geometry>
+            <box>
+              <size>0.1 5 2</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/GreyTransparent</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <pose>-3.49 0 1.6 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <static>1</static>
+      </link>
+    </model>
+    <model name='arena_glass_long'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_glass_long_collision'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 2</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_glass_long'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 2</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/GreyTransparent</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <pose>0 2.55 1.6 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='arena_glass_long_2'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='arena_wall_short_2_collision'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 2</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='arena_wall_short_2'>
+          <geometry>
+            <box>
+              <size>7.08 0.1 2</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/GreyTransparent</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <pose>0 -2.55 1.6 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='column'>
+      <static>1</static>
+      <link name='link'>
+        <collision name='column_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/column/column.stl</uri>
+              <scale>2.5 2.5 2.5</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.3</mu>
+                <mu2>0.3</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='column'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/column/column.stl</uri>
+              <scale>2.5 2.5 2.5</scale>
+            </mesh>
+          </geometry>
+        </visual>
+        <pose>0 0 -0.02 0 -0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='rock_round'>
+      <link name='link'>
+        <pose>1.32307 0.270163 0.05 0 -0 0.846674</pose>
+        <visual name='rock_round'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://low_poly/rock_round/materials/scripts</uri>
+              <uri>model://low_poly/rock_round/materials/textures</uri>
+              <name>rock_round</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_round_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <static>1</static>
+      </link>
+    </model>
+    <model name='rock_round_2'>
+      <link name='link'>
+        <pose>0.56 -0.39 0.05 0 0 -0.8</pose>
+        <visual name='rock_round_2'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://low_poly/rock_round/materials/scripts</uri>
+              <uri>model://low_poly/rock_round/materials/textures</uri>
+              <name>rock_round</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_round_2_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <model name='rock_round_3'>
+      <link name='link'>
+        <pose>1.25 -1 0.05 0 -0 2.55</pose>
+        <visual name='rock_round_3'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://low_poly/rock_round/materials/scripts</uri>
+              <uri>model://low_poly/rock_round/materials/textures</uri>
+              <name>rock_round</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_round_3_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_round/rock_round.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <velocity_decay>
+          <linear>0.39</linear>
+          <angular>0.9</angular>
+        </velocity_decay>
+        <self_collide>0</self_collide>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <static>1</static>
+      </link>
+    </model>
+    <model name='rock_rough'>
+      <link name='link'>
+        <self_collide>1</self_collide>
+        <inertial>
+          <mass>5</mass>
+          <inertia>
+            <ixx>3</ixx>
+            <iyy>3</iyy>
+            <izz>3</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+          <pose>0 0 0 0 -0 0</pose>
+        </inertial>
+        <pose>-2.01943 -0.546468 0.05 0 0 -2.17367</pose>
+        <visual name='rock_rough'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://low_poly/rock_rough/materials/scripts</uri>
+              <uri>model://low_poly/rock_rough/materials/textures</uri>
+              <name>rock_rough</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_rough_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.5</mu>
+                <mu2>1.5</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <static>0</static>
+      </link>
+    </model>
+    <model name='rock_rough_2'>
+      <link name='link'>
+        <self_collide>1</self_collide>
+        <pose>0.93 -1.84 0.05 0 0 -0.62</pose>
+        <visual name='rock_rough_2'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://low_poly/rock_rough/materials/scripts</uri>
+              <uri>model://low_poly/rock_rough/materials/textures</uri>
+              <name>rock_rough</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_rough_2_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://low_poly/rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <static>1</static>
+      </link>
+    </model>
+    <model name='tag_36_11_00007'>
+      <link name='link'>
+        <pose>3.4 1.5 0.55 3.14159 -1.56159 3.14159</pose>
+        <visual name='tag_36_11_00007'>
+          <geometry>
+            <box>
+              <size>0.4 0.4 0.005</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://apriltags/tag_36_11_00007/materials/scripts</uri>
+              <uri>model://apriltags/tag_36_11_00007/materials/textures</uri>
+              <name>tag_36_11_00007</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='tag_36_11_00007_collision'>
+          <geometry>
+            <box>
+              <size>0.4 0.4 0.005</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <static>1</static>
+    </model>
+    <gui fullscreen='0'>
+      <camera name='user_camera'>
+        <pose>0.911196 1.50991 7.0848 0 1.03781 -1.63552</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <audio>
+      <device>default</device>
+    </audio>
+    <wind/>
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <latitude_deg>0</latitude_deg>
+      <longitude_deg>0</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+    <model name='simulation_bot'>
+      <link name='base_link'>
+        <inertial>
+          <pose>0 0 0.085 0 -0 0</pose>
+          <mass>25</mass>
+          <inertia>
+            <ixx>1.3669</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>3.3602</iyy>
+            <iyz>0</iyz>
+            <izz>4.7271</izz>
+          </inertia>
+        </inertial>
+        <collision name='base_link_collision'>
+          <pose>0 0 0.085 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/high_poly/base_link.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__d455_link_collision_1'>
+          <pose>-0.115 0 0.525 0 -0 3.14</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/camera_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__d456_link_collision_2'>
+          <pose>-0.04 0 0.525 0 0.523599 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/camera_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__lidar1_link_collision_3'>
+          <pose>-0.075 0 0.575 0 0 -1.5708</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/lidar1_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__lidar2_link_collision_4'>
+          <pose>0.425 0 0.2 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/lidar2_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='base_link_visual'>
+          <pose>0 0 0.1625 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/high_poly/base_link.dae</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__d455_link_visual_1'>
+          <pose>-0.115 0 0.525 0 -0 3.14</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/camera_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__d456_link_visual_2'>
+          <pose>-0.04 0 0.525 0 0.523599 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/camera_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__lidar1_link_visual_3'>
+          <pose>-0.075 0 0.575 0 0 -1.5708</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/lidar1_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Black</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__lidar2_link_visual_4'>
+          <pose>0.425 0 0.2 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/lidar2_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Black</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <sensor name='d455' type='depth'>
+          <update_rate>30</update_rate>
+          <visualize>1</visualize>
+          <camera>
+            <horizontal_fov>1.54</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>360</height>
+              <format>R8G8B8</format>
+            </image>
+            <distortion>
+              <k1>-0.0679293</k1>
+              <k2>0.0805828</k2>
+              <k3>-0.0441776</k3>
+              <p1>-0.00169054</p1>
+              <p2>-0.000823544</p2>
+            </distortion>
+            <clip>
+              <near>0.05</near>
+              <far>10</far>
+            </clip>
+          </camera>
+          <plugin name='camera1_controller' filename='libgazebo_ros_camera.so'>
+            <ros>
+              <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
+              <remapping>/d455/points:=/d455/color/points</remapping>
+              <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
+              <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
+            </ros>
+            <frame_name>d455_optical_link</frame_name>
+            <publish_tf>0</publish_tf>
+            <publish_point_cloud>1</publish_point_cloud>
+          </plugin>
+          <pose>-0.115 0 0.525 0 -0 3.14</pose>
+        </sensor>
+        <sensor name='d456' type='depth'>
+          <update_rate>30</update_rate>
+          <visualize>1</visualize>
+          <camera>
+            <horizontal_fov>1.54</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>360</height>
+              <format>R8G8B8</format>
+            </image>
+            <distortion>
+              <k1>-0.0679293</k1>
+              <k2>0.0805828</k2>
+              <k3>-0.0441776</k3>
+              <p1>-0.00169054</p1>
+              <p2>-0.000823544</p2>
+            </distortion>
+            <clip>
+              <near>0.05</near>
+              <far>10</far>
+            </clip>
+          </camera>
+          <plugin name='camera2_controller' filename='libgazebo_ros_camera.so'>
+            <ros>
+              <remapping>/d456/image_raw:=/d456/color/image_raw</remapping>
+              <remapping>/d456/points:=/d456/color/points</remapping>
+              <remapping>/d456/camera_info:=/d456/color/camera_info</remapping>
+              <remapping>/d456/depth/image_raw:=/d456/depth/image_rect_raw</remapping>
+            </ros>
+            <frame_name>d456_optical_link</frame_name>
+            <publish_tf>0</publish_tf>
+            <publish_point_cloud>1</publish_point_cloud>
+          </plugin>
+          <pose>-0.04 0 0.525 0 0.523599 0</pose>
+        </sensor>
+        <sensor name='lidar1_link' type='ray'>
+          <visualize>0</visualize>
+          <update_rate>30</update_rate>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>1080</samples>
+                <resolution>0.5</resolution>
+                <min_angle>-3.14</min_angle>
+                <max_angle>3.14</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>10</max>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+          <plugin name='lidar1_controller' filename='libgazebo_ros_ray_sensor.so'>
+            <frame_name>lidar1_link</frame_name>
+            <ros>
+              <remapping>~/out:=/scan</remapping>
+            </ros>
+            <output_type>sensor_msgs/LaserScan</output_type>
+            <publish_tf>0</publish_tf>
+          </plugin>
+          <pose>-0.075 0 0.575 0 -0 0</pose>
+        </sensor>
+        <sensor name='lidar2_link' type='ray'>
+          <visualize>0</visualize>
+          <update_rate>30</update_rate>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>1080</samples>
+                <resolution>0.5</resolution>
+                <min_angle>-1.57</min_angle>
+                <max_angle>1.57</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>10</max>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+          <plugin name='lidar2_controller' filename='libgazebo_ros_ray_sensor.so'>
+            <frame_name>lidar2_link</frame_name>
+            <ros>
+              <remapping>~/out:=/scan2</remapping>
+            </ros>
+            <output_type>sensor_msgs/LaserScan</output_type>
+            <publish_tf>0</publish_tf>
+          </plugin>
+          <pose>0.425 0 0.2 0 -0 0</pose>
+        </sensor>
+        <gravity>0</gravity>
+        <sensor name='imu_sensor' type='imu'>
+          <always_on>1</always_on>
+          <update_rate>200</update_rate>
+          <visualize>1</visualize>
+          <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
+            <ros>
+              <namespace/>
+              <remapping>~/out:=/d456/imu/data</remapping>
+            </ros>
+            <bodyName>base_link</bodyName>
+            <gaussianNoise>0.0</gaussianNoise>
+            <xyzOffset>0 0 0</xyzOffset>
+            <rpyOffset>0 0 0</rpyOffset>
+            <frameName>imu_link</frameName>
+            <publish_tf>0</publish_tf>
+            <initialOrientationAsReference>0</initialOrientationAsReference>
+          </plugin>
+          <pose>0 0 0 0 -0 0</pose>
+          <imu/>
+        </sensor>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='base_blade_joint' type='revolute'>
+        <pose relative_to='base_link'>-0.54 0 0.12 0 -0.6 3.14</pose>
+        <parent>base_link</parent>
+        <child>blade_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-0.75</lower>
+            <upper>0.75</upper>
+            <effort>100</effort>
+            <velocity>1</velocity>
+          </limit>
+          <dynamics>
+            <damping>0</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='blade_link'>
+        <pose relative_to='base_blade_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>5</mass>
+          <inertia>
+            <ixx>0.0833</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.1667</iyy>
+            <iyz>0</iyz>
+            <izz>0.2333</izz>
+          </inertia>
+        </inertial>
+        <collision name='blade_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/high_poly/blade_link.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='blade_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/high_poly/blade_link.dae</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Grey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='base_front_left_wheel_joint' type='revolute'>
+        <pose relative_to='base_link'>0.1515 0.25 0.105 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>front_left_wheel_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='front_left_wheel_link'>
+        <pose relative_to='base_front_left_wheel_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>2.27</mass>
+          <inertia>
+            <ixx>0.0255</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.0255</iyy>
+            <iyz>0</iyz>
+            <izz>0.051</izz>
+          </inertia>
+        </inertial>
+        <collision name='front_left_wheel_link_collision'>
+          <pose>0 0 0 -1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu2>1</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='front_left_wheel_link_visual'>
+          <pose>0 0 0 -1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/DarkGrey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <mu>1.0</mu>
+        <surface>
+          <contact>
+            <ode>
+              <kp>1000000</kp>
+              <kd>500</kd>
+              <slip1>0.02</slip1>
+              <slip2>0.02</slip2>
+            </ode>
+          </contact>
+        </surface>
+      </link>
+      <joint name='base_front_right_wheel_joint' type='revolute'>
+        <pose relative_to='base_link'>0.1515 -0.25 0.105 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>front_right_wheel_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='front_right_wheel_link'>
+        <pose relative_to='base_front_right_wheel_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>2.27</mass>
+          <inertia>
+            <ixx>0.0255</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.0255</iyy>
+            <iyz>0</iyz>
+            <izz>0.051</izz>
+          </inertia>
+        </inertial>
+        <collision name='front_right_wheel_link_collision'>
+          <pose>0 0 0 1.5708 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu2>1</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='front_right_wheel_link_visual'>
+          <pose>0 0 0 1.5708 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/DarkGrey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <mu>1.0</mu>
+        <surface>
+          <contact>
+            <ode>
+              <kp>1000000</kp>
+              <kd>500</kd>
+              <slip1>0.02</slip1>
+              <slip2>0.02</slip2>
+            </ode>
+          </contact>
+        </surface>
+      </link>
+      <joint name='base_rear_left_wheel_joint' type='revolute'>
+        <pose relative_to='base_link'>-0.305 0.25 0.105 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>rear_left_wheel_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='rear_left_wheel_link'>
+        <pose relative_to='base_rear_left_wheel_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>2.27</mass>
+          <inertia>
+            <ixx>0.0255</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.0255</iyy>
+            <iyz>0</iyz>
+            <izz>0.051</izz>
+          </inertia>
+        </inertial>
+        <collision name='rear_left_wheel_link_collision'>
+          <pose>0 0 0 -1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu2>1</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='rear_left_wheel_link_visual'>
+          <pose>0 0 0 -1.5708 0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/DarkGrey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <mu>1.0</mu>
+        <surface>
+          <contact>
+            <ode>
+              <kp>1000000</kp>
+              <kd>500</kd>
+              <slip1>0.02</slip1>
+              <slip2>0.02</slip2>
+            </ode>
+          </contact>
+        </surface>
+      </link>
+      <joint name='base_rear_right_wheel_joint' type='revolute'>
+        <pose relative_to='base_link'>-0.305 -0.25 0.105 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>rear_right_wheel_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='rear_right_wheel_link'>
+        <pose relative_to='base_rear_right_wheel_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 -0 0</pose>
+          <mass>2.27</mass>
+          <inertia>
+            <ixx>0.0255</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.0255</iyy>
+            <iyz>0</iyz>
+            <izz>0.051</izz>
+          </inertia>
+        </inertial>
+        <collision name='rear_right_wheel_link_collision'>
+          <pose>0 0 0 1.5708 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode>
+                <mu2>1</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='rear_right_wheel_link_visual'>
+          <pose>0 0 0 1.5708 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:////home/dragon-monkey/lunabot_ws/install/lunabot_simulation/share/lunabot_simulation/meshes/low_poly/wheel_link.stl</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/DarkGrey</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+        <mu>1.0</mu>
+        <surface>
+          <contact>
+            <ode>
+              <kp>1000000</kp>
+              <kd>500</kd>
+              <slip1>0.02</slip1>
+              <slip2>0.02</slip2>
+            </ode>
+          </contact>
+        </surface>
+      </link>
+      <static>0</static>
+      <plugin name='gazebo_ros2_control' filename='libgazebo_ros2_control.so'>
+        <robot_param>robot_description</robot_param>
+        <robot_param_node>robot_state_publisher</robot_param_node>
+        <parameters>/home/dragon-monkey/lunabot_ws/install/lunabot_config/share/lunabot_config/params/gazebo_params.yaml</parameters>
+      </plugin>
+      <pose>2.5 1.6 0.35 0 0 -1.5708</pose>
+    </model>
+    <state world_name='default'>
+      <sim_time>275 460000000</sim_time>
+      <real_time>216 294793044</real_time>
+      <wall_time>1729895518 893065407</wall_time>
+      <iterations>98388</iterations>
+      <model name='arena_glass_long'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0 2.55 1.6 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_glass_long_2'>
+        <pose>-0.000861 -0.008133 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.000861 -2.55813 1.6 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_glass_short'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>3.49 0 1.6 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_glass_short_2'>
+        <pose>-0.000105 -1.2e-05 -7e-06 0 2e-06 -4e-06</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-3.4901 0 1.6 0 2e-06 -4e-06</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0.557904 -18.5308 13.7081 -3.05958 0.628643 0.024648</acceleration>
+          <wrench>0.557904 -18.5308 13.7081 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_wall_long'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0 -2.55 0.1 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_wall_long_2'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0 2.55 0.1 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_wall_short'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>3.49 0 0.1 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='arena_wall_short_2'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-3.49 0 0.1 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='column'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0 0 -0.02 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='lunar_surface'>
+        <pose>-0.010598 0.004731 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.010598 0.004731 0 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rock_rough'>
+        <pose>-0.27549 -0.706665 -0.279916 -0.065358 0.108612 0.000887</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-2.27326 -1.25047 0.024067 -0.05285 -0.115198 -2.16618</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0.003974 0.017678 -0.072474 -1.05784 0.237905 0</acceleration>
+          <wrench>0.019872 0.088389 -0.362369 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rock_rough_2'>
+        <pose>2.65456 -2.72569 -0.399009 -0.23989 0.049319 -2.78251</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>1.13859 -1.39834 0.040297 -0.224738 -0.097917 2.89768</pose>
+          <velocity>0.005408 0.005546 -0.013795 -0.255753 0.214464 -0.01348</velocity>
+          <acceleration>-0.135568 -0.291935 7.50928 -0.477432 0.852481 0.010632</acceleration>
+          <wrench>-0.135568 -0.291935 7.50928 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rock_round'>
+        <pose>0.486992 -0.098022 0.005699 -0.081975 -0.028463 0.095267</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>1.77674 0.299816 0.071052 -0.075682 0.042471 0.939165</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 -9.81 0 -0 0</acceleration>
+          <wrench>0 0 -9.81 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rock_round_2'>
+        <pose>-0.046244 0.773163 0.110137 0.021568 0.143536 -0.000154</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>0.513885 0.382089 0.071183 -0.088444 0.115226 -0.806809</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 -9.81 0 -0 0</acceleration>
+          <wrench>0 0 -9.81 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rock_round_3'>
+        <pose>-1.31619 -0.801557 0.038109 0.095395 -0.099105 -0.004134</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>-0.07197 -1.80692 0.116532 -0.134315 0.029273 2.54863</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>-0.050171 -0.042004 -0.098428 0.62619 -0.747944 0</acceleration>
+          <wrench>-0.050171 -0.042004 -0.098428 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='simulation_bot'>
+        <pose>2.49711 1.55645 0.021481 1.1e-05 -0.000195 -1.56127</pose>
+        <scale>1 1 1</scale>
+        <link name='base_link'>
+          <pose>2.49711 1.55645 0.021481 1.1e-05 -0.000195 -1.56127</pose>
+          <velocity>9.2e-05 -0.000113 -0.001026 -0.000438 -0.004751 0.000701</velocity>
+          <acceleration>-0.58589 -0.063854 -1.66671 -0.375469 0.80418 0.613835</acceleration>
+          <wrench>-14.6473 -1.59634 -41.6677 0 -0 0</wrench>
+        </link>
+        <link name='blade_link'>
+          <pose>2.49196 2.09645 0.141376 -1.4e-05 -0.599807 1.57874</pose>
+          <velocity>-0.000862 -6.4e-05 -0.001287 0.000794 -0.004734 0.000704</velocity>
+          <acceleration>-1.17803 -0.02604 -2.33806 0.0594 1.42325 2.85753</acceleration>
+          <wrench>-5.89017 -0.130198 -11.6903 0 -0 0</wrench>
+        </link>
+        <link name='front_left_wheel_link'>
+          <pose>2.74854 1.40736 0.126514 1.1e-05 -0.005275 -1.56127</pose>
+          <velocity>-0.000305 0.000112 0.000237 0.000805 -0.004746 0.000713</velocity>
+          <acceleration>-0.644337 0.116646 0.357347 0.069961 -1.05883 0.642751</acceleration>
+          <wrench>-1.46264 0.264786 0.811178 0 -0 0</wrench>
+        </link>
+        <link name='front_right_wheel_link'>
+          <pose>2.24856 1.4026 0.126508 1.2e-05 -0.002169 -1.56127</pose>
+          <velocity>-0.000318 -0.000243 -0.00213 0.000803 -0.004545 0.000713</velocity>
+          <acceleration>-0.657099 -0.194379 -3.30179 0.06803 -0.856146 0.631657</acceleration>
+          <wrench>-1.49161 -0.44124 -7.49507 0 -0 0</wrench>
+        </link>
+        <link name='rear_left_wheel_link'>
+          <pose>2.74419 1.86384 0.126425 -2e-06 0.023099 -1.56127</pose>
+          <velocity>-0.000608 0.000108 4e-05 -0.001023 -0.004806 0.000694</velocity>
+          <acceleration>-0.906045 0.112669 -0.186516 -1.75845 -1.09939 0.519206</acceleration>
+          <wrench>-2.05672 0.255758 -0.423391 0 -0 0</wrench>
+        </link>
+        <link name='rear_right_wheel_link'>
+          <pose>2.24421 1.85908 0.126419 1.5e-05 0.050396 -1.56127</pose>
+          <velocity>-0.000742 -0.00024 -0.002387 0.000797 -0.003815 0.000747</velocity>
+          <acceleration>-1.04086 -0.191187 -3.90612 0.060663 -0.082864 0.497973</acceleration>
+          <wrench>-2.36275 -0.433995 -8.86689 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='tag_36_11_00007'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>3.4 1.5 0.55 3.14159 -1.56159 3.14159</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <light name='sun'>
+        <pose>0 0 10 0 -0 0</pose>
+      </light>
+    </state>
+  </world>
+</sdf>
