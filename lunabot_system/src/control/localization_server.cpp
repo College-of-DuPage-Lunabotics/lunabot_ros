@@ -84,7 +84,7 @@ class LocalizationServer : public rclcpp::Node
 
         if (aligned_)
         {
-            RCLCPP_INFO_ONCE(this->get_logger(), "LOCALIZATION SUCCESS!");
+            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32LOCALIZATION SUCCESS!\033[0m");
             result->success = true;
             result->x = -lateral_distance_;
             result->y = depth_distance_;
@@ -128,7 +128,7 @@ class LocalizationServer : public rclcpp::Node
             if (!d455_tag1_detected_ && !d456_tag1_detected_ && !initial_rotation_started_)
             {
                 initial_rotation_started_ = true;
-                RCLCPP_INFO(this->get_logger(), "No tags detected. Initiating slow rotation.");
+                RCLCPP_INFO(this->get_logger(), "\033[1;32NO TAGS DETECTED. INITIALIZING SLOW ROTATION...\033[0m");
                 twist.angular.z = 0.05;
                 cmd_vel_publisher_->publish(twist);
                 return;

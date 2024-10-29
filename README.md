@@ -42,7 +42,7 @@ mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
 git clone --recursive https://github.com/grayson-arendt/Lunabotics-2025.git
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, run `git submodule update --init --recursive` to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, run `git submodule update --init --recursive` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
@@ -62,7 +62,7 @@ To avoid building the entire workspace all over again after the initial build if
 
 ```bash
 cd ~/lunabot_ws
-colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF -parallel-workers 4 # Modify number as needed, this is how many packages are built concurrently
+colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 4 # Modify number as needed, this is how many packages are built concurrently
 ```
 
 #### 5. (Optional) Set MAKEFLAG and Rebuild
@@ -114,10 +114,10 @@ ros2 launch lunabot_bringup simulation_launch.py # teleop:=xbox (for Xbox contro
 
 ### SSH Into Robot Computer
 
-SSH (Secure Shell) allows you access another device over the network and run commands. The host computer is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
+SSH (Secure Shell) allows you access another device over the network and run commands. The **host computer** is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
 
 
-#### 1. Install and enable SSH server:
+#### 1. Install and enable SSH server (host computer):
 ```bash
 sudo apt update
 sudo apt install openssh-server
@@ -143,6 +143,8 @@ Next, get the IP address:
 ```bash
 hostname -I
 ```
+
+The IP address is the first set of numbers in the list.
 
 #### 4. Establish SSH connection (host computer)
 
