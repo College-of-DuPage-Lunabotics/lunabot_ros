@@ -37,9 +37,9 @@
     <gravity>0 0 -9.81</gravity>
 
     <model name='lunar_surface'>
+      <pose>0 0 0 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 0 0 0 0 0</pose>
-        <static>1</static>
         <visual name='lunar_surface'>
           <geometry>
             <mesh>
@@ -75,9 +75,9 @@
     </model>
 
     <model name='arena_wall_long'>
+      <pose>0 -2.55 0.1 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 -2.55 0.1 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_wall_long'>
           <geometry>
             <box>
@@ -104,9 +104,9 @@
     </model>
 
     <model name='arena_wall_long_2'>
+      <pose>0 2.55 0.1 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 2.55 0.1 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_wall_long_2'>
           <geometry>
             <box>
@@ -133,9 +133,9 @@
     </model>
 
     <model name='arena_wall_short'>
+      <pose>3.49 0 0.1 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>3.49 0 0.1 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_wall_short'>
           <geometry>
             <box>
@@ -162,9 +162,9 @@
     </model>
 
     <model name='arena_wall_short_2'>
+      <pose>-3.49 0 0.1 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>-3.49 0 0.1 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_wall_short_2'>
           <geometry>
             <box>
@@ -191,9 +191,9 @@
     </model>
 
     <model name='arena_glass_short'>
+      <pose>3.49 0 1.6 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>3.49 0 1.6 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_glass_short'>
           <geometry>
             <box>
@@ -226,10 +226,10 @@
     </model>
 
     <model name='arena_glass_short_2'>
+      <pose>-3.49 0 1.6 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
         <visual name='arena_glass_short_2'>
-          <pose>-3.49 0 1.6 0 0 0</pose>
-          <static>1</static>
           <geometry>
             <box>
               <size>0.1 5 2.0</size>
@@ -261,9 +261,9 @@
     </model>
 
     <model name='arena_glass_long'>
+      <pose>0 2.55 1.6 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 2.55 1.6 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_glass_long'>
           <geometry>
             <box>
@@ -296,9 +296,9 @@
     </model>
 
     <model name='arena_glass_long_2'>
+      <pose>0 -2.55 1.6 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 -2.55 1.6 0 0 0</pose>
-        <static>1</static>
         <visual name='arena_wall_short_2'>
           <geometry>
             <box>
@@ -331,9 +331,9 @@
     </model>
 
     <model name='column'>
+      <pose>0 0 -0.02 0 0 0</pose>
+      <static>1</static>
       <link name='link'>
-        <pose>0 0 -0.02 0 0 0</pose>
-        <static>1</static>
         <visual name='column'>
           <geometry>
             <mesh>
@@ -362,10 +362,10 @@
     </model>
 
     <model name='rock_rough'>
+      <pose>0.737889 -0.583795 0.05 0 0 -2.17367</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
       <link name='link'>
-        <pose>0.737889 -0.583795 0.05 0 0 -2.17367</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -413,10 +413,10 @@
     </model>
 
     <model name='rock_rough_2'>
+      <pose>-0.827122 3.85133 0.05 0 0 -0.62</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
       <link name='link'>
-        <pose>-0.827122 3.85133 0.05 0 0 -0.62</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
         <inertial>
           <mass>5.0</mass>
           <inertia>
