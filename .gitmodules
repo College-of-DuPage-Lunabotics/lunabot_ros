@@ -1,8 +1,0 @@
-[submodule "lunabot_third_party/rtabmap"]
-	path = lunabot_third_party/rtabmap
-	url = https://github.com/introlab/rtabmap.git
-	branch = humble-devel
-[submodule "lunabot_third_party/rtabmap_ros"]
-	path = lunabot_third_party/rtabmap_ros
-	url = https://github.com/introlab/rtabmap_ros.git
-	branch = humble-devel

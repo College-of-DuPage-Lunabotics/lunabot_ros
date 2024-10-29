@@ -18,7 +18,7 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
     nav2_params_file = os.path.join(
-        config_dir, "params", "nav2_trencher_bot_params.yaml"
+        config_dir, "params", "nav2_rectangle_bot_params.yaml"
     )
     
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
@@ -54,24 +54,6 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    rgbd_sync2_node = Node(
-        package="rtabmap_sync",
-        executable="rgbd_sync",
-        name="rgbd_sync2",
-        output="screen",
-        parameters=[
-            {"use_sim_time": True, "approx_sync": True, "sync_queue_size": 1000}
-        ],
-        remappings=[
-            ("rgb/image", "/d455/color/image_raw"),
-            ("depth/image", "/d455/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d455/color/camera_info"),
-            ("rgbd_image", "rgbd_image"),
-        ],
-        namespace="d455",
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
@@ -80,7 +62,6 @@ def generate_launch_description():
         parameters=[
             {
                 "use_sim_time": True,
-                "rgbd_cameras": 2,
                 "subscribe_depth": False,
                 "subscribe_rgbd": True,
                 "subscribe_rgb": False,
@@ -102,8 +83,7 @@ def generate_launch_description():
             rtabmap_params_file,
         ],
         remappings=[
-            ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/d455/rgbd_image"),
+            ("rgbd_image", "/d456/rgbd_image"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -156,7 +136,7 @@ def generate_launch_description():
                 "subscribe_rgbd": True,
             }
         ],
-        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
+        remappings=[("rgbd_image", "/d456/rgbd_image"), ("odom", "/rgbd_odom")],
         arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -239,7 +219,6 @@ def generate_launch_description():
     ld.add_action(declare_teleop)
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
-    ld.add_action(rgbd_sync2_node)
 
     ld.add_action(
         GroupAction(

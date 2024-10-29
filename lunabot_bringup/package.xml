@@ -19,6 +19,8 @@
   <depend>ros2_controllers</depend>
   <depend>gazebo_ros2_control</depend>
   <depend>xacro</depend>
+  <depend>rtabmap</depend>
+  <depend>rtabmap_ros</depend>
   <depend>lunabot_system</depend>
   <depend>lunabot_simulation</depend>
   <depend>lunabot_config</depend>

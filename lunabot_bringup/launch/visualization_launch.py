@@ -4,7 +4,6 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration
-from launch.conditions import LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
@@ -37,18 +36,13 @@ def generate_launch_description():
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
     
     urdf_simulation_file = os.path.join(
-        simulation_dir, "urdf", "robot", "simulation", "trencher_bot.xacro"
-    )
-
-    urdf_real_file = os.path.join(
-        simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro"
+        simulation_dir, "urdf", "robot", "rectangle_bot.xacro"
     )
 
     world_file = os.path.join(
         simulation_dir,
         "urdf",
         "worlds",
-        "high_resolution",
         "artemis",
         "artemis_arena.world",
     )
@@ -56,11 +50,6 @@ def generate_launch_description():
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
     robot_simulation_description = Command(["xacro ", urdf_simulation_file])
-    robot_real_description = Command(["xacro ", urdf_real_file])
-
-    declare_visualization_mode = DeclareLaunchArgument(
-        "visualization_mode", default_value="simulation", choices=["simulation", "real"]
-    )
 
     declare_orientation = DeclareLaunchArgument(
         "orientation",
@@ -147,38 +136,14 @@ def generate_launch_description():
         package="lunabot_simulation", executable="blade_joint_controller"
     )
 
-    robot_real_state_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[
-            {"robot_description": robot_real_description, "use_sim_time": False}
-        ],
-    )
-
-    joint_state_publisher_node = Node(
-        package="joint_state_publisher",
-        executable="joint_state_publisher",
-        parameters=[{"use_sim_time": False}],
-    )
-
-    joy_node = Node(
-        package="joy",
-        executable="joy_node",
-        name="joy_node",
-    )
-
     ld = LaunchDescription()
-
-    ld.add_action(declare_visualization_mode)
-    ld.add_action(declare_orientation)
-
-    ld.add_action(OpaqueFunction(function=set_orientation))
-    ld.add_action(rviz_launch)
 
     ld.add_action(
         GroupAction(
             actions=[
+                declare_orientation,
+                OpaqueFunction(function=set_orientation),
+                rviz_launch,
                 gazebo_launch,
                 spawn_robot_node,
                 robot_sim_state_publisher,
@@ -187,18 +152,6 @@ def generate_launch_description():
                 position_controller_spawner,
                 blade_joint_controller_node,
             ],
-            condition=LaunchConfigurationEquals("visualization_mode", "simulation"),
-        )
-    )
-
-    ld.add_action(
-        GroupAction(
-            actions=[
-                joy_node,
-                robot_real_state_publisher_node,
-                joint_state_publisher_node,
-            ],
-            condition=LaunchConfigurationEquals("visualization_mode", "real"),
         )
     )
 
