@@ -53,7 +53,7 @@ def generate_launch_description():
 
     declare_orientation = DeclareLaunchArgument(
         "orientation",
-        default_value="random",
+        default_value="east",
         choices=["north", "east", "south", "west", "random"],
     )
 
