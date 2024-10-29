@@ -55,7 +55,6 @@
             </script>
           </material>
         </visual>
-      </link>
       <collision name='lunar_surface_collision'>
         <geometry>
           <mesh>
@@ -72,6 +71,7 @@
           </friction>
         </surface>
       </collision>
+    </link>
     </model>
 
     <model name='arena_wall_long'>

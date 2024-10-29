@@ -80,7 +80,7 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-entity",
-            "square_bot",
+            "rectangle_bot",
             "-x",
             "2.5",
             "-y",
