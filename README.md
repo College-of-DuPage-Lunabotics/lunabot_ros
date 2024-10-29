@@ -2,7 +2,7 @@
 
 This repository contains the software developed by the College of DuPage team for the 2024-2025 NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04. 
 
-**This branch is for simulating the robot and only supports one camera. It is meant to run on computers with limited resources.**
+**This branch is for simulating the robot and only supports one camera. It is meant to run on computers with limited resources. Since it is using one camera instead of two, the view is very limited and it may have a harder time detecting obstacles, especially when driving in reverse.**
 
 ## Installation
 

@@ -18,7 +18,7 @@ rtabmap:
     RGBD/LoopClosureMaxDistance: "5.0"
     RGBD/LoopClosureReextractFeatures: "true"
     RGBD/MaxLoopClosureDistance: "0.15"
-    RGBD/NewMapOdomChangeDistance: "1.5"
+    RGBD/NewMapOdomChangeDistance: "0.4"
     RGBD/OdomVarianceGuess: "false"
     RGBD/OdomCorrection: "true"
     RGBD/ProximityOdomGuess: "false"
