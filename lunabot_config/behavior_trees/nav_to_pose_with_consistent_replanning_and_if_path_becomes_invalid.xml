@@ -9,7 +9,7 @@
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence>
         <RateController hz="1.0" name="RateControllerComputePathToPose">
-          <RecoveryNode number_of_retries="1" name="RecoveryComputePathToPose">
+          <RecoveryNode number_of_retries="5" name="RecoveryComputePathToPose">
             <Fallback name="FallbackComputePathToPose">
               <ReactiveSequence name="CheckIfNewPathNeeded">
                 <Inverter>
@@ -22,7 +22,7 @@
             <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
           </RecoveryNode>
         </RateController>
-        <RecoveryNode number_of_retries="1" name="RecoveryFollowPath">
+        <RecoveryNode number_of_retries="5" name="RecoveryFollowPath">
           <FollowPath path="{path}" controller_id="FollowPath"/>
           <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
         </RecoveryNode>

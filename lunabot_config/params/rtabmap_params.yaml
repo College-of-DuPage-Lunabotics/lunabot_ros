@@ -1,11 +1,11 @@
 rtabmap:
   ros__parameters:
-    Grid/CellSize: "0.02"
+    Grid/CellSize: "0.08"
     Grid/MaxGroundAngle: "10"
     Grid/Sensor: "2"
     Grid/RangeMin: "0.7"
     Grid/RangeMax: "6.0"
-    Grid/MaxObstacleHeight: "0.6"
+    Grid/MaxObstacleHeight: "1.0"
     Grid/RayTracing: "true"
     Reg/Force3DoF: "true"
     Reg/Strategy: "2"
@@ -18,7 +18,7 @@ rtabmap:
     RGBD/LoopClosureMaxDistance: "5.0"
     RGBD/LoopClosureReextractFeatures: "true"
     RGBD/MaxLoopClosureDistance: "0.15"
-    RGBD/NewMapOdomChangeDistance: "0.5"
+    RGBD/NewMapOdomChangeDistance: "1.5"
     RGBD/OdomVarianceGuess: "false"
     RGBD/OdomCorrection: "true"
     RGBD/ProximityOdomGuess: "false"

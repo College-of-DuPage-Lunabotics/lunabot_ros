@@ -82,31 +82,37 @@ controller_server:
     general_goal_checker:
       stateful: true
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.4
-      yaw_goal_tolerance: 1.5
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 2.0
     FollowPath:
-      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.25
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      angular_dist_threshold: 0.3
+      forward_sampling_distance: 0.5
+      rotate_to_heading_angular_vel: 0.8
+      max_angular_accel: 11.0
+      simulate_ahead_time: 10.0
+      desired_linear_vel: 0.2
       lookahead_dist: 0.75
       min_lookahead_dist: 0.3
       max_lookahead_dist: 0.75
       lookahead_time: 2.5
       transform_tolerance: 0.1
-      use_velocity_scaled_lookahead_dist: true
-      min_lookahead_dist: 0.25
+      use_velocity_scaled_lookahead_dist: false
+      min_approach_linear_velocity: 0.05
       approach_velocity_scaling_dist: 0.6
       use_collision_detection: false
-      max_allowed_time_to_collision_up_to_carrot: 1.0
+      max_allowed_time_to_collision_up_to_carrot: 2.0
+      use_regulated_linear_velocity_scaling: false
+      use_fixed_curvature_lookahead: false
+      curvature_lookahead_dist: 0.25
       use_cost_regulated_linear_velocity_scaling: false
-      regulated_linear_scaling_min_radius: 1.0
-      regulated_linear_scaling_min_speed: 0.05
-      use_fixed_curvature_lookahead: true
-      curvature_lookahead_dist: 0.2
+      regulated_linear_scaling_min_radius: 1.5
+      regulated_linear_scaling_min_speed: 0.25
       use_rotate_to_heading: false
       allow_reversing: true
       max_robot_pose_search_dist: 10.0
       use_interpolation: false
-
 
 global_costmap:
   global_costmap:
@@ -116,7 +122,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: true
-      footprint: "[ [0.3, 0.3], [0.3, 0.2], [0.45, 0.2], [0.45, -0.2], [0.3, -0.2], [0.3, -0.3], [-0.6, -0.3], [-0.6, 0.3] ]"
+      footprint: "[ [0.3, 0.3], [0.3, -0.3], [-0.6, -0.3], [-0.6, 0.3] ]"
       resolution: 0.01
       plugins: ["static_layer", "obstacle_layer", "voxel_layer", "denoise_layer", "inflation_layer"]
       obstacle_layer:
@@ -195,7 +201,7 @@ local_costmap:
       width: 5
       height: 5
       resolution: 0.01
-      footprint: "[ [0.25, 0.3], [0.25, 0.2], [0.45, 0.2], [0.45, -0.2], [0.25, -0.2], [0.25, -0.3], [-0.65, -0.3], [-0.65, 0.3] ]"
+      footprint: "[ [0.3, 0.3], [0.3, -0.3], [-0.6, -0.3], [-0.6, 0.3] ]"
       plugins: ["inflation_layer", "static_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"

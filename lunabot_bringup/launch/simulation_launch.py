@@ -70,7 +70,7 @@ def generate_launch_description():
                 "frame_id": "base_link",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
-                "publish_tf": True,
+                "publish_tf": False,
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
@@ -89,55 +89,20 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    icp_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="icp_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "Reg/Strategy": "1",
-                "Odom/Strategy": "0",
-                "Odom/FilteringStrategy": "1",
-                "Odom/KalmanProcessNoise": "0.001",
-                "Odom/KalmanMeasurementNoise": "0.01",
-                "Odom/GuessMotion": "true",
-                "Odom/GuessSmoothingDelay": "0.1",
-                "Icp/VoxelSize": "0.02",
-                "Icp/PointToPlane": "true",
-                "Icp/PointToPlaneRadius": "0.0",
-                "Icp/PointToPlaneK": "20",
-                "Icp/CorrespondenceRatio": "0.3",
-                "Icp/PMOutlierRatio": "0.65",
-                "Icp/Epsilon": "0.0013",
-                "Icp/MaxCorrespondenceDistance": "0.05",
-            }
-        ],
-        remappings=[
-            ("scan", "/scan"),
-            ("odom", "/icp_odom"),
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    rgbd_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="rgbd_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "subscribe_rgbd": True,
-            }
-        ],
-        remappings=[("rgbd_image", "/d456/rgbd_image"), ("odom", "/rgbd_odom")],
-        arguments=["--ros-args", "--log-level", "error"],
+    rf2o_odometry_node = Node(
+                package='rf2o_laser_odometry',
+                executable='rf2o_laser_odometry_node',
+                name='rf2o_laser_odometry',
+                output='screen',
+                parameters=[{
+                    'laser_scan_topic' : '/scan',
+                    'odom_topic' : '/rf2o_odom',
+                    'publish_tf' : False,
+                    'base_frame_id' : 'base_link',
+                    'odom_frame_id' : 'odom',
+                    'init_pose_from_topic' : '',
+                    'freq' : 20.0}],
+                arguments=["--ros-args", "--log-level", "error"],
     )
 
     ekf_node = Node(
@@ -213,12 +178,20 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("teleop", "keyboard"),
     )
 
+    map_to_odom_tf = Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="map_to_odom_tf",
+            arguments=["0", "0", "0", "0", "0", "0", "map", "odom"]
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(declare_mode)
     ld.add_action(declare_teleop)
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
+    ld.add_action(map_to_odom_tf)
 
     ld.add_action(
         GroupAction(
@@ -226,8 +199,7 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
-                        rgbd_odometry_node,
-                        icp_odometry_node,
+                        rf2o_odometry_node,
                         ekf_node,
                     ],
                 ),
@@ -264,8 +236,7 @@ def generate_launch_description():
                 TimerAction(
                     period=50.0,
                     actions=[
-                        rgbd_odometry_node,
-                        icp_odometry_node,
+                        rf2o_odometry_node,
                         ekf_node,
                         slam_node,
                     ],

@@ -2,7 +2,7 @@
 
 This repository contains the software developed by the College of DuPage team for the 2024-2025 NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04. 
 
-**This branch is for simulating the robot only and only supports one camera. It is meant to run on computers with limited resources.**
+**This branch is for simulating the robot and only supports one camera. It is meant to run on computers with limited resources.**
 
 ## Installation
 
@@ -24,7 +24,7 @@ This will permanently append these two lines to your .bashrc file, so there is n
 ```bash
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
-git clone -b lightweight https://github.com/grayson-arendt/Lunabotics-2025.git
+git clone --recursive -b lightweight https://github.com/grayson-arendt/Lunabotics-2025.git
 ```
 
 #### 3. Install dependencies
@@ -92,15 +92,13 @@ ros2 launch lunabot_bringup simulation_launch.py # teleop:=xbox (for Xbox contro
 
 **lunabot_config**: This package contains configuration files for Navigation2 behavior trees, RViz2 settings, and various 
 - **behavior_trees**
-  - **navigate_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
+  - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
   - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Navigation2 to only replan when path becomes invalid to prevent Navigation2 from repeatedly alternating between ambiguous paths.
 - **params**
   - **ekf_params.yaml**: Parameters for robot_localization Extended Kalman Filter (EKF) node.
-  - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
-  - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
+  - **gazebo_controller_params.yaml**: Parameters for robot joint controllers in the Gazebo simulation.
   - **nav2_rectangle_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the rectangular bulldozer bot.
   - **nav2_square_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the square bulldozer bot.
-  - **nav2_trencher_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the trencher robot.
   - **rtabmap_params.yaml**: Parameters for configuring RTAB-Map.
 - **rviz**
   - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
@@ -117,7 +115,6 @@ ros2 launch lunabot_bringup simulation_launch.py # teleop:=xbox (for Xbox contro
   - **robot**
       - **rectangle_bot.xacro**: URDF description of a low resolution simulated rectangular bulldozer robot.
       - **square_bot.xacro**: URDF description of a low resolution simulated square bulldozer robot.
-      - **trencher_bot.xacro**: URDF description of a high resolution simulated robot that utilizes a trencher digging mechanism.
   - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
       - **artemis**: Contains world files simulating the Artemis arena.
         - **artemis_arena.world**
@@ -133,6 +130,7 @@ ros2 launch lunabot_bringup simulation_launch.py # teleop:=xbox (for Xbox contro
     - **localization_server.cpp**: Server responsible for handling localization with AprilTags.
     - **navigation_client.cpp**: Receives localization response and sends navigation goals and triggers robot behaviors when goals are reached.
 
+**lunabot_third_party**: This folder contains third party packages.
 
 **scripts**: This folder contains setup scripts.
 - **install_dependencies.sh**: Script to install required dependencies.
