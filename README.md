@@ -269,7 +269,6 @@ ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonom
   - **utils**
     - **hardware_monitor.cpp**: Monitors hardware topics and outputs error messages if sensor data is not received.
     - **imu_rotator.cpp**: Processes and rotates IMU data into the East-North-Up (ENU) frame.
-    - 
 **lunabot_third_party** This folder contains third party packages.
 
 **scripts**: This folder contains various setup and utility scripts.
