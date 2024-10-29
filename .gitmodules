@@ -6,3 +6,6 @@
 	path = lunabot_third_party/rtabmap_ros
 	url = https://github.com/introlab/rtabmap_ros.git
 	branch = humble-devel
+[submodule "lunabot_third_party/rf2o_laser_odometry"]
+	path = lunabot_third_party/rf2o_laser_odometry
+	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git
