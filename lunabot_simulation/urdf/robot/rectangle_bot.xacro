@@ -211,7 +211,7 @@
   <joint name="base_lidar_joint" type="fixed">
     <parent link="base_link" />
     <child link="lidar_link" />
-    <origin xyz="-0.0925 0 0.405" rpy="0 0 0" />
+    <origin xyz="-0.075 0 0.575" rpy="0 0 0" />
   </joint>
 
   <joint name="base_blade_joint" type="revolute">
@@ -226,7 +226,7 @@
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
-    <origin xyz="-0.05 0 0.355" rpy="0 0.523599 0" />
+    <origin xyz="-0.04 0 0.525" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="d456_optical_joint" type="fixed">
