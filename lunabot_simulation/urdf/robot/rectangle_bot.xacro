@@ -26,14 +26,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot.stl" />
+        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 0" />
       <material name="light_grey" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot.stl" />
+        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.085" rpy="0 0 0" />
     </collision>
