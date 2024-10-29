@@ -5,12 +5,6 @@ Panels:
       Expanded:
         - /Global Options1
     Tree Height: 606
-  - Class: rviz_common/Selection
-    Name: Selection
-  - Class: rviz_common/Tool Properties
-    Name: Tool Properties
-  - Class: rviz_common/Views
-    Name: Views
   - Class: nav2_rviz_plugins/Navigation 2
     Name: Navigation 2
 
@@ -56,23 +50,10 @@ Visualization Manager:
       Size (Pixels): 3
       Style: Points
 
-    - Class: rviz_default_plugins/LaserScan
-      Enabled: true
-      Name: Lidar Scan
-      Topic: /scan
-      Color Transformer: Intensity
-      Size (Pixels): 3
-      Style: Points
-
     - Class: rviz_default_plugins/Map
       Enabled: true
       Name: Map
       Topic: /map
-
-    - Class: rviz_default_plugins/Image
-      Enabled: true
-      Name: D455 Image
-      Topic: /d455/color/image_raw
 
     - Class: rviz_default_plugins/Image
       Enabled: true
