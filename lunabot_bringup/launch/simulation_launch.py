@@ -3,34 +3,52 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.conditions import LaunchConfigurationEquals
+from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    SetLaunchConfiguration,
     TimerAction,
     GroupAction,
     ExecuteProcess,
+    OpaqueFunction,
 )
 
+def set_nav2_params(context, *args, **kwargs):
+    config_dir = get_package_share_directory("lunabot_config")
+    robot_type = context.launch_configurations.get("robot_type")
+
+    nav2_params_file = os.path.join(config_dir, "params", f"nav2_{robot_type}_bot_params.yaml")
+    return [SetLaunchConfiguration("nav2_params_file", nav2_params_file)]
 
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
-    nav2_params_file = os.path.join(
-        config_dir, "params", "nav2_trencher_bot_params.yaml"
+    declare_robot_mode = DeclareLaunchArgument(
+        "robot_mode",
+        default_value="manual",
+        choices=["manual", "autonomous"],
+        description="Select 'manual' for teleoperated mode or 'autonomous' for autonomous mode."
     )
-    
+
+    declare_teleop_mode = DeclareLaunchArgument(
+        "teleop_mode",
+        default_value="keyboard",
+        choices=["keyboard", "xbox"],
+        description="Choose the teleoperation mode: 'keyboard' for keyboard control or 'xbox' for Xbox controller."
+    )
+
+    declare_robot_type = DeclareLaunchArgument(
+        "robot_type",
+        default_value="rectangle",
+        choices=["rectangle", "square", "trencher"],
+        description="Specify the type of robot to launch: 'rectangle', 'square', or 'trencher'. Each option loads the respective robot configuration."
+    )
+
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
     ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
-
-    declare_mode = DeclareLaunchArgument(
-        "mode", default_value="manual", choices=["manual", "autonomous"]
-    )
-
-    declare_teleop = DeclareLaunchArgument(
-        "teleop", default_value="keyboard", choices=["keyboard", "xbox"]
-    )
 
     topic_remapper_node = Node(
         package="lunabot_simulation", executable="topic_remapper"
@@ -89,7 +107,7 @@ def generate_launch_description():
                 "frame_id": "base_link",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
-                "publish_tf": True,
+                "publish_tf": False,
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
@@ -109,55 +127,20 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    icp_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="icp_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "Reg/Strategy": "1",
-                "Odom/Strategy": "0",
-                "Odom/FilteringStrategy": "1",
-                "Odom/KalmanProcessNoise": "0.001",
-                "Odom/KalmanMeasurementNoise": "0.01",
-                "Odom/GuessMotion": "true",
-                "Odom/GuessSmoothingDelay": "0.1",
-                "Icp/VoxelSize": "0.02",
-                "Icp/PointToPlane": "true",
-                "Icp/PointToPlaneRadius": "0.0",
-                "Icp/PointToPlaneK": "20",
-                "Icp/CorrespondenceRatio": "0.3",
-                "Icp/PMOutlierRatio": "0.65",
-                "Icp/Epsilon": "0.0013",
-                "Icp/MaxCorrespondenceDistance": "0.05",
-            }
-        ],
-        remappings=[
-            ("scan", "/scan"),
-            ("odom", "/icp_odom"),
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    rgbd_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="rgbd_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "subscribe_rgbd": True,
-            }
-        ],
-        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
-        arguments=["--ros-args", "--log-level", "error"],
+    rf2o_odometry_node = Node(
+                package='rf2o_laser_odometry',
+                executable='rf2o_laser_odometry_node',
+                name='rf2o_laser_odometry',
+                output='screen',
+                parameters=[{
+                    'laser_scan_topic' : '/scan',
+                    'odom_topic' : '/rf2o_odom',
+                    'publish_tf' : True,
+                    'base_frame_id' : 'base_link',
+                    'odom_frame_id' : 'odom',
+                    'init_pose_from_topic' : '',
+                    'freq' : 30.0}],
+                arguments=["--ros-args", "--log-level", "error"],
     )
 
     ekf_node = Node(
@@ -193,7 +176,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "use_sim_time": "true",
-            "params_file": nav2_params_file,
+            "params_file": LaunchConfiguration("nav2_params_file"),
         }.items(),
     )
 
@@ -201,7 +184,7 @@ def generate_launch_description():
         package="joy",
         executable="joy_node",
         name="joy_node",
-        condition=LaunchConfigurationEquals("teleop", "xbox"),
+        condition=LaunchConfigurationEquals("teleop_mode", "xbox"),
     )
 
     teleop_twist_joy_node = Node(
@@ -218,7 +201,7 @@ def generate_launch_description():
                 "scale_angular_turbo.yaw": 1.5,
             }
         ],
-        condition=LaunchConfigurationEquals("teleop", "xbox"),
+        condition=LaunchConfigurationEquals("teleop_mode", "xbox"),
     )
 
     keyboard_teleop_node = ExecuteProcess(
@@ -230,16 +213,26 @@ def generate_launch_description():
             "ros2 run lunabot_simulation keyboard_teleop.py; exit",
         ],
         output="screen",
-        condition=LaunchConfigurationEquals("teleop", "keyboard"),
+        condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
+    )
+
+    map_to_odom_tf = Node(
+            package="tf2_ros",
+            executable="static_transform_publisher",
+            name="map_to_odom_tf",
+            arguments=["0", "0", "0", "0", "0", "0", "map", "odom"]
     )
 
     ld = LaunchDescription()
 
-    ld.add_action(declare_mode)
-    ld.add_action(declare_teleop)
+    ld.add_action(declare_robot_mode)
+    ld.add_action(declare_teleop_mode)
+    ld.add_action(declare_robot_type)
+    ld.add_action(OpaqueFunction(function=set_nav2_params))
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
+    ld.add_action(map_to_odom_tf)
 
     ld.add_action(
         GroupAction(
@@ -247,8 +240,7 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
-                        rgbd_odometry_node,
-                        icp_odometry_node,
+                        rf2o_odometry_node,
                         ekf_node,
                     ],
                 ),
@@ -268,7 +260,7 @@ def generate_launch_description():
                 teleop_twist_joy_node,
                 keyboard_teleop_node,
             ],
-            condition=LaunchConfigurationEquals("mode", "manual"),
+            condition=LaunchConfigurationEquals("robot_mode", "manual"),
         )
     )
 
@@ -285,8 +277,7 @@ def generate_launch_description():
                 TimerAction(
                     period=50.0,
                     actions=[
-                        rgbd_odometry_node,
-                        icp_odometry_node,
+                        rf2o_odometry_node,
                         ekf_node,
                         slam_node,
                     ],
@@ -298,7 +289,7 @@ def generate_launch_description():
                     ],
                 ),
             ],
-            condition=LaunchConfigurationEquals("mode", "autonomous"),
+            condition=LaunchConfigurationEquals("robot_mode", "autonomous"),
         )
     )
 

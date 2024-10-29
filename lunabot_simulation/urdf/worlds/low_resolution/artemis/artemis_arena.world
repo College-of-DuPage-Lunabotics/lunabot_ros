@@ -37,9 +37,9 @@
     <gravity>0 0 -9.81</gravity>
 
     <model name='lunar_surface'>
-      <link name='link'>
-        <pose>0 0 0 0 0 0</pose>
-        <static>1</static>
+      <pose>0 0 0 0 0 0</pose>
+      <static>1</static>
+      <link name='lunar_surface_link'>
         <visual name='lunar_surface'>
           <geometry>
             <mesh>
@@ -55,40 +55,40 @@
             </script>
           </material>
         </visual>
+        <collision name='lunar_surface_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://lunar_surface/lunar_surface.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.8</mu>
+                <mu2>0.8</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
       </link>
-      <collision name='lunar_surface_collision'>
-        <geometry>
-          <mesh>
-            <uri>model://lunar_surface/lunar_surface.stl</uri>
-            <scale>1 1 1</scale>
-          </mesh>
-        </geometry>
-        <surface>
-          <friction>
-            <ode>
-              <mu>0.8</mu>
-              <mu2>0.8</mu2>
-            </ode>
-          </friction>
-        </surface>
-      </collision>
     </model>
 
     <model name='arena_wall_long'>
-      <link name='link'>
-        <pose>0 -2.55 0.1 0 0 0</pose>
-        <static>1</static>
+      <pose>0 -2.68 0.1 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_wall_long_link'>
         <visual name='arena_wall_long'>
           <geometry>
             <box>
-              <size>7.08 0.1 1.0</size>
+              <size>7.42 0.1 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_long_collision'>
           <geometry>
             <box>
-              <size>7.08 0.1 1.0</size>
+              <size>7.42 0.1 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -104,20 +104,20 @@
     </model>
 
     <model name='arena_wall_long_2'>
-      <link name='link'>
-        <pose>0 2.55 0.1 0 0 0</pose>
-        <static>1</static>
+      <pose>0 2.68 0.1 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_wall_long_2_link'>
         <visual name='arena_wall_long_2'>
           <geometry>
             <box>
-              <size>7.08 0.1 1.0</size>
+              <size>7.42 0.1 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_long_2_collision'>
           <geometry>
             <box>
-              <size>7.08 0.1 1.0</size>
+              <size>7.42 0.1 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -133,20 +133,20 @@
     </model>
 
     <model name='arena_wall_short'>
-      <link name='link'>
-        <pose>3.49 0 0.1 0 0 0</pose>
-        <static>1</static>
+      <pose>3.66 0 0.1 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_wall_short_link'>
         <visual name='arena_wall_short'>
           <geometry>
             <box>
-              <size>0.1 5 1.0</size>
+              <size>0.1 5.17 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_short_collision'>
           <geometry>
             <box>
-              <size>0.1 5 1.0</size>
+              <size>0.1 5.17 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -162,20 +162,20 @@
     </model>
 
     <model name='arena_wall_short_2'>
-      <link name='link'>
-        <pose>-3.49 0 0.1 0 0 0</pose>
-        <static>1</static>
+      <pose>-3.66 0 0.1 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_wall_short_2_link'>
         <visual name='arena_wall_short_2'>
           <geometry>
             <box>
-              <size>0.1 5 1.0</size>
+              <size>0.1 5.17 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_short_2_collision'>
           <geometry>
             <box>
-              <size>0.1 5 1.0</size>
+              <size>0.1 5.17 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -191,13 +191,13 @@
     </model>
 
     <model name='arena_glass_short'>
-      <link name='link'>
-        <pose>3.49 0 1.6 0 0 0</pose>
-        <static>1</static>
+      <pose>3.66 0 1.85 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_glass_short_link'>
         <visual name='arena_glass_short'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.17 2.0</size>
             </box>
           </geometry>
           <material>
@@ -226,13 +226,13 @@
     </model>
 
     <model name='arena_glass_short_2'>
-      <link name='link'>
+      <pose>-3.66 0 1.85 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_glass_short_2_link'>
         <visual name='arena_glass_short_2'>
-          <pose>-3.49 0 1.6 0 0 0</pose>
-          <static>1</static>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.17 2.0</size>
             </box>
           </geometry>
           <material>
@@ -245,7 +245,7 @@
         <collision name='arena_glass_short_2_collision'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.17 2.0</size>
             </box>
           </geometry>
           <surface>
@@ -261,13 +261,13 @@
     </model>
 
     <model name='arena_glass_long'>
-      <link name='link'>
-        <pose>0 2.55 1.6 0 0 0</pose>
-        <static>1</static>
+      <pose>0 2.68 1.85 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_glass_long_link'>
         <visual name='arena_glass_long'>
           <geometry>
             <box>
-              <size>7.08 0.1 2</size>
+              <size>7.42 0.1 2</size>
             </box>
           </geometry>
           <material>
@@ -280,7 +280,7 @@
         <collision name='arena_glass_long_collision'>
           <geometry>
             <box>
-              <size>7.08 0.1 2</size>
+              <size>7.42 0.1 2</size>
             </box>
           </geometry>
           <surface>
@@ -296,13 +296,13 @@
     </model>
 
     <model name='arena_glass_long_2'>
-      <link name='link'>
-        <pose>0 -2.55 1.6 0 0 0</pose>
-        <static>1</static>
+      <pose>0 -2.68 1.85 0 0 0</pose>
+      <static>1</static>
+      <link name='arena_glass_long_2_link'>
         <visual name='arena_wall_short_2'>
           <geometry>
             <box>
-              <size>7.08 0.1 2</size>
+              <size>7.42 0.1 2</size>
             </box>
           </geometry>
           <material>
@@ -315,7 +315,7 @@
         <collision name='arena_wall_short_2_collision'>
           <geometry>
             <box>
-              <size>7.08 0.1 2</size>
+              <size>7.42 0.1 2</size>
             </box>
           </geometry>
           <surface>
@@ -331,9 +331,9 @@
     </model>
 
     <model name='column'>
-      <link name='link'>
-        <pose>0 0 -0.02 0 0 0</pose>
-        <static>1</static>
+      <pose>0 0 -0.02 0 0 0</pose>
+      <static>1</static>
+      <link name='column_link'>
         <visual name='column'>
           <geometry>
             <mesh>
@@ -362,10 +362,10 @@
     </model>
 
     <model name='rock_rough'>
-      <link name='link'>
-        <pose>-2.01943 -0.546468 0.05 0 0 -2.17367</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
+      <pose>-2.01943 -0.546468 0.05 0 0 -2.17367</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
+      <link name='rock_rough_link'>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -413,10 +413,10 @@
     </model>
 
     <model name='rock_rough_2'>
-      <link name='link'>
-        <pose>0.93 -1.84 0.05 0 0 -0.62</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
+      <pose>0.93 -1.84 0.05 0 0 -0.62</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
+      <link name='rock_rough_2_link'>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -456,10 +456,10 @@
     </model>
 
     <model name='rock_round'>
-      <link name='link'>
-        <pose>1.32307 0.270163 0.05 0 0 0.846674</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
+      <pose>1.32307 0.270163 0.05 0 0 0.846674</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
+      <link name='rock_round_link'>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -499,10 +499,10 @@
     </model>
 
     <model name='rock_round_2'>
-      <link name='link'>
-        <pose>0.56 -0.39 0.05 0 0 -0.80</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
+      <pose>0.56 -0.39 0.05 0 0 -0.80</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
+      <link name='rock_round_2_link'>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -542,10 +542,10 @@
     </model>
 
     <model name='rock_round_3'>
-      <link name='link'>
-        <pose>1.25 -1.0 0.05 0 0 2.55</pose>
-        <self_collide>1</self_collide>
-        <static>0</static>
+      <pose>1.25 -1.0 0.05 0 0 2.5</pose>
+      <self_collide>1</self_collide>
+      <static>0</static>
+      <link name='rock_round_3_link'>
         <inertial>
           <mass>5.0</mass>
           <inertia>
@@ -585,8 +585,9 @@
     </model>
 
     <model name='tag_36_11_00007'>
-      <link name='link'>
-        <pose>3.4 1.5 0.55 0 -1.58 0</pose>
+      <pose>3.4 1.5 0.55 0 -1.58 0</pose>
+      <static>1</static>
+      <link name='tag_36_11_00007_link'>
         <visual name='tag_36_11_00007'>
           <geometry>
             <box>
@@ -609,7 +610,6 @@
           </geometry>
         </collision>
       </link>
-      <static>1</static>
     </model>
   </world>
 </sdf>

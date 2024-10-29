@@ -4,8 +4,9 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration
-from launch.conditions import LaunchConfigurationEquals
+from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
@@ -14,11 +15,10 @@ from launch.actions import (
     GroupAction,
 )
 
-
 def set_orientation(context, *args, **kwargs):
     orientations = {"north": -1.5708, "east": 3.1416, "south": -1.5708, "west": 0.0}
     random_orientation = random.choice(list(orientations.values()))
-    chosen_orientation = context.launch_configurations.get("orientation")
+    chosen_orientation = context.launch_configurations.get("robot_orientation")
 
     if chosen_orientation == "random":
         return [SetLaunchConfiguration("robot_orientation", str(random_orientation))]
@@ -29,43 +29,60 @@ def set_orientation(context, *args, **kwargs):
             )
         ]
 
+def set_robot_description(context, *args, **kwargs):
+    robot_type = context.launch_configurations.get("robot_type")
+    simulation_dir = get_package_share_directory("lunabot_simulation")
+    
+    urdf_files = {
+        "rectangle": os.path.join(simulation_dir, "urdf", "robot", "simulation", "rectangle_bot.xacro"),
+        "square": os.path.join(simulation_dir, "urdf", "robot", "simulation", "square_bot.xacro"),
+        "trencher": os.path.join(simulation_dir, "urdf", "robot", "simulation", "trencher_bot.xacro")
+    }
+    
+    urdf_file = urdf_files.get(robot_type)
+    return [SetLaunchConfiguration("robot_simulation_description", Command(["xacro ", urdf_file]))]
 
 def generate_launch_description():
     simulation_dir = get_package_share_directory("lunabot_simulation")
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    
-    urdf_simulation_file = os.path.join(
-        simulation_dir, "urdf", "robot", "simulation", "trencher_bot.xacro"
+    urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro")
+    world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena.world")
+
+    declare_robot_type = DeclareLaunchArgument(
+        "robot_type",
+        default_value="rectangle",
+        choices=["rectangle", "square", "trencher"],
+        description="Defines the robot configuration to use: 'rectangle', 'square', or 'trencher', each with unique characteristics and capabilities."
     )
-
-    urdf_real_file = os.path.join(
-        simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro"
-    )
-
-    world_file = os.path.join(
-        simulation_dir,
-        "urdf",
-        "worlds",
-        "high_resolution",
-        "artemis",
-        "artemis_arena.world",
-    )
-
-    rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-
-    robot_simulation_description = Command(["xacro ", urdf_simulation_file])
-    robot_real_description = Command(["xacro ", urdf_real_file])
 
     declare_visualization_mode = DeclareLaunchArgument(
-        "visualization_mode", default_value="simulation", choices=["simulation", "real"]
+        "visualization_mode",
+        default_value="simulation",
+        choices=["simulation", "real"],
+        description="Selects the visualization context: 'simulation' for a simulated environment or 'real' for real-world robot visualization."
     )
 
-    declare_orientation = DeclareLaunchArgument(
-        "orientation",
-        default_value="random",
+    declare_robot_orientation = DeclareLaunchArgument(
+        "robot_orientation",
+        default_value="east",
         choices=["north", "east", "south", "west", "random"],
+        description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation."
+    )
+
+    declare_visualization_type = DeclareLaunchArgument(
+        "visualization_type",
+        default_value="rviz",
+        choices=["rviz", "foxglove"],
+        description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio."
+    )
+
+    declare_gazebo_gui = DeclareLaunchArgument(
+        "gazebo_gui",
+        default_value="true",
+        choices=["true", "false"],
+        description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode."
     )
 
     rviz_launch = Node(
@@ -73,6 +90,16 @@ def generate_launch_description():
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
+        condition=LaunchConfigurationEquals("visualization_type", "rviz"),
+    )
+
+    foxglove_bridge_launch = IncludeLaunchDescription(
+        XMLLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("foxglove_bridge"), "launch", "foxglove_bridge_launch.xml"
+            )
+        ),
+        condition=LaunchConfigurationEquals("visualization_type", "foxglove"),
     )
 
     gazebo_launch = IncludeLaunchDescription(
@@ -81,8 +108,12 @@ def generate_launch_description():
                 get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
             )
         ),
-        launch_arguments={"world": world_file}.items(),
+        launch_arguments={
+            "gui": LaunchConfiguration("gazebo_gui"),
+            "world": world_file,
+        }.items(),
     )
+
 
     spawn_robot_node = Node(
         package="gazebo_ros",
@@ -91,7 +122,7 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-entity",
-            "square_bot",
+            LaunchConfiguration("robot_type"),
             "-x",
             "2.5",
             "-y",
@@ -109,7 +140,7 @@ def generate_launch_description():
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": robot_simulation_description, "use_sim_time": True}
+            {"robot_description": LaunchConfiguration("robot_simulation_description"), "use_sim_time": True}
         ],
     )
 
@@ -123,6 +154,23 @@ def generate_launch_description():
         ],
     )
 
+    position_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "position_controller",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
+    )
+
+    blade_joint_controller_node = Node(
+        package="lunabot_simulation",
+        executable="blade_joint_controller",
+        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
+    )
+
     diff_drive_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -133,26 +181,12 @@ def generate_launch_description():
         ],
     )
 
-    position_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "position_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    blade_joint_controller_node = Node(
-        package="lunabot_simulation", executable="blade_joint_controller"
-    )
-
     robot_real_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": robot_real_description, "use_sim_time": False}
+            {"robot_description": Command(["xacro ", urdf_real_file]), "use_sim_time": False}
         ],
     )
 
@@ -170,11 +204,17 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
+    ld.add_action(declare_robot_type)
     ld.add_action(declare_visualization_mode)
-    ld.add_action(declare_orientation)
+    ld.add_action(declare_robot_orientation)
+    ld.add_action(declare_visualization_type)
+    ld.add_action(declare_gazebo_gui)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
+    ld.add_action(OpaqueFunction(function=set_robot_description))
+
     ld.add_action(rviz_launch)
+    ld.add_action(foxglove_bridge_launch)
 
     ld.add_action(
         GroupAction(
@@ -191,6 +231,7 @@ def generate_launch_description():
         )
     )
 
+    # Real mode group
     ld.add_action(
         GroupAction(
             actions=[

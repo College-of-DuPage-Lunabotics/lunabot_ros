@@ -54,7 +54,15 @@ chmod +x install_dependencies.sh
 ./install_dependencies.sh
 ```
 
-#### 4. Build the workspace
+#### (Optional) 4. Install Foxglove Studio
+
+If you would prefer to use Foxglove Studio instead of RViz2 to visualize the robot, you can install it with:
+```bash
+sudo snap install foxglove-studio
+```
+
+
+#### 5. Build the workspace
 
 Building may take some time due to the external packages in `lunabot_third_party`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
 
@@ -75,9 +83,10 @@ export MAKEFLAGS="-j1" # Modify number as needed
 Next, rebuild using the same commands in step **4. Build the workspace**.
 
 ## Simulating the Robot
-**Note: The side of the robot without the bulldozer blade is considered the front of the robot, as the camera is able to see obstacles better on that side. Therefore, controls may seem reversed but it is intentional.**
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `visualization_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
 
-There are two modes for simulating the robot: **manual** and **autonomous**. 
+
+There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
 ##### Manual Mode
 This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Navigation2 and RTAB-Map, but does not launch the `localization_server` or `navigation_client`. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2.
@@ -93,21 +102,28 @@ source install/setup.bash
 ```
 #### Open separate terminal windows and source the workspace setup for each next step:
 
-#### 2. Visualize with RViz2
+#### 2. Launch visualization
 
 ```bash
-ros2 launch lunabot_bringup visualization_launch.py # orientation:=north (to specify a starting orientation in Gazebo: north, south, east, west, or random)
+ros2 launch lunabot_bringup visualization_launch.py 
 ```
 
-#### 3. Launch simulation
+#### 3. Launch mapping and navigation
 
 ```bash
-ros2 launch lunabot_bringup simulation_launch.py # teleop:=xbox (for Xbox controller) mode:=autonomous (to run in autonomous mode)
+ros2 launch lunabot_bringup simulation_launch.py 
 ```
 
+##### RViz2
 <p align="center">
-  <img src="demo.png">
+  <img src="demo_rviz.png">
 </p>
+
+##### Foxglove Studio 
+<p align="center">
+  <img src="demo_foxglove.png">
+</p>
+
 
 ## Running the Physical Robot
 
@@ -206,20 +222,88 @@ ros2 launch lunabot_bringup visualization_launch.py visualization_mode:=real
 ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonomous mode)
 ```
 
+### Parameters
+
+#### visualization_launch.py
+`robot_type`: Specifies the robot model to visualize.
+  - Options:
+    - `rectangle`: Visualizes the rectangular bulldozer robot. **(Default)**
+    - `square`: Visualizes the square bulldozer robot.
+    - `trencher`: Visualizes the trencher robot.
+
+Example: `robot_type:=square`
+
+`robot_orientation`: Sets the initial orientation of the robot in Gazebo.
+  - Options:
+    - `north`: Points the robot north.
+    - `south`: Points the robot south.
+    - `east`: Points the robot east. **(Default)**
+    - `west`: Points the robot west.
+    - `random`: Assigns a random orientation.
+
+Example: `orientation:=random`
+
+`visualization_mode`: Specifies whether to launch Gazebo or not.
+  - Options:
+    - `simulation`: Launches simulated robot in Gazebo. **(Default)**
+    - `real`: Only launches RViz2 or Foxglove Studio instead of Gazebo, will receive data from real hardware.
+
+Example: `visualization_mode:=real`
+
+`visualization_type`: Choose between RViz2 or Foxglove Studio for visualization.
+- Options:
+  - `rviz`: Opens visualization in RViz2. **(Default)**
+  - `foxglove`: Launches Foxglove bridge to allow for connecting in the Foxglove Studio app.
+
+Example: `visualization_type:=foxglove`
+
+`gazebo_gui`: Enables or disables the Gazebo GUI.
+- Options:
+  - `true`: Runs Gazebo with its GUI. **(Default)**
+  - `false`: Runs Gazebo in headless mode, may be useful if your computer has limited resources.
+
+Example: `gazebo_gui:=false`
+
+
+#### simulation_launch.py
+
+`robot_type`: Defines which robot model parameters to use for Navigation2.
+  - Options:
+    - `rectangle`: Defines parameters for the rectangular bulldozer robot. **(Default)**
+    - `square`: Defines parameters the square bulldozer robot.
+    - `trencher`: Defines parameters the trencher robot.
+
+Example: `robot_type:=trencher`
+
+`robot_mode`: Selects the mode of operation.
+  - Options:
+    - `manual`: Runs the robot in manual mode. **(Default)**
+    - `autonomous`: Runs the robot in autonomous mode.
+Example: `robot_mode:=autonomous`
+
+`teleop_mode` : Chooses the teleoperation method.
+  - Options:
+    - `keyboard`: Uses keyboard for teleoperation. **(Default)**
+    - `xbox`: Uses Xbox controller for teleoperation.
+
+Example: `teleop_mode:=xbox`
+
+
 ## Project Structure
 
 **lunabot_bringup**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
 - **launch**
   - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
   - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-  - **visualization_launch.py**: Launches RViz2 and Gazebo to visualize the robot and its sensor data.
+  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
 **lunabot_config**: This package contains configuration files for Navigation2 behavior trees, RViz2 settings, and various 
 - **behavior_trees**
-  - **navigate_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
+  - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
   - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Navigation2 to only replan when path becomes invalid to prevent Navigation2 from repeatedly alternating between ambiguous paths.
 - **params**
-  - **gazebo_params.yaml**: Parameters for joint controllers in the Gazebo simulation.
+  - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
+  - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
   - **nav2_real_bot_params.yaml**: Parameters for configuring Navigation2 when running on the physical robot.
   - **nav2_rectangle_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the prototype rectangle bot.
   - **nav2_square_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the prototype square bot.
@@ -228,7 +312,7 @@ ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonom
   - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
 
 **lunabot_simulation**: This package contains assets and code for simulating the robot in Gazebo.
-- **meshes**: Contains the 3D models used to visualize the robot in Gazebo and RViz2.
+
 - **models**: Contains environmental models for the Gazebo simulation.
 - **src**
   - **teleop**: Contains teleop scripts.
@@ -240,22 +324,22 @@ ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonom
   - **robot**
     - **real**
       - **trencher_bot.xacro**: URDF description of a high resolution real robot that utilizes a trencher digging mechanism.
-    - simulation**
+    - **simulation**
       - **realistic_rectangle_bot.xacro**: URDF description of a high resolution simulated rectangular bulldozer robot.
       - **rectangle_bot.xacro**: URDF description of a low resolution simulated rectangular bulldozer robot.
       - **square_bot.xacro**: URDF description of a low resolution simulated square bulldozer robot.
       - **trencher_bot.xacro**: URDF description of a high resolution simulated robot that utilizes a trencher digging mechanism.
-- **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
-  - **high_resolution**: Contains high resolution world files.
-    - **artemis**: Contains world files simulating the Artemis arena.
-      - **artemis_arena.world**
-      - **artemis_arena2.world**
-      - **artemis_arena3.world**
-  - **low_resolution**: Contains low resolution world files.
-    - **artemis**: Contains world files simulating the Artemis arena.
-      - **artemis_arena.world**
-      - **artemis_arena2.world**
-      - **artemis_arena3.world**
+  - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
+    - **high_resolution**: Contains high resolution world files.
+      - **artemis**: Contains world files simulating the Artemis arena.
+        - **artemis_arena.world**
+        - **artemis_arena2.world**
+        - **artemis_arena3.world**
+    - **low_resolution**: Contains low resolution world files.
+      - **artemis**: Contains world files simulating the Artemis arena.
+        - **artemis_arena.world**
+        - **artemis_arena2.world**
+        - **artemis_arena3.world**
 
 
 **lunabot_system**: This package contains various autonomy/manual controllers and utilities.
@@ -269,7 +353,7 @@ ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonom
   - **utils**
     - **hardware_monitor.cpp**: Monitors hardware topics and outputs error messages if sensor data is not received.
     - **imu_rotator.cpp**: Processes and rotates IMU data into the East-North-Up (ENU) frame.
-    - 
+
 **lunabot_third_party** This folder contains third party packages.
 
 **scripts**: This folder contains various setup and utility scripts.

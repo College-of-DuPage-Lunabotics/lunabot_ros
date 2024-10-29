@@ -95,9 +95,9 @@ controller_server:
       use_velocity_scaled_lookahead_dist: true
       min_lookahead_dist: 0.25
       approach_velocity_scaling_dist: 0.6
-      use_collision_detection: false
+      use_collision_detection: true
       max_allowed_time_to_collision_up_to_carrot: 1.0
-      use_cost_regulated_linear_velocity_scaling: false
+      use_cost_regulated_linear_velocity_scaling: true
       regulated_linear_scaling_min_radius: 1.0
       regulated_linear_scaling_min_speed: 0.05
       use_fixed_curvature_lookahead: true

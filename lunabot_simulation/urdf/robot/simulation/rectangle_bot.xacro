@@ -26,14 +26,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot.stl" />
+        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 0" />
       <material name="light_grey" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot.stl" />
+        <mesh filename="file:///$(find lunabot_simulation)/models/rectangle_bot/rectangle_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.085" rpy="0 0 0" />
     </collision>
@@ -229,7 +229,7 @@
   <joint name="base_lidar_joint" type="fixed">
     <parent link="base_link" />
     <child link="lidar_link" />
-    <origin xyz="-0.0925 0 0.405" rpy="0 0 0" />
+    <origin xyz="-0.075 0 0.575" rpy="0 0 0" />
   </joint>
 
   <joint name="base_blade_joint" type="revolute">
@@ -244,7 +244,7 @@
   <joint name="base_d455_joint" type="fixed">
     <parent link="base_link" />
     <child link="d455_link" />
-    <origin xyz="-0.12 0 0.355" rpy="0 0 3.14" />
+    <origin xyz="-0.115 0 0.525" rpy="0 0 3.14" />
   </joint>
 
   <joint name="d455_optical_joint" type="fixed">
@@ -256,7 +256,7 @@
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
-    <origin xyz="-0.05 0 0.355" rpy="0 0.523599 0" />
+    <origin xyz="-0.04 0 0.525" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="d456_optical_joint" type="fixed">
