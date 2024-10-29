@@ -17,16 +17,19 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
-    nav2_params_file = os.path.join(config_dir, "params", "nav2_sim_params.yaml")
+    nav2_params_file = os.path.join(
+        config_dir, "params", "nav2_trencher_bot_params.yaml"
+    )
+    
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
     ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
 
-    declare_robot_mode = DeclareLaunchArgument(
-        "robot_mode", default_value="manual", choices=["manual", "autonomous"]
+    declare_mode = DeclareLaunchArgument(
+        "mode", default_value="manual", choices=["manual", "autonomous"]
     )
 
-    declare_teleop_mode = DeclareLaunchArgument(
-        "teleop_mode", default_value="keyboard", choices=["keyboard", "xbox"]
+    declare_teleop = DeclareLaunchArgument(
+        "teleop", default_value="keyboard", choices=["keyboard", "xbox"]
     )
 
     topic_remapper_node = Node(
@@ -198,7 +201,7 @@ def generate_launch_description():
         package="joy",
         executable="joy_node",
         name="joy_node",
-        condition=LaunchConfigurationEquals("teleop_mode", "xbox"),
+        condition=LaunchConfigurationEquals("teleop", "xbox"),
     )
 
     teleop_twist_joy_node = Node(
@@ -215,7 +218,7 @@ def generate_launch_description():
                 "scale_angular_turbo.yaw": 1.5,
             }
         ],
-        condition=LaunchConfigurationEquals("teleop_mode", "xbox"),
+        condition=LaunchConfigurationEquals("teleop", "xbox"),
     )
 
     keyboard_teleop_node = ExecuteProcess(
@@ -227,13 +230,13 @@ def generate_launch_description():
             "ros2 run lunabot_simulation keyboard_teleop.py; exit",
         ],
         output="screen",
-        condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
+        condition=LaunchConfigurationEquals("teleop", "keyboard"),
     )
 
     ld = LaunchDescription()
 
-    ld.add_action(declare_robot_mode)
-    ld.add_action(declare_teleop_mode)
+    ld.add_action(declare_mode)
+    ld.add_action(declare_teleop)
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
@@ -265,7 +268,7 @@ def generate_launch_description():
                 teleop_twist_joy_node,
                 keyboard_teleop_node,
             ],
-            condition=LaunchConfigurationEquals("robot_mode", "manual"),
+            condition=LaunchConfigurationEquals("mode", "manual"),
         )
     )
 
@@ -295,7 +298,7 @@ def generate_launch_description():
                     ],
                 ),
             ],
-            condition=LaunchConfigurationEquals("robot_mode", "autonomous"),
+            condition=LaunchConfigurationEquals("mode", "autonomous"),
         )
     )
 

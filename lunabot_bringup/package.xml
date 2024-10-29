@@ -13,12 +13,12 @@
   <depend>gazebo_ros_pkgs</depend>
   <depend>navigation2</depend>
   <depend>apriltag_ros</depend>
-  <depend>laser_filters</depend>
   <depend>robot_localization</depend>
   <depend>imu_complementary_filter</depend>
   <depend>ros2_control</depend>
   <depend>ros2_controllers</depend>
   <depend>gazebo_ros2_control</depend>
+  <depend>xacro</depend>
   <depend>lunabot_system</depend>
   <depend>lunabot_simulation</depend>
   <depend>lunabot_config</depend>

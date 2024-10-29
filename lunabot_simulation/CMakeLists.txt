@@ -27,8 +27,8 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 # Define executables
-add_executable(blade_joint_controller src/blade_joint_controller.cpp)
-add_executable(topic_remapper src/topic_remapper.cpp)
+add_executable(blade_joint_controller src/utils/blade_joint_controller.cpp)
+add_executable(topic_remapper src/utils/topic_remapper.cpp)
 
 # Set target dependencies
 ament_target_dependencies(blade_joint_controller rclcpp sensor_msgs std_msgs)
@@ -41,9 +41,9 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install URDF, meshes, worlds, and models
+# Install URDF and models
 install(
-  DIRECTORY urdf meshes worlds models
+  DIRECTORY urdf models
   DESTINATION share/${PROJECT_NAME}/
 )
 

@@ -17,8 +17,9 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
 
-    nav2_params_file = os.path.join(config_dir, "params", "nav2_real_params.yaml")
+    nav2_params_file = os.path.join(config_dir, "params", "nav2_real_bot_params.yaml")
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
+    ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "autonomous"]
@@ -102,10 +103,9 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "use_sim_time": False,
                 "frame_id": "base_link",
                 "odom_frame_id": "odom",
-                "publish_tf": True,
+                "publish_tf": False,
                 "approx_sync": True,
                 "Reg/Strategy": "1",
                 "Odom/Strategy": "0",
@@ -126,9 +126,39 @@ def generate_launch_description():
         ],
         remappings=[
             ("scan", "/scan"),
-            ("odom", "/odom"),
+            ("odom", "/icp_odom"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    rgbd_odometry_node = Node(
+        package="rtabmap_odom",
+        executable="rgbd_odometry",
+        output="screen",
+        parameters=[
+            {
+                "frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "publish_tf": False,
+                "approx_sync": True,
+                "subscribe_rgbd": True,
+            }
+        ],
+        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    ekf_node = Node(
+        package="robot_localization",
+        executable="ekf_node",
+        name="ekf_filter_node",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": True,
+            },
+            ekf_params_file,
+        ],
     )
 
     localization_server_node = Node(
@@ -171,25 +201,6 @@ def generate_launch_description():
             }
         ],
         output="screen",
-    )
-
-    s2l_lidar_node = Node(
-        package="rplidar_ros",
-        executable="rplidar_node",
-        name="rplidar_node",
-        parameters=[
-            {
-                "channel_type": "serial",
-                "serial_port": "/dev/ttyUSB1",
-                "serial_baudrate": 1000000,
-                "frame_id": "lidar2_link",
-                "inverted": False,
-                "angle_compensate": True,
-                "scan_mode": "DenseBoost",
-            }
-        ],
-        output="screen",
-        remappings=[("/scan", "/scan2")],
     )
 
     d455_launch = IncludeLaunchDescription(
@@ -285,7 +296,6 @@ def generate_launch_description():
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
     ld.add_action(s3_lidar_node)
-    ld.add_action(s2l_lidar_node)
     ld.add_action(d455_launch)
     ld.add_action(d456_launch)
     ld.add_action(imu_rotator_node)
@@ -300,6 +310,8 @@ def generate_launch_description():
                     period=2.0,
                     actions=[
                         icp_odometry_node,
+                        rgbd_odometry_node,
+                        ekf_node,
                     ],
                 ),
                 TimerAction(
@@ -333,6 +345,8 @@ def generate_launch_description():
                     period=50.0,
                     actions=[
                         icp_odometry_node,
+                        rgbd_odometry_node,
+                        ekf_node,
                         slam_node,
                     ],
                 ),

@@ -14,6 +14,7 @@ from launch.actions import (
     GroupAction,
 )
 
+
 def set_orientation(context, *args, **kwargs):
     orientations = {"north": -1.5708, "east": 3.1416, "south": -1.5708, "west": 0.0}
     random_orientation = random.choice(list(orientations.values()))
@@ -34,14 +35,27 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_sim_file = os.path.join(
-        simulation_dir, "urdf", "high_poly", "realistic_simulation_bot.xacro"
+    
+    urdf_simulation_file = os.path.join(
+        simulation_dir, "urdf", "robot", "simulation", "trencher_bot.xacro"
     )
-    urdf_real_file = os.path.join(simulation_dir, "urdf", "low_poly", "real_bot.xacro")
-    world_file = os.path.join(simulation_dir, "worlds", "artemis_arena2.world")
+
+    urdf_real_file = os.path.join(
+        simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro"
+    )
+
+    world_file = os.path.join(
+        simulation_dir,
+        "urdf",
+        "worlds",
+        "high_resolution",
+        "artemis",
+        "artemis_arena.world",
+    )
+
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
-    robot_sim_description = Command(["xacro ", urdf_sim_file])
+    robot_simulation_description = Command(["xacro ", urdf_simulation_file])
     robot_real_description = Command(["xacro ", urdf_real_file])
 
     declare_visualization_mode = DeclareLaunchArgument(
@@ -77,7 +91,7 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-entity",
-            "simulation_bot",
+            "square_bot",
             "-x",
             "2.5",
             "-y",
@@ -94,7 +108,9 @@ def generate_launch_description():
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
-        parameters=[{"robot_description": robot_sim_description, "use_sim_time": True}],
+        parameters=[
+            {"robot_description": robot_simulation_description, "use_sim_time": True}
+        ],
     )
 
     joint_state_broadcaster_spawner = Node(

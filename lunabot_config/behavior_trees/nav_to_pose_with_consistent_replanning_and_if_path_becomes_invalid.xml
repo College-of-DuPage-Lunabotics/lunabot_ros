@@ -34,6 +34,7 @@
             <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
             <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
           </Sequence>
+          <Spin spin_dist="3.14"/>
           <Wait name="WaitRecovery" wait_duration="1"/>
         </RoundRobin>
       </ReactiveFallback>

@@ -1,31 +1,32 @@
 #!/bin/bash
 
-install_dependencies() {
-    cd ../../..
+WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
-    if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
-        sudo rosdep init
-    fi
-
+install_ros_dependencies() {
+    echo -e "\n------------------------ Install ROS Dependencies Using rosdep ------------------------ \n"
+    cd "${WORKSPACE_DIR}"
+    
+    sudo rosdep init 2>/dev/null || true
     rosdep update
     rosdep install --from-paths src --ignore-src -r -y
 }
 
+install_sensor_dependencies() {
+    echo -e "\n------------------------ Install Sensor Dependencies ------------------------ \n"
+    sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-*
+}
+
 install_sparkcan() {
-    sudo add-apt-repository ppa:graysonarendt/sparkcan
+    echo -e "\n------------------------ Add Repository and Install sparkcan ------------------------ \n"
+    sudo add-apt-repository ppa:graysonarendt/sparkcan -y
     sudo apt update
     sudo apt install sparkcan -y
 }
 
-install_sensors() {
-    sudo apt install ros-humble-realsense2-*
-    sudo apt install ros-humble-rplidar-ros
-}
-
 main() {
+    install_sensor_dependencies
     install_sparkcan
-    install_sensors
-    install_dependencies
+    install_ros_dependencies
 }
 
 main
