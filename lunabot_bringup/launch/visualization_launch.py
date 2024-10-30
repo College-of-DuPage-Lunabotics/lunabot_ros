@@ -15,7 +15,7 @@ from launch.actions import (
 
 
 def set_orientation(context, *args, **kwargs):
-    orientations = {"north": -1.5708, "east": 3.1416, "south": -1.5708, "west": 0.0}
+    orientations = {"north": -1.5708, "east": 3.1416, "south": 1.5708, "west": 0.0}
     random_orientation = random.choice(list(orientations.values()))
     chosen_orientation = context.launch_configurations.get("orientation")
 
