@@ -70,7 +70,7 @@ def generate_launch_description():
                 get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
             )
         ),
-        launch_arguments={"world": world_file, "gui": "false"}.items(),
+        launch_arguments={"world": world_file, "gui": "true"}.items(),
     )
 
     spawn_robot_node = Node(
