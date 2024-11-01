@@ -18,23 +18,11 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
     nav2_params_file = os.path.join(
-        config_dir, "params", "nav2_rectangle_bot_params.yaml"
+        config_dir, "params", "nav2_params.yaml"
     )
     
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
     ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
-
-    declare_mode = DeclareLaunchArgument(
-        "mode", default_value="manual", choices=["manual", "autonomous"]
-    )
-
-    declare_teleop = DeclareLaunchArgument(
-        "teleop", default_value="keyboard", choices=["keyboard", "xbox"]
-    )
-
-    topic_remapper_node = Node(
-        package="lunabot_simulation", executable="topic_remapper"
-    )
 
     rgbd_sync1_node = Node(
         package="rtabmap_sync",
@@ -89,57 +77,6 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    icp_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="icp_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "Reg/Strategy": "1",
-                "Odom/Strategy": "0",
-                "Odom/FilteringStrategy": "1",
-                "Odom/KalmanProcessNoise": "0.001",
-                "Odom/KalmanMeasurementNoise": "0.01",
-                "Odom/GuessMotion": "true",
-                "Odom/GuessSmoothingDelay": "0.1",
-                "Icp/VoxelSize": "0.02",
-                "Icp/PointToPlane": "true",
-                "Icp/PointToPlaneRadius": "0.0",
-                "Icp/PointToPlaneK": "20",
-                "Icp/CorrespondenceRatio": "0.3",
-                "Icp/PMOutlierRatio": "0.65",
-                "Icp/Epsilon": "0.0013",
-                "Icp/MaxCorrespondenceDistance": "0.05",
-            }
-        ],
-        remappings=[
-            ("scan", "/scan"),
-            ("odom", "/icp_odom"),
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    rgbd_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="rgbd_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "subscribe_rgbd": True,
-            }
-        ],
-        remappings=[("rgbd_image", "/d456/rgbd_image"), ("odom", "/rgbd_odom")],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
     ekf_node = Node(
         package="robot_localization",
         executable="ekf_node",
@@ -153,19 +90,6 @@ def generate_launch_description():
         ],
     )
 
-    localization_server_node = Node(
-        package="lunabot_system",
-        executable="localization_server",
-        name="localization_server",
-        output="screen",
-    )
-
-    navigation_client_node = Node(
-        package="lunabot_system",
-        executable="navigation_client",
-        name="navigation_client",
-        output="screen",
-    )
 
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -213,12 +137,18 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("teleop", "keyboard"),
     )
 
+    driver_node = Node(
+        package='lunabot_driver',
+        executable='mecanum_driver',
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(declare_mode)
     ld.add_action(declare_teleop)
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
+    ld.add_action(driver_node)
 
     ld.add_action(
         GroupAction(

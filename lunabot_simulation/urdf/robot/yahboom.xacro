@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634  81.5+32.5
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="yahboom">
+    <link name="base_footprint"/>
+    <link name="imu_link"/>
+    <link name="base_link">
+        <inertial>
+            <origin xyz="0.00498197982182523 5.70233829969297E-05 -0.0121008098068578" rpy="0 0 0"/>
+            <mass value="0.486218814966626"/>
+            <inertia
+                    ixx="0.00196277727666921"
+                    ixy="2.50447049446755E-07"
+                    ixz="0.000140534767811098"
+                    iyy="0.00457256033711368"
+                    iyz="2.68618064993882E-07"
+                    izz="0.00493927269870476"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/base_link.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0 0.7 0 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/base_link.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="base_joint" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="base_link"/>
+        <origin xyz="0.0 0.0 0.0815" rpy="0 0 0"/>
+    </joint>
+    <joint name="base_imu" type="fixed">
+        <parent link="base_link"/>
+        <child link="imu_link"/>
+        <origin xyz="-0.06 0.01 0.01" rpy="0 3.1415 1.5707"/>
+    </joint>
+    <link name="front_right_wheel">
+        <inertial>
+            <origin xyz="1.9051E-06 -2.3183E-07 -0.00064079" rpy="0 0 0"/>
+            <mass value="0.051532"/>
+            <inertia ixx="1.4595E-05" ixy="-4.3975E-10" ixz="4.415E-10"
+                     iyy="1.4594E-05" iyz="-1.7476E-09" izz="2.4264E-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="front_right_joint" type="continuous">
+        <origin xyz="0.08 -0.0845 -0.0389" rpy="-1.5703 0 3.14159"/>
+        <parent link="base_link"/>
+        <child link="front_right_wheel"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="100" velocity="1"/>
+    </joint>
+    <link name="front_left_wheel">
+        <inertial>
+            <origin xyz="2.3728E-06 -9.4228E-07 0.00064068" rpy="0 0 0"/>
+            <mass value="0.051543"/>
+            <inertia ixx="1.4597E-05" ixy="-4.7945E-10" ixz="-2.4786E-10"
+                     iyy="1.4598E-05" iyz="1.7972E-09" izz="2.4267E-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="front_left_joint" type="continuous">
+        <origin xyz="0.08 0.084492 -0.0389" rpy="1.5703 0 0"/>
+        <parent link="base_link"/>
+        <child link="front_left_wheel"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="100" velocity="1"/>
+    </joint>
+    <link name="back_right_wheel">
+        <inertial>
+            <origin xyz="-1.75924169923403E-06 1.28388821071107E-06 -0.000590549296238266" rpy="0 0 0"/>
+            <mass value="0.051540174053366"/>
+            <inertia ixx="1.45974152250002E-05" ixy="1.94850559178397E-10" ixz="-1.61846387282284E-09"
+                     iyy="1.4596501955693E-05" iyz="-6.27904057423818E-10" izz="2.42663091380451E-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="back_right_joint" type="continuous">
+        <origin xyz="-0.08 -0.0845 -0.03946" rpy="-1.57 0 3.14159"/>
+        <parent link="base_link"/>
+        <child link="back_right_wheel"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="100" velocity="1"/>
+    </joint>
+    <link name="back_left_wheel">
+        <inertial>
+            <origin xyz="-4.01213085227115E-07 2.04910264598596E-06 0.000590775697051377" rpy="0 0 0"/>
+            <mass value="0.0515309299357028"/>
+            <inertia ixx="1.45942986129926E-05" ixy="-3.19787215398093E-10" ixz="1.74943062058915E-09"
+                     iyy="1.45948727598913E-05" iyz="1.61769812110049E-10" izz="2.4263683888153E-05"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/wheel.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="back_left_joint" type="continuous">
+        <origin xyz="-0.08 0.084492 -0.03954" rpy="1.5703 0 0"/>
+        <parent link="base_link"/>
+        <child link="back_left_wheel"/>
+        <axis xyz="0 0 1" rpy="0 0 0"/>
+        <limit effort="100" velocity="1"/>
+    </joint>
+    <link name="laser_link">
+        <inertial>
+            <origin xyz="-0.0176558922685589 0.000671805271544437 0.0219302095894866" rpy="0 0 0" />
+            <mass value="0.0483909504209895" />
+            <inertia ixx="1.58456966399128E-05" ixy="-4.23913983850005E-07" ixz="-2.09597897904374E-07"
+                     iyy="3.89262522903605E-05" iyz="3.24809725932687E-07" izz="4.86230801106223E-05" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/laser_link.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/laser_link.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="laser_joint" type="fixed">
+        <origin xyz="0.0435 5.25826986680105E-05 0.11" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="laser_link"/>
+    </joint>
+    <link name="camera_link">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="0"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/camera_link.STL"/>
+            </geometry>
+            <material name="">
+                <color rgba="0.7 0.7 0.7 1"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://lunabot_simulation/models/yahboom/camera_link.STL"/>
+            </geometry>
+        </collision>
+    </link>
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="0.057105 1.7948E-05 0.03755" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="camera_link"/>
+    </joint>
+</robot>

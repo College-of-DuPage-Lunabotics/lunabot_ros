@@ -20,37 +20,11 @@ endif()
 # Find required dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-
-# Define executables
-add_executable(blade_joint_controller src/utils/blade_joint_controller.cpp)
-add_executable(topic_remapper src/utils/topic_remapper.cpp)
-
-# Set target dependencies
-ament_target_dependencies(blade_joint_controller rclcpp sensor_msgs std_msgs)
-ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
-
-# Install targets
-install(TARGETS
-  blade_joint_controller
-  topic_remapper
-  DESTINATION lib/${PROJECT_NAME}
-)
 
 # Install URDF and models
 install(
   DIRECTORY urdf models
   DESTINATION share/${PROJECT_NAME}/
-)
-
-# Install Python scripts
-install(PROGRAMS
-  src/teleop/keyboard_teleop.py
-  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
