@@ -1,0 +1,6 @@
+[submodule "lunabot_third_party/ros2_astra_camera"]
+	path = lunabot_third_party/ros2_astra_camera
+	url = https://github.com/orbbec/ros2_astra_camera.git
+[submodule "lunabot_third_party/rf2o_laser_odometry"]
+	path = lunabot_third_party/rf2o_laser_odometry
+	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git
