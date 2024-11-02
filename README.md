@@ -58,5 +58,5 @@ source install/setup.bash
 #### 2. Visualize with RViz2 and run robot
 
 ```bash
-ros2 launch lunabot_bringup 
+ros2 launch lunabot_bringup robot_launch.py
 ```
