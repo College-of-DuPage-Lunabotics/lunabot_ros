@@ -24,7 +24,7 @@ This will permanently append these two lines to your .bashrc file, so there is n
 ```bash
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
-git clone -b yahboom https://github.com/grayson-arendt/Lunabotics-2025.git
+git clone --recursive -b yahboom https://github.com/grayson-arendt/Lunabotics-2025.git
 ```
 
 #### 3. Install dependencies
