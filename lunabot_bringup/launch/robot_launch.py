@@ -1,8 +1,9 @@
 import os
+from launch_ros.descriptions import ParameterValue
+from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.substitutions import Command, LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
     IncludeLaunchDescription,
@@ -17,9 +18,7 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
-    urdf_file = os.path.join(
-        simulation_dir, "urdf", "robot", "yahboom.xacro"
-    )
+    urdf_file = os.path.join(simulation_dir, "urdf", "robot", "yahboom.xacro")
 
     nav2_params_file = os.path.join(config_dir, "params", "nav2_params.yaml")
 
@@ -38,7 +37,11 @@ def generate_launch_description():
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": Command(["xacro ", urdf_file]), "use_sim_time": False}
+            {
+                "robot_description": ParameterValue(
+                    Command(["xacro ", urdf_file]), value_type=str
+                )
+            }
         ],
     )
 
@@ -72,10 +75,10 @@ def generate_launch_description():
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": True,
                 "wait_imu_to_init": True,
-                "rgb_topic":"/camera/color/image_raw",
-                "depth_topic":"/camera/depth/image_raw",
-                "camera_info_topic":"/camera/color/camera_info",
-                "scan_topic":"/scan",
+                "rgb_topic": "/camera/color/image_raw",
+                "depth_topic": "/camera/depth/image_raw",
+                "camera_info_topic": "/camera/color/camera_info",
+                "scan_topic": "/scan",
             },
             rtabmap_params_file,
         ],
@@ -189,17 +192,19 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(
-        GroupAction(actions=[
-            rviz_launch,
-            robot_state_publisher_node,
-            joint_state_publisher_node,
-            slam_node,
-            nav2_launch,
-            joy_node,
-            teleop_twist_joy_node,
-            driver_node,
-            astra_node,
-        ])
+        GroupAction(
+            actions=[
+                rviz_launch,
+                robot_state_publisher_node,
+                joint_state_publisher_node,
+                slam_node,
+                nav2_launch,
+                joy_node,
+                teleop_twist_joy_node,
+                driver_node,
+                astra_node,
+            ]
+        )
     )
 
     return ld
