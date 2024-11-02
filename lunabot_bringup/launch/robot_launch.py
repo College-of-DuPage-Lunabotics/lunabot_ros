@@ -26,8 +26,6 @@ def generate_launch_description():
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
-    robot_description = Command(["xacro ", urdf_file])
-
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
@@ -35,12 +33,12 @@ def generate_launch_description():
         arguments=["-d", rviz_config_file],
     )
 
-    robot__state_publisher_node = Node(
+    robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": robot_description, "use_sim_time": False}
+            {"robot_description": Command(["xacro ", urdf_file]), "use_sim_time": False}
         ],
     )
 
@@ -193,7 +191,7 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(actions=[
             rviz_launch,
-            robot__state_publisher_node,
+            robot_state_publisher_node,
             joint_state_publisher_node,
             slam_node,
             nav2_launch,
