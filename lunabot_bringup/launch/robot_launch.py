@@ -17,7 +17,7 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
-    urdf_simulation_file = os.path.join(
+    urdf_file = os.path.join(
         simulation_dir, "urdf", "robot", "yahboom.xacro"
     )
 
@@ -26,7 +26,7 @@ def generate_launch_description():
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
-    robot_simulation_description = Command(["xacro ", urdf_simulation_file])
+    robot_description = Command(["xacro ", urdf_file])
 
     rviz_launch = Node(
         package="rviz2",
@@ -35,43 +35,19 @@ def generate_launch_description():
         arguments=["-d", rviz_config_file],
     )
 
-    spawn_robot_node = Node(
-        package="gazebo_ros",
-        executable="spawn_entity.py",
-        arguments=[
-            "-topic",
-            "robot_description",
-            "-entity",
-            "rectangle_bot",
-            "-x",
-            "2.5",
-            "-y",
-            "1.6",
-            "-Y",
-            LaunchConfiguration("robot_orientation"),
-            "-z",
-            "0.35",
-        ],
-        output="screen",
-    )
-
-    robot_sim_state_publisher = Node(
+    robot__state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": robot_simulation_description, "use_sim_time": True}
+            {"robot_description": robot_description, "use_sim_time": False}
         ],
     )
 
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
+    joint_state_publisher_node = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        parameters=[{"use_sim_time": False}],
     )
 
     slam_node = Node(
@@ -217,9 +193,8 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(actions=[
             rviz_launch,
-            spawn_robot_node,
-            robot_sim_state_publisher,
-            joint_state_broadcaster_spawner,
+            robot__state_publisher_node,
+            joint_state_publisher_node,
             slam_node,
             nav2_launch,
             joy_node,
