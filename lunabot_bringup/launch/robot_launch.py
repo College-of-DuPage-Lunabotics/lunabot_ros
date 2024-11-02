@@ -24,7 +24,6 @@ def generate_launch_description():
     nav2_params_file = os.path.join(config_dir, "params", "nav2_params.yaml")
 
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
     robot_simulation_description = Command(["xacro ", urdf_simulation_file])
@@ -107,19 +106,6 @@ def generate_launch_description():
             rtabmap_params_file,
         ],
         arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    ekf_node = Node(
-        package="robot_localization",
-        executable="ekf_node",
-        name="ekf_filter_node",
-        output="screen",
-        parameters=[
-            {
-                "use_sim_time": True,
-            },
-            ekf_params_file,
-        ],
     )
 
     nav2_launch = IncludeLaunchDescription(
@@ -235,7 +221,6 @@ def generate_launch_description():
             robot_sim_state_publisher,
             joint_state_broadcaster_spawner,
             slam_node,
-            ekf_node,
             nav2_launch,
             joy_node,
             teleop_twist_joy_node,
