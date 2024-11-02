@@ -17,6 +17,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Find required dependencies
+find_package(ament_cmake REQUIRED)
+
+# Install URDF and models
 install(
   DIRECTORY urdf models
   DESTINATION share/${PROJECT_NAME}/
