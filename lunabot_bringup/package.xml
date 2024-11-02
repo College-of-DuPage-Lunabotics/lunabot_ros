@@ -21,7 +21,6 @@
   <depend>xacro</depend>
   <depend>rtabmap</depend>
   <depend>rtabmap_ros</depend>
-  <depend>lunabot_system</depend>
   <depend>lunabot_simulation</depend>
   <depend>lunabot_config</depend>
 
