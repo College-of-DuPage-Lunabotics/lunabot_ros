@@ -8,7 +8,7 @@ install_ros_dependencies() {
     
     sudo rosdep init 2>/dev/null || true
     rosdep update
-    rosdep install --from-paths src --ignore-src -r -y
+    rosdep install --from-paths src --rosdistro foxy --ignore-src -r -y
 }
 
 main() {
