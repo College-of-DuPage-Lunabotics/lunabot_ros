@@ -4,6 +4,6 @@
 [submodule "lunabot_third_party/rf2o_laser_odometry"]
 	path = lunabot_third_party/rf2o_laser_odometry
 	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git
-[submodule "libuvc"]
-	path = libuvc
+[submodule "lunabot_third_party/libuvc"]
+	path = lunabot_third_party/libuvc
 	url = https://github.com/libuvc/libuvc.git
