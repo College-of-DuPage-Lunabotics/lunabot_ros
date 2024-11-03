@@ -16,40 +16,8 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
-    rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-
-    urdf_file = os.path.join(simulation_dir, "urdf", "robot", "yahboom.xacro")
-
     nav2_params_file = os.path.join(config_dir, "params", "nav2_params.yaml")
-
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
-    rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-
-    rviz_launch = Node(
-        package="rviz2",
-        executable="rviz2",
-        output="log",
-        arguments=["-d", rviz_config_file],
-    )
-
-    robot_state_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[
-            {
-                "robot_description": ParameterValue(
-                    Command(["xacro ", urdf_file]), value_type=str
-                )
-            }
-        ],
-    )
-
-    joint_state_publisher_node = Node(
-        package="joint_state_publisher",
-        executable="joint_state_publisher",
-        parameters=[{"use_sim_time": False}],
-    )
 
     slam_node = Node(
         package="rtabmap_slam",
@@ -58,7 +26,7 @@ def generate_launch_description():
         output="log",
         parameters=[
             {
-                "use_sim_time": True,
+                "use_sim_time": False,
                 "subscribe_depth": False,
                 "subscribe_rgbd": True,
                 "subscribe_rgb": False,
@@ -90,7 +58,7 @@ def generate_launch_description():
             os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")
         ),
         launch_arguments={
-            "use_sim_time": "true",
+            "use_sim_time": "false",
             "params_file": nav2_params_file,
         }.items(),
     )
@@ -99,22 +67,6 @@ def generate_launch_description():
         package="joy",
         executable="joy_node",
         name="joy_node",
-    )
-
-    teleop_twist_joy_node = Node(
-        package="teleop_twist_joy",
-        executable="teleop_node",
-        name="teleop_twist_joy_node",
-        parameters=[
-            {
-                "require_enable_button": False,
-                "axis_linear.x": 1,
-                "axis_angular.yaw": 0,
-                "enable_turbo_button": 5,
-                "scale_linear_turbo.x": 1.5,
-                "scale_angular_turbo.yaw": 1.5,
-            }
-        ],
     )
 
     driver_node = Node(
@@ -190,9 +142,9 @@ def generate_launch_description():
     )
 
     s3_lidar_node = Node(
-        package="rplidar_ros",
-        executable="rplidar_composition",
-        name="rplidar_composition",
+        package="sllidar_ros2",
+        executable="sllidar_node",
+        name="sllidar_node",
         parameters=[
             {
                 "channel_type": "serial",
@@ -212,13 +164,9 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(
             actions=[
-                rviz_launch,
-                robot_state_publisher_node,
-                joint_state_publisher_node,
                 slam_node,
                 nav2_launch,
                 joy_node,
-                teleop_twist_joy_node,
                 driver_node,
                 astra_node,
                 s3_lidar_node,

@@ -1,74 +1,44 @@
 bt_navigator:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 100
     default_nav_to_pose_bt_xml: "$(find-pkg-share lunabot_config)/behavior_trees/nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml"
-    default_nav_through_poses_bt_xml: "$(find-pkg-share lunabot_config)/behavior_trees/nav_through_poses_w_replanning_and_recovery.xml"
 
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
-    - nav2_compute_path_through_poses_action_bt_node
-    - nav2_smooth_path_action_bt_node
     - nav2_follow_path_action_bt_node
+    - nav2_back_up_action_bt_node
     - nav2_spin_action_bt_node
     - nav2_wait_action_bt_node
-    - nav2_assisted_teleop_action_bt_node
-    - nav2_back_up_action_bt_node
-    - nav2_drive_on_heading_bt_node
     - nav2_clear_costmap_service_bt_node
     - nav2_is_stuck_condition_bt_node
     - nav2_goal_reached_condition_bt_node
     - nav2_goal_updated_condition_bt_node
-    - nav2_globally_updated_goal_condition_bt_node
-    - nav2_is_path_valid_condition_bt_node
     - nav2_initial_pose_received_condition_bt_node
     - nav2_reinitialize_global_localization_service_bt_node
     - nav2_rate_controller_bt_node
     - nav2_distance_controller_bt_node
     - nav2_speed_controller_bt_node
     - nav2_truncate_path_action_bt_node
-    - nav2_truncate_path_local_action_bt_node
     - nav2_goal_updater_node_bt_node
     - nav2_recovery_node_bt_node
     - nav2_pipeline_sequence_bt_node
     - nav2_round_robin_node_bt_node
     - nav2_transform_available_condition_bt_node
     - nav2_time_expired_condition_bt_node
-    - nav2_path_expiring_timer_condition
     - nav2_distance_traveled_condition_bt_node
-    - nav2_single_trigger_bt_node
-    - nav2_goal_updated_controller_bt_node
-    - nav2_is_battery_low_condition_bt_node
-    - nav2_navigate_through_poses_action_bt_node
-    - nav2_navigate_to_pose_action_bt_node
-    - nav2_remove_passed_goals_action_bt_node
-    - nav2_planner_selector_bt_node
-    - nav2_controller_selector_bt_node
-    - nav2_goal_checker_selector_bt_node
-    - nav2_controller_cancel_bt_node
-    - nav2_path_longer_on_approach_bt_node
-    - nav2_wait_cancel_bt_node
-    - nav2_spin_cancel_bt_node
-    - nav2_back_up_cancel_bt_node
-    - nav2_assisted_teleop_cancel_bt_node
-    - nav2_drive_on_heading_cancel_bt_node
-    - nav2_is_battery_charging_condition_bt_node
-
-bt_navigator_navigate_through_poses_rclcpp_node:
-  ros__parameters:
-    use_sim_time: true
 
 bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
 
 controller_server:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     controller_frequency: 20.0
     min_x_velocity_threshold: -0.3
     min_y_velocity_threshold: 0.5
@@ -117,7 +87,7 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: true
+      use_sim_time: false
       footprint: "[ [0.5, 0.35], [0.5, -0.35], [-0.5, -0.35], [-0.5, 0.35] ]"
       resolution: 0.01
       plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
@@ -211,10 +181,10 @@ local_costmap:
 planner_server:
   ros__parameters:
     planner_plugins: ["GridBased"]
-    use_sim_time: true
+    use_sim_time: false
 
     GridBased:
-      plugin: "nav2_smac_planner/SmacPlannerHybrid" # In Iron and older versions, "/" was used instead of "::"
+      plugin: "smac_planner/SmacPlanner" # In Iron and older versions, "/" was used instead of "::"
       downsample_costmap: true # whether or not to downsample the map
       downsampling_factor: 2 # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
       tolerance: 0.5 # dist-to-goal heuristic cost (distance) for valid tolerance endpoints if exact goal cannot be found.
@@ -255,21 +225,17 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
     backup:
       plugin: "nav2_behaviors/BackUp"
-    drive_on_heading:
-      plugin: "nav2_behaviors/DriveOnHeading"
     wait:
       plugin: "nav2_behaviors/Wait"
-    assisted_teleop:
-      plugin: "nav2_behaviors/AssistedTeleop"
     global_frame: odom
     robot_base_frame: base_link
     transform_tolerance: 1.0
-    use_sim_time: true
+    use_sim_time: false
     simulate_ahead_time: 2.0
     max_rotational_vel: 0.15
     min_rotational_vel: 0.1
@@ -277,11 +243,11 @@ behavior_server:
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
 
 waypoint_follower:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     loop_rate: 20
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
@@ -292,7 +258,7 @@ waypoint_follower:
 
 velocity_smoother:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
