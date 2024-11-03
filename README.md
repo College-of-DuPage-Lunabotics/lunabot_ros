@@ -1,6 +1,6 @@
 # Project Overview
 
-**This branch is for the Yahboom ROSMASTER X3 robot but with custom different code for mapping and navigation.**
+**This branch is for the Yahboom ROSMASTER X3 robot. It is ran on a Jetson Xavier NX with Ubuntu 20.04 and ROS 2 Foxy.**
 
 ### SSH Into the Robot Computer
 
@@ -37,7 +37,7 @@ The IP address is the first set of numbers in the list.
 
 #### 4. Establish SSH connection (host computer)
 
-Using the username and IP address from the previous step, now you can connect to the robot computer. It may look something like this for example:
+Using the username and IP address from the previous step, now you can connect to the robot computer. It may look something like this:
 
 ```bash
 ssh jetson-main@192.168.10.1 # (General format: username@ip_address)
@@ -116,4 +116,4 @@ ros2 launch lunabot_bringup visualization_launch.py
 ros2 launch lunabot_bringup robot_launch.py
 ```
 
-Press the button that says `KEY` (located near the power cable on the board and the ON switch). If successful, the RGB lights will turn on and there will be a small beep noise. You will now be able to drive the robot using the left and right joysticks on the controller. The left joystick x-axis will spin the robot, however, as this is mecanum it does not work well and should only be used if very misaligned. The right joystick x-axis will move the robot from side to side, while the right joystick y-axis will move it forward and backwards.
+Press the button that says `KEY` (located near the power cable on the board and the `ON` switch). If successful, the RGB lights will turn on and there will be a small beep noise. You will now be able to drive the robot using the left and right joysticks on the controller. The left joystick x-axis will spin the robot, however, as this is mecanum it does not work well and should only be used if very misaligned. The right joystick x-axis will move the robot from side to side, while the right joystick y-axis will move it forward and backwards.
