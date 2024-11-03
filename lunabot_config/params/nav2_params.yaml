@@ -120,7 +120,7 @@ global_costmap:
       use_sim_time: true
       footprint: "[ [0.5, 0.35], [0.5, -0.35], [-0.5, -0.35], [-0.5, 0.35] ]"
       resolution: 0.01
-      plugins: ["static_layer", "obstacle_layer", "voxel_layer", "denoise_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
@@ -165,9 +165,6 @@ global_costmap:
           clearing: true
           marking: true
           data_type: "PointCloud2"
-      denoise_layer:
-        plugin: "nav2_costmap_2d::DenoiseLayer"
-        enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: true

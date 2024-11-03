@@ -75,9 +75,9 @@ def generate_launch_description():
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": True,
                 "wait_imu_to_init": True,
-                "rgb_topic": "/camera/color/image_raw",
-                "depth_topic": "/camera/depth/image_raw",
-                "camera_info_topic": "/camera/color/camera_info",
+                "rgb_topic": "/color/image_raw",
+                "depth_topic": "/depth/image_raw",
+                "camera_info_topic": "/color/camera_info",
                 "scan_topic": "/scan",
             },
             rtabmap_params_file,
@@ -160,7 +160,7 @@ def generate_launch_description():
                 "flip_ir": False,
                 "ir_qos": "default",
                 "ir_camera_info_qos": "default",
-                "publish_tf": True,
+                "publish_tf": False,
                 "tf_publish_rate": 10.0,
                 "ir_info_url": "",
                 "color_info_url": "",
@@ -189,6 +189,24 @@ def generate_launch_description():
         ],
     )
 
+    s3_lidar_node = Node(
+        package="rplidar_ros",
+        executable="rplidar_composition",
+        name="rplidar_composition",
+        parameters=[
+            {
+                "channel_type": "serial",
+                "serial_port": "/dev/ttyUSB0",
+                "serial_baudrate": 1000000,
+                "frame_id": "laser_link",
+                "inverted": False,
+                "angle_compensate": True,
+                "scan_mode": "DenseBoost",
+            }
+        ],
+        output="screen",
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(
@@ -203,6 +221,7 @@ def generate_launch_description():
                 teleop_twist_joy_node,
                 driver_node,
                 astra_node,
+                s3_lidar_node,
             ]
         )
     )
