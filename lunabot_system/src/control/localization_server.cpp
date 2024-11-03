@@ -84,7 +84,7 @@ class LocalizationServer : public rclcpp::Node
 
         if (aligned_)
         {
-            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32LOCALIZATION SUCCESS!\033[0m");
+            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32mLOCALIZATION SUCCESS!\033[0m");
             result->success = true;
             result->x = -lateral_distance_;
             result->y = depth_distance_;
@@ -93,6 +93,7 @@ class LocalizationServer : public rclcpp::Node
         }
         else
         {
+            RCLCPP_ERROR(this->get_logger(), "\033[1;31mLOCALIZATION FAILED!\033[0m");
             result->success = false;
             goal_handle->abort(result);
         }
@@ -101,6 +102,7 @@ class LocalizationServer : public rclcpp::Node
     void align_robot()
     {
         geometry_msgs::msg::Twist twist;
+
         if (!alignment_started_)
         {
             alignment_start_time_ = now();
@@ -108,6 +110,7 @@ class LocalizationServer : public rclcpp::Node
         }
 
         double elapsed_time = (now() - alignment_start_time_).seconds();
+
         if (elapsed_time > 60.0 && !aligned_)
         {
             twist.angular.z = 0.0;
@@ -123,30 +126,40 @@ class LocalizationServer : public rclcpp::Node
             return;
         }
 
-        if (!turn_direction_set_)
+        if (d455_tag1_detected_)
+        {
+            double yaw_error = normalize_angle(tag1_yaw);
+            if (std::abs(yaw_error) > 0.025)
+            {
+                twist.angular.z = yaw_error > 0 ? -0.1 : 0.1;
+            }
+            else
+            {
+                twist.angular.z = 0.0;
+                aligned_ = true;
+                RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNMENT COMPLETE WITH TAG 7.\033[0m");
+            }
+        }
+        else if (!turn_direction_set_)
         {
             if (!d455_tag1_detected_ && !d456_tag1_detected_ && !initial_rotation_started_)
             {
                 initial_rotation_started_ = true;
-                RCLCPP_INFO(this->get_logger(), "\033[1;32NO TAGS DETECTED. INITIALIZING SLOW ROTATION...\033[0m");
-                twist.angular.z = 0.05;
+                RCLCPP_INFO(this->get_logger(), "\033[1;33mNO TAGS DETECTED. STARTING SLOW ROTATION...\033[0m");
+
+                twist.angular.z = -0.01;
                 cmd_vel_publisher_->publish(twist);
                 return;
             }
-            turn_counterclockwise_ = d455_tag2_detected_ ? false : (d456_tag2_detected_ || d456_tag1_detected_);
+
+            turn_counterclockwise_ = d455_tag1_detected_ ? false : (d456_tag1_detected_ || d456_tag2_detected_);
             turn_direction_set_ = true;
         }
-
-        RCLCPP_INFO_ONCE(this->get_logger(), "TURNING %s", turn_counterclockwise_ ? "COUNTER-CLOCKWISE" : "CLOCKWISE");
-
-        twist.angular.z = turn_counterclockwise_ ? 0.4 : -0.4;
-
-        if (d455_tag1_detected_)
+        else
         {
-            double yaw_error = normalize_angle(tag1_yaw);
-            twist.angular.z = std::abs(yaw_error) > 0.025 ? (turn_counterclockwise_ ? 0.2 : -0.2) : 0.0;
-            aligned_ = twist.angular.z == 0.0;
+            twist.angular.z = turn_counterclockwise_ ? 0.1 : -0.1;
         }
+
         cmd_vel_publisher_->publish(twist);
     }
 
@@ -214,7 +227,7 @@ class LocalizationServer : public rclcpp::Node
         }
         catch (const std::exception &e)
         {
-            RCLCPP_ERROR(this->get_logger(), "ERROR PROCESSING IMAGE: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "\033[1;31mERROR PROCESSING IMAGE: %s\033[0m", e.what());
         }
     }
 

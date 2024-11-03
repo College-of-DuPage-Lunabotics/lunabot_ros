@@ -229,7 +229,7 @@
   <joint name="base_lidar_joint" type="fixed">
     <parent link="base_link" />
     <child link="lidar_link" />
-    <origin xyz="-0.0925 0 0.405" rpy="0 0 0" />
+    <origin xyz="-0.075 0 0.575" rpy="0 0 0" />
   </joint>
 
   <joint name="base_blade_joint" type="revolute">
@@ -488,7 +488,7 @@
     <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
       <robot_param>robot_description</robot_param>
       <robot_param_node>robot_state_publisher</robot_param_node>
-      <parameters>$(find lunabot_config)/params/gazebo_bulldozer_bot_params.yaml</parameters>
+      <parameters>$(find lunabot_config)/params/gazebo/gazebo_bulldozer_bot_params.yaml</parameters>
     </plugin>
   </gazebo>
 

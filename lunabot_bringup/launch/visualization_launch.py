@@ -31,16 +31,11 @@ def set_orientation(context, *args, **kwargs):
 
 def set_robot_description(context, *args, **kwargs):
     robot_type = context.launch_configurations.get("robot_type")
-    simulation_dir = get_package_share_directory("lunabot_simulation")
-    
-    urdf_files = {
-        "rectangle": os.path.join(simulation_dir, "urdf", "robot", "simulation", "rectangle_bot.xacro"),
-        "square": os.path.join(simulation_dir, "urdf", "robot", "simulation", "square_bot.xacro"),
-        "trencher": os.path.join(simulation_dir, "urdf", "robot", "simulation", "trencher_bot.xacro")
-    }
-    
-    urdf_file = urdf_files.get(robot_type)
+    config_dir = get_package_share_directory("lunabot_simulation")
+
+    urdf_file = os.path.join(config_dir, "urdf", "robot", "simulation", f"{robot_type}_bot.xacro")
     return [SetLaunchConfiguration("robot_simulation_description", Command(["xacro ", urdf_file]))]
+
 
 def generate_launch_description():
     simulation_dir = get_package_share_directory("lunabot_simulation")
@@ -53,8 +48,8 @@ def generate_launch_description():
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
         default_value="rectangle",
-        choices=["rectangle", "square", "trencher"],
-        description="Defines the robot configuration to use: 'rectangle', 'square', or 'trencher', each with unique characteristics and capabilities."
+        choices=["rectangle", "realistic_rectangle", "square", "trencher"],
+        description="Defines the robot configuration to use: 'rectangle', 'realistic_rectangle', 'square', or 'trencher', each with unique characteristics and capabilities."
     )
 
     declare_visualization_mode = DeclareLaunchArgument(

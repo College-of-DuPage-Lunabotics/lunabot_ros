@@ -73,7 +73,7 @@ cd ~/lunabot_ws
 colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 4 # Modify number as needed, this is how many packages are built concurrently
 ```
 
-#### 5. (Optional) Set MAKEFLAG and Rebuild
+#### 6. (Optional) Set MAKEFLAG and Rebuild
 If your computer keeps crashing while trying to build, `colcon build` may be trying to do too many things at once. Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing.
 
 ```bash

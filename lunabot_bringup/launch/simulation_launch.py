@@ -16,10 +16,10 @@ from launch.actions import (
 )
 
 def set_nav2_params(context, *args, **kwargs):
-    config_dir = get_package_share_directory("lunabot_config")
     robot_type = context.launch_configurations.get("robot_type")
+    config_dir = get_package_share_directory("lunabot_config")
 
-    nav2_params_file = os.path.join(config_dir, "params", f"nav2_{robot_type}_bot_params.yaml")
+    nav2_params_file = os.path.join(config_dir, "params", "nav2",f"nav2_{robot_type}_bot_params.yaml")
     return [SetLaunchConfiguration("nav2_params_file", nav2_params_file)]
 
 def generate_launch_description():
@@ -47,8 +47,9 @@ def generate_launch_description():
         description="Specify the type of robot to launch: 'rectangle', 'square', or 'trencher'. Each option loads the respective robot configuration."
     )
 
-    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
+    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap", "rtabmap_params.yaml")
+    ekf_params_file = os.path.join(config_dir, "params", "robot_localization", "ekf_params.yaml")
+    ukf_params_file = os.path.join(config_dir, "params", "robot_localization", "ukf_params.yaml")
 
     topic_remapper_node = Node(
         package="lunabot_simulation", executable="topic_remapper"
@@ -127,6 +128,55 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
+    icp_odometry_node = Node(
+        package="rtabmap_odom",
+        executable="icp_odometry",
+        output="screen",
+        parameters=[
+            {
+                "frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "publish_tf": False,
+                "approx_sync": True,
+                "Reg/Strategy": "1",
+                "Odom/Strategy": "0",
+                "Odom/FilteringStrategy": "1",
+                "Odom/KalmanProcessNoise": "0.001",
+                "Odom/KalmanMeasurementNoise": "0.01",
+                "Icp/VoxelSize": "0.02",
+                "Icp/PointToPlane": "true",
+                "Icp/PointToPlaneRadius": "0.0",
+                "Icp/PointToPlaneK": "20",
+                "Icp/CorrespondenceRatio": "0.3",
+                "Icp/PMOutlierRatio": "0.65",
+                "Icp/Epsilon": "0.0013",
+                "Icp/MaxCorrespondenceDistance": "0.05",
+            }
+        ],
+        remappings=[
+            ("scan", "/scan"),
+            ("odom", "/icp_odom"),
+        ],
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    rgbd_odometry_node = Node(
+        package="rtabmap_odom",
+        executable="rgbd_odometry",
+        output="screen",
+        parameters=[
+            {
+                "frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "publish_tf": False,
+                "approx_sync": True,
+                "subscribe_rgbd": True,
+            }
+        ],
+        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
     rf2o_odometry_node = Node(
                 package='rf2o_laser_odometry',
                 executable='rf2o_laser_odometry_node',
@@ -135,11 +185,11 @@ def generate_launch_description():
                 parameters=[{
                     'laser_scan_topic' : '/scan',
                     'odom_topic' : '/rf2o_odom',
-                    'publish_tf' : True,
+                    'publish_tf' : False,
                     'base_frame_id' : 'base_link',
                     'odom_frame_id' : 'odom',
                     'init_pose_from_topic' : '',
-                    'freq' : 30.0}],
+                    'freq' : 40.0}],
                 arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -153,6 +203,19 @@ def generate_launch_description():
                 "use_sim_time": True,
             },
             ekf_params_file,
+        ],
+    )
+
+    ukf_node = Node(
+        package="robot_localization",
+        executable="ukf_node",
+        name="ukf_filter_node",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": True,
+            },
+            ukf_params_file,
         ],
     )
 
@@ -240,8 +303,11 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
+                        icp_odometry_node,
+                        rgbd_odometry_node,
                         rf2o_odometry_node,
                         ekf_node,
+                        ukf_node,
                     ],
                 ),
                 TimerAction(
@@ -277,8 +343,11 @@ def generate_launch_description():
                 TimerAction(
                     period=50.0,
                     actions=[
+                        icp_odometry_node,
+                        rgbd_odometry_node,
                         rf2o_odometry_node,
                         ekf_node,
+                        ukf_node,
                         slam_node,
                     ],
                 ),

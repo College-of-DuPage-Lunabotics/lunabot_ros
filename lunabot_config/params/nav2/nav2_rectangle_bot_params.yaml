@@ -86,7 +86,7 @@ controller_server:
       yaw_goal_tolerance: 1.5
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.25
+      desired_linear_vel: 0.15
       lookahead_dist: 0.75
       min_lookahead_dist: 0.3
       max_lookahead_dist: 0.75
@@ -218,7 +218,7 @@ planner_server:
       plugin: "nav2_smac_planner/SmacPlannerHybrid" # In Iron and older versions, "/" was used instead of "::"
       downsample_costmap: true # whether or not to downsample the map
       downsampling_factor: 2 # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
-      tolerance: 0.5 # dist-to-goal heuristic cost (distance) for valid tolerance endpoints if exact goal cannot be found.
+      tolerance: 0.9 # dist-to-goal heuristic cost (distance) for valid tolerance endpoints if exact goal cannot be found.
       allow_unknown: true # allow traveling in unknown space
       max_iterations: 1000000 # maximum total iterations to search for before failing (in case unreachable), set to -1 to disable
       max_on_approach_iterations: 1000 # Maximum number of iterations after within tolerances to continue to try to find exact solution
@@ -229,7 +229,7 @@ planner_server:
       analytic_expansion_max_length: 3.0 # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting
       analytic_expansion_max_cost: 200.0 # The maximum single cost for any part of an analytic expansion to contain and be valid, except when necessary on approach to goal
       analytic_expansion_max_cost_override: true #  Whether or not to override the maximum cost setting if within critical distance to goal (ie probably required)
-      minimum_turning_radius: 0.25 # minimum turning radius in m of path / vehicle
+      minimum_turning_radius: 0.15 # minimum turning radius in m of path / vehicle
       reverse_penalty: 1.0 # Penalty to apply if motion is reversing, must be => 1
       change_penalty: 2.0 # Penalty to apply if motion is changing directions (L to R), must be >= 0
       non_straight_penalty: 1.2 # Penalty to apply if motion is non-straight, must be => 1
@@ -295,10 +295,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.25, 0.0, 0.25]
-    min_velocity: [-0.25, 0.0, -0.25]
-    max_accel: [0.2, 0.0, 0.25]
-    max_decel: [-0.2, 0.0, -0.25]
+    max_velocity: [0.15, 0.0, 0.15]
+    min_velocity: [-0.15, 0.0, -0.15]
+    max_accel: [0.15, 0.0, 0.15]
+    max_decel: [-0.15, 0.0, -0.15]
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0

@@ -1,7 +1,7 @@
 rtabmap:
   ros__parameters:
     Grid/CellSize: "0.02"
-    Grid/MaxGroundAngle: "10"
+    Grid/MaxGroundAngle: "20"
     Grid/Sensor: "2"
     Grid/RangeMin: "0.7"
     Grid/RangeMax: "6.0"
@@ -53,10 +53,9 @@ rtabmap:
     Icp/Epsilon: "0.0013"
     Icp/MaxCorrespondenceDistance: "0.05"
     Optimizer/Strategy: "2"
-    Odom/Strategy: "0"
+    Odom/Strategy: "1"
     Odom/FilteringStrategy: "1"
     Odom/KalmanProcessNoise: "0.001"
     Odom/KalmanMeasurementNoise: "0.01"
-    Odom/GuessMotion: "true"
-    Odom/GuessSmoothingDelay: "0.05"
     Odom/ResetCountdown: "5"
+    Kp/DetectorStrategy: "1"
