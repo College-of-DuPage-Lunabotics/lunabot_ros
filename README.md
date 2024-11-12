@@ -45,7 +45,7 @@ git clone https://github.com/grayson-arendt/Lunabotics-2025.git
 git submodule update --init --recursive --remote
 git lfs pull
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, run `git submodule update --init --recursive` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
