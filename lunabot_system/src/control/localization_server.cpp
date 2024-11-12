@@ -1,8 +1,7 @@
 /**
  * @file localization_server.cpp
- * @brief Node to align robot to an AprilTag and provide localization feedback
- * for pose estimation.
- * @date 9/30/2024
+ * @author Grayson Arendt
+ * @date 11/11/2024
  */
 
 #include <array>
@@ -26,12 +25,19 @@
 
 #include "lunabot_system/action/localization.hpp"
 
+/**
+ * @class LocalizationServer
+ * @brief Provides localization using AprilTags and manages an action server for localization feedback.
+ */
 class LocalizationServer : public rclcpp::Node
 {
   public:
     using Localization = lunabot_system::action::Localization;
     using GoalHandleLocalization = rclcpp_action::ServerGoalHandle<Localization>;
 
+    /**
+     * @brief Constructor for the LocalizationServer class.
+     */
     LocalizationServer()
         : Node("localization_server"), d455_tag1_detected_(false), d455_tag2_detected_(false),
           d456_tag1_detected_(false), d456_tag2_detected_(false), turn_direction_set_(false), aligned_(false),
@@ -58,6 +64,10 @@ class LocalizationServer : public rclcpp::Node
     }
 
   private:
+    /**
+     * @brief Handles goal requests from clients.
+     * @return Goal response (accept or reject).
+     */
     rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &, std::shared_ptr<const Localization::Goal>)
     {
         goal_received_ = true;
@@ -65,16 +75,28 @@ class LocalizationServer : public rclcpp::Node
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
+    /**
+     * @brief Handles cancellation requests from clients.
+     * @return Cancel response (accept or reject).
+     */
     rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleLocalization>)
     {
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
+    /**
+     * @brief Accepts and starts the goal execution.
+     * @param goal_handle Handle for the current goal.
+     */
     void handle_accepted(const std::shared_ptr<GoalHandleLocalization> goal_handle)
     {
         std::thread{std::bind(&LocalizationServer::execute, this, goal_handle)}.detach();
     }
 
+    /**
+     * @brief Executes the localization process.
+     * @param goal_handle Handle for the current goal.
+     */
     void execute(const std::shared_ptr<GoalHandleLocalization> goal_handle)
     {
         auto result = std::make_shared<Localization::Result>();
@@ -98,6 +120,9 @@ class LocalizationServer : public rclcpp::Node
             goal_handle->abort(result);
         }
     }
+    /**
+     * @brief Aligns the robot with the detected AprilTag.
+     */
 
     void align_robot()
     {
@@ -162,17 +187,33 @@ class LocalizationServer : public rclcpp::Node
 
         cmd_vel_publisher_->publish(twist);
     }
+    /**
+     * @brief Detects AprilTags in images from the D455 camera.
+     * @param inputImage Image message from the D455 camera.
+     */
 
     void d455_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
     {
         process_apriltag(inputImage, d455_tag1_detected_, d455_tag2_detected_, d455_overlay_publisher_, true);
     }
 
+    /**
+     * @brief Detects AprilTags in images from the D456 camera.
+     * @param inputImage Image message from the D456 camera.
+     */
     void d456_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
     {
         process_apriltag(inputImage, d456_tag1_detected_, d456_tag2_detected_, d456_overlay_publisher_, false);
     }
 
+    /**
+     * @brief Processes detected AprilTags, calculates pose, and publishes overlay image.
+     * @param inputImage Image message.
+     * @param tag1_detected Flag for detecting tag1.
+     * @param tag2_detected Flag for detecting tag2.
+     * @param overlay_publisher Publisher for overlay image.
+     * @param calculate_yaw_ Boolean to calculate yaw for detected tags.
+     */
     void process_apriltag(const sensor_msgs::msg::Image::SharedPtr &inputImage, bool &tag1_detected,
                           bool &tag2_detected,
                           const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr &overlay_publisher,
@@ -231,6 +272,11 @@ class LocalizationServer : public rclcpp::Node
         }
     }
 
+    /**
+     * @brief Normalizes an angle to the range [-pi, pi].
+     * @param angle The angle to normalize.
+     * @return Normalized angle.
+     */
     double normalize_angle(double angle)
     {
         while (angle > M_PI)
@@ -240,12 +286,23 @@ class LocalizationServer : public rclcpp::Node
         return angle;
     }
 
+    /**
+     * @brief Calculates lateral and depth distances from translation vector.
+     * @param tvec Translation vector.
+     * @param lateral_distance Calculated lateral distance.
+     * @param depth_distance Calculated depth distance.
+     */
     void calculate_distances(const cv::Vec3d &tvec, double &lateral_distance, double &depth_distance)
     {
         lateral_distance = tvec[0];
         depth_distance = tvec[2];
     }
 
+    /**
+     * @brief Calculates yaw from rotation vector.
+     * @param rvec Rotation vector.
+     * @param tag1_yaw Calculated yaw for tag1.
+     */
     void calculate_yaw(const cv::Vec3d &rvec, double &tag1_yaw)
     {
         cv::Mat rotation_matrix;
@@ -268,7 +325,10 @@ class LocalizationServer : public rclcpp::Node
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 };
 
-// Main function
+/**
+ * @brief Main function.
+ * Initializes and runs the LocalizationServer node.
+ */
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);

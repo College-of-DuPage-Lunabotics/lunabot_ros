@@ -14,7 +14,8 @@ controller_manager:
 position_controller:
   ros__parameters:
     joints:
-    - base_blade_joint
+    - blade_arm_joint
+    - base_blade_arm_joint
     open_loop_control: true
 
 diff_drive_controller:

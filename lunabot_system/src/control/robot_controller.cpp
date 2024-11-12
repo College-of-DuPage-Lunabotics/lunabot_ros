@@ -12,7 +12,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 
-#include "SparkFlex.hpp"
 #include "SparkMax.hpp"
 
 /**
@@ -24,8 +23,8 @@ class RobotController : public rclcpp::Node
   public:
     RobotController()
         : Node("motor_controller"), manual_enabled_(true), robot_disabled_(false), left_wheel_motor_("can0", 1),
-          right_wheel_motor_("can0", 2), lift_actuator_left_motor_("can0", 3), lift_actuator_right_motor_("can0", 4),
-          tilt_actuator_left_motor_("can0", 5), tilt_actuator_right_motor_("can0", 6)
+          right_wheel_motor_("can0", 2), lift_actuator_motor_("can0", 3),
+          tilt_actuator_left_motor_("can0", 4), tilt_actuator_right_motor_("can0", 5)
     {
         velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10, std::bind(&RobotController::velocity_callback, this, std::placeholders::_1));
@@ -35,7 +34,26 @@ class RobotController : public rclcpp::Node
         declare_and_get_parameters();
         apply_controller_mode();
 
+        left_wheel_motor_.SetMotorType(MotorType::kBrushless);
+        right_wheel_motor_.SetMotorType(MotorType::kBrushless);
+        lift_actuator_motor_.SetMotorType(MotorType::kBrushed);
+        tilt_actuator_left_motor_.SetMotorType(MotorType::kBrushed);
+        tilt_actuator_right_motor_.SetMotorType(MotorType::kBrushed);
+
+        left_wheel_motor_.SetIdleMode(IdleMode::kBrake);
+        right_wheel_motor_.SetIdleMode(IdleMode::kBrake);
+        lift_actuator_motor_.SetIdleMode(IdleMode::kBrake);
+        tilt_actuator_left_motor_.SetIdleMode(IdleMode::kBrake);
+        tilt_actuator_right_motor_.SetIdleMode(IdleMode::kBrake);
+
         right_wheel_motor_.SetInverted(true);
+
+        left_wheel_motor_.BurnFlash();
+        right_wheel_motor_.BurnFlash();
+        lift_actuator_motor_.BurnFlash();
+        tilt_actuator_left_motor_.BurnFlash();
+        tilt_actuator_right_motor_.BurnFlash();
+
         RCLCPP_INFO(get_logger(), "MANUAL CONTROL: ENABLED");
     }
 
@@ -113,8 +131,7 @@ class RobotController : public rclcpp::Node
 
         left_wheel_motor_.SetDutyCycle(left_speed_ * speed_multiplier_);
         right_wheel_motor_.SetDutyCycle(right_speed_ * speed_multiplier_);
-        lift_actuator_left_motor_.SetDutyCycle(lift_actuator_speed_);
-        lift_actuator_right_motor_.SetDutyCycle(lift_actuator_speed_);
+        lift_actuator_motor_.SetDutyCycle(lift_actuator_speed_);
         tilt_actuator_left_motor_.SetDutyCycle(tilt_actuator_speed_);
         tilt_actuator_right_motor_.SetDutyCycle(tilt_actuator_speed_);
     }
@@ -165,7 +182,7 @@ class RobotController : public rclcpp::Node
             }
             else
             {
-                SparkFlex::Heartbeat();
+                SparkMax::Heartbeat();
             }
 
             control_robot();
@@ -179,7 +196,7 @@ class RobotController : public rclcpp::Node
     {
         if (!manual_enabled_ && navigation_enabled_)
         {
-            SparkFlex::Heartbeat();
+            SparkMax::Heartbeat();
             double linear_velocity = velocity_msg->linear.x;
             double angular_velocity = velocity_msg->angular.z;
             double wheel_radius = outdoor_mode_ ? 0.2 : 0.1016;
@@ -222,10 +239,9 @@ class RobotController : public rclcpp::Node
     double left_trigger_, right_trigger_, left_bumper_, right_bumper_, d_pad_vertical_, d_pad_horizontal_;
     double left_joystick_x_, left_joystick_y_, right_joystick_y_;
 
-    SparkFlex left_wheel_motor_;
-    SparkFlex right_wheel_motor_;
-    SparkMax lift_actuator_left_motor_;
-    SparkMax lift_actuator_right_motor_;
+    SparkMax left_wheel_motor_;
+    SparkMax right_wheel_motor_;
+    SparkMax lift_actuator_motor_;
     SparkMax tilt_actuator_left_motor_;
     SparkMax tilt_actuator_right_motor_;
 };

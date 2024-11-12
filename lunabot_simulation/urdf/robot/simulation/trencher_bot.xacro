@@ -6,11 +6,11 @@
     <color rgba="0.61 0.61 0.61 1.0" />
   </material>
 
-  <material name="camera_grey">
+  <material name="camera_gray">
     <color rgba="0.81 0.81 0.81 1.0" />
   </material>
 
-  <material name="black">
+  <material name="lidar_black">
     <color rgba="0.22 0.22 0.22 1.0" />
   </material>
 
@@ -44,7 +44,7 @@
         <mesh filename="file:///$(find lunabot_simulation)/models/s3_lidar/s3_lidar.stl" />
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 -1.5708" />
-      <material name="black" />
+      <material name="lidar_black" />
     </visual>
     <collision>
       <geometry>
@@ -60,7 +60,7 @@
         <mesh filename="file:///$(find lunabot_simulation)/models/d455_camera/d455_camera.stl" />
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <material name="camera_grey" />
+      <material name="camera_gray" />
     </visual>
     <collision>
       <geometry>
@@ -78,7 +78,7 @@
         <mesh filename="file:///$(find lunabot_simulation)/models/d456_camera/d456_camera.stl" />
       </geometry>
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <material name="camera_grey" />
+      <material name="camera_gray" />
     </visual>
     <collision>
       <geometry>
@@ -387,7 +387,7 @@
         <publish_tf>false</publish_tf>
       </plugin>
     </sensor>
-    <material>Gazebo/Black</material>
+    <material>Gazebo/lidar_black</material>
   </gazebo>
 
   <gazebo reference="imu_link">
