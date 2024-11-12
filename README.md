@@ -42,6 +42,7 @@ This will permanently append these two lines to your .bashrc file, so there is n
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
 git clone https://github.com/grayson-arendt/Lunabotics-2025.git
+cd Lunabotics-2025
 git submodule update --init --recursive --remote
 git lfs pull
 ```
