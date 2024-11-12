@@ -1,8 +1,7 @@
 /**
  * @file localization_server.cpp
- * @brief Node to align robot to an AprilTag and provide localization feedback
- * for pose estimation.
- * @date 9/30/2024
+ * @author Grayson Arendt
+ * @date 11/11/2024
  */
 
 #include <array>
@@ -26,12 +25,19 @@
 
 #include "lunabot_system/action/localization.hpp"
 
+/**
+ * @class LocalizationServer
+ * @brief Provides localization using AprilTags and manages an action server for localization feedback.
+ */
 class LocalizationServer : public rclcpp::Node
 {
   public:
     using Localization = lunabot_system::action::Localization;
     using GoalHandleLocalization = rclcpp_action::ServerGoalHandle<Localization>;
 
+    /**
+     * @brief Constructor for the LocalizationServer class.
+     */
     LocalizationServer()
         : Node("localization_server"), d455_tag1_detected_(false), d455_tag2_detected_(false),
           d456_tag1_detected_(false), d456_tag2_detected_(false), turn_direction_set_(false), aligned_(false),
@@ -58,6 +64,10 @@ class LocalizationServer : public rclcpp::Node
     }
 
   private:
+    /**
+     * @brief Handles goal requests from clients.
+     * @return Goal response (accept or reject).
+     */
     rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &, std::shared_ptr<const Localization::Goal>)
     {
         goal_received_ = true;
@@ -65,16 +75,28 @@ class LocalizationServer : public rclcpp::Node
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
+    /**
+     * @brief Handles cancellation requests from clients.
+     * @return Cancel response (accept or reject).
+     */
     rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleLocalization>)
     {
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
+    /**
+     * @brief Accepts and starts the goal execution.
+     * @param goal_handle Handle for the current goal.
+     */
     void handle_accepted(const std::shared_ptr<GoalHandleLocalization> goal_handle)
     {
         std::thread{std::bind(&LocalizationServer::execute, this, goal_handle)}.detach();
     }
 
+    /**
+     * @brief Executes the localization process.
+     * @param goal_handle Handle for the current goal.
+     */
     void execute(const std::shared_ptr<GoalHandleLocalization> goal_handle)
     {
         auto result = std::make_shared<Localization::Result>();
@@ -84,7 +106,7 @@ class LocalizationServer : public rclcpp::Node
 
         if (aligned_)
         {
-            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32LOCALIZATION SUCCESS!\033[0m");
+            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32mLOCALIZATION SUCCESS!\033[0m");
             result->success = true;
             result->x = -lateral_distance_;
             result->y = depth_distance_;
@@ -93,14 +115,19 @@ class LocalizationServer : public rclcpp::Node
         }
         else
         {
+            RCLCPP_ERROR(this->get_logger(), "\033[1;31mLOCALIZATION FAILED!\033[0m");
             result->success = false;
             goal_handle->abort(result);
         }
     }
+    /**
+     * @brief Aligns the robot with the detected AprilTag.
+     */
 
     void align_robot()
     {
         geometry_msgs::msg::Twist twist;
+
         if (!alignment_started_)
         {
             alignment_start_time_ = now();
@@ -108,6 +135,7 @@ class LocalizationServer : public rclcpp::Node
         }
 
         double elapsed_time = (now() - alignment_start_time_).seconds();
+
         if (elapsed_time > 60.0 && !aligned_)
         {
             twist.angular.z = 0.0;
@@ -123,43 +151,69 @@ class LocalizationServer : public rclcpp::Node
             return;
         }
 
-        if (!turn_direction_set_)
+        if (d455_tag1_detected_)
+        {
+            double yaw_error = normalize_angle(tag1_yaw);
+            if (std::abs(yaw_error) > 0.025)
+            {
+                twist.angular.z = yaw_error > 0 ? -0.1 : 0.1;
+            }
+            else
+            {
+                twist.angular.z = 0.0;
+                aligned_ = true;
+                RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNMENT COMPLETE WITH TAG 7.\033[0m");
+            }
+        }
+        else if (!turn_direction_set_)
         {
             if (!d455_tag1_detected_ && !d456_tag1_detected_ && !initial_rotation_started_)
             {
                 initial_rotation_started_ = true;
-                RCLCPP_INFO(this->get_logger(), "\033[1;32NO TAGS DETECTED. INITIALIZING SLOW ROTATION...\033[0m");
-                twist.angular.z = 0.05;
+                RCLCPP_INFO(this->get_logger(), "\033[1;33mNO TAGS DETECTED. STARTING SLOW ROTATION...\033[0m");
+
+                twist.angular.z = -0.01;
                 cmd_vel_publisher_->publish(twist);
                 return;
             }
-            turn_counterclockwise_ = d455_tag2_detected_ ? false : (d456_tag2_detected_ || d456_tag1_detected_);
+
+            turn_counterclockwise_ = d455_tag1_detected_ ? false : (d456_tag1_detected_ || d456_tag2_detected_);
             turn_direction_set_ = true;
         }
-
-        RCLCPP_INFO_ONCE(this->get_logger(), "TURNING %s", turn_counterclockwise_ ? "COUNTER-CLOCKWISE" : "CLOCKWISE");
-
-        twist.angular.z = turn_counterclockwise_ ? 0.4 : -0.4;
-
-        if (d455_tag1_detected_)
+        else
         {
-            double yaw_error = normalize_angle(tag1_yaw);
-            twist.angular.z = std::abs(yaw_error) > 0.025 ? (turn_counterclockwise_ ? 0.2 : -0.2) : 0.0;
-            aligned_ = twist.angular.z == 0.0;
+            twist.angular.z = turn_counterclockwise_ ? 0.1 : -0.1;
         }
+
         cmd_vel_publisher_->publish(twist);
     }
+    /**
+     * @brief Detects AprilTags in images from the D455 camera.
+     * @param inputImage Image message from the D455 camera.
+     */
 
     void d455_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
     {
         process_apriltag(inputImage, d455_tag1_detected_, d455_tag2_detected_, d455_overlay_publisher_, true);
     }
 
+    /**
+     * @brief Detects AprilTags in images from the D456 camera.
+     * @param inputImage Image message from the D456 camera.
+     */
     void d456_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
     {
         process_apriltag(inputImage, d456_tag1_detected_, d456_tag2_detected_, d456_overlay_publisher_, false);
     }
 
+    /**
+     * @brief Processes detected AprilTags, calculates pose, and publishes overlay image.
+     * @param inputImage Image message.
+     * @param tag1_detected Flag for detecting tag1.
+     * @param tag2_detected Flag for detecting tag2.
+     * @param overlay_publisher Publisher for overlay image.
+     * @param calculate_yaw_ Boolean to calculate yaw for detected tags.
+     */
     void process_apriltag(const sensor_msgs::msg::Image::SharedPtr &inputImage, bool &tag1_detected,
                           bool &tag2_detected,
                           const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr &overlay_publisher,
@@ -214,10 +268,15 @@ class LocalizationServer : public rclcpp::Node
         }
         catch (const std::exception &e)
         {
-            RCLCPP_ERROR(this->get_logger(), "ERROR PROCESSING IMAGE: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "\033[1;31mERROR PROCESSING IMAGE: %s\033[0m", e.what());
         }
     }
 
+    /**
+     * @brief Normalizes an angle to the range [-pi, pi].
+     * @param angle The angle to normalize.
+     * @return Normalized angle.
+     */
     double normalize_angle(double angle)
     {
         while (angle > M_PI)
@@ -227,12 +286,23 @@ class LocalizationServer : public rclcpp::Node
         return angle;
     }
 
+    /**
+     * @brief Calculates lateral and depth distances from translation vector.
+     * @param tvec Translation vector.
+     * @param lateral_distance Calculated lateral distance.
+     * @param depth_distance Calculated depth distance.
+     */
     void calculate_distances(const cv::Vec3d &tvec, double &lateral_distance, double &depth_distance)
     {
         lateral_distance = tvec[0];
         depth_distance = tvec[2];
     }
 
+    /**
+     * @brief Calculates yaw from rotation vector.
+     * @param rvec Rotation vector.
+     * @param tag1_yaw Calculated yaw for tag1.
+     */
     void calculate_yaw(const cv::Vec3d &rvec, double &tag1_yaw)
     {
         cv::Mat rotation_matrix;
@@ -255,7 +325,10 @@ class LocalizationServer : public rclcpp::Node
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 };
 
-// Main function
+/**
+ * @brief Main function.
+ * Initializes and runs the LocalizationServer node.
+ */
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);

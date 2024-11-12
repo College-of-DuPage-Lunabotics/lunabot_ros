@@ -9,6 +9,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 **Sensors**
 - RPLidar S3
+- RPLidar S2l
 - Intel RealSense D455 Depth Camera
 - Intel RealSense D456 Depth Camera
   
@@ -66,21 +67,21 @@ sudo snap install foxglove-studio
 
 Building may take some time due to the external packages in `lunabot_third_party`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
 
-To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a `C++` file, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
+To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
 
 ```bash
 cd ~/lunabot_ws
 colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 4 # Modify number as needed, this is how many packages are built concurrently
 ```
 
-#### 5. (Optional) Set MAKEFLAG and Rebuild
+#### 6. (Optional) Set MAKEFLAG and Rebuild
 If your computer keeps crashing while trying to build, `colcon build` may be trying to do too many things at once. Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing.
 
 ```bash
 export MAKEFLAGS="-j1" # Modify number as needed
 ```
 
-Next, rebuild using the same commands in step **4. Build the workspace**.
+Next, rebuild using the same commands in step **5. Build the workspace**.
 
 ## Simulating the Robot
 The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `visualization_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
@@ -227,11 +228,10 @@ ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonom
 #### visualization_launch.py
 `robot_type`: Specifies the robot model to visualize.
   - Options:
-    - `rectangle`: Visualizes the rectangular bulldozer robot. **(Default)**
-    - `square`: Visualizes the square bulldozer robot.
+    - `bulldozer`: Visualizes the bulldozer robot. **(Default)**
     - `trencher`: Visualizes the trencher robot.
 
-Example: `robot_type:=square`
+Example: `robot_type:=trencher`
 
 `robot_orientation`: Sets the initial orientation of the robot in Gazebo.
   - Options:
@@ -241,7 +241,7 @@ Example: `robot_type:=square`
     - `west`: Points the robot west.
     - `random`: Assigns a random orientation.
 
-Example: `orientation:=random`
+Example: `robot_orientation:=random`
 
 `visualization_mode`: Specifies whether to launch Gazebo or not.
   - Options:
@@ -269,8 +269,7 @@ Example: `gazebo_gui:=false`
 
 `robot_type`: Defines which robot model parameters to use for Navigation2.
   - Options:
-    - `rectangle`: Defines parameters for the rectangular bulldozer robot. **(Default)**
-    - `square`: Defines parameters the square bulldozer robot.
+    - `bulldozer`: Defines parameters for the bulldozer robot. **(Default)**
     - `trencher`: Defines parameters the trencher robot.
 
 Example: `robot_type:=trencher`
@@ -302,12 +301,17 @@ Example: `teleop_mode:=xbox`
   - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
   - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Navigation2 to only replan when path becomes invalid to prevent Navigation2 from repeatedly alternating between ambiguous paths.
 - **params**
-  - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
-  - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
-  - **nav2_real_bot_params.yaml**: Parameters for configuring Navigation2 when running on the physical robot.
-  - **nav2_rectangle_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the prototype rectangle bot.
-  - **nav2_square_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the prototype square bot.
-  - **rtabmap_params.yaml**: Parameters for configuring RTAB-Map.
+  - **gazebo**
+    - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
+    - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
+  - **nav2**
+    - **nav2_bulldozer_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the bulldozer robot.
+    - **nav2_real_bot_params.yaml**: Parameters for configuring Navigation2 when running on the physical robot.
+    - **nav2_trencher_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the trencher robot.
+  - **robot_localization**
+    - **ukf_params.yaml**: Parameters for the robot_localization Unscented Kalman Filter (UKF).
+  - **rtabmap**
+    - **rtabmap_params.yaml**: Parameters for configuring RTAB-Map.
 - **rviz**
   - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
 
@@ -325,10 +329,8 @@ Example: `teleop_mode:=xbox`
     - **real**
       - **trencher_bot.xacro**: URDF description of a high resolution real robot that utilizes a trencher digging mechanism.
     - **simulation**
-      - **realistic_rectangle_bot.xacro**: URDF description of a high resolution simulated rectangular bulldozer robot.
-      - **rectangle_bot.xacro**: URDF description of a low resolution simulated rectangular bulldozer robot.
-      - **square_bot.xacro**: URDF description of a low resolution simulated square bulldozer robot.
-      - **trencher_bot.xacro**: URDF description of a high resolution simulated robot that utilizes a trencher digging mechanism.
+      - **bulldozer_bot.xacro**: URDF description of a simulated bulldozer robot.
+      - **trencher_bot.xacro**: URDF description of a simulated trencher robot.
   - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
     - **high_resolution**: Contains high resolution world files.
       - **artemis**: Contains world files simulating the Artemis arena.

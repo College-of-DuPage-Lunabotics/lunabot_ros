@@ -15,12 +15,16 @@ from launch.actions import (
     OpaqueFunction,
 )
 
-def set_nav2_params(context, *args, **kwargs):
-    config_dir = get_package_share_directory("lunabot_config")
-    robot_type = context.launch_configurations.get("robot_type")
 
-    nav2_params_file = os.path.join(config_dir, "params", f"nav2_{robot_type}_bot_params.yaml")
+def set_nav2_params(context, *args, **kwargs):
+    robot_type = context.launch_configurations.get("robot_type")
+    config_dir = get_package_share_directory("lunabot_config")
+
+    nav2_params_file = os.path.join(
+        config_dir, "params", "nav2", f"nav2_{robot_type}_bot_params.yaml"
+    )
     return [SetLaunchConfiguration("nav2_params_file", nav2_params_file)]
+
 
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
@@ -30,25 +34,30 @@ def generate_launch_description():
         "robot_mode",
         default_value="manual",
         choices=["manual", "autonomous"],
-        description="Select 'manual' for teleoperated mode or 'autonomous' for autonomous mode."
+        description="Select 'manual' for teleoperated mode or 'autonomous' for autonomous mode.",
     )
 
     declare_teleop_mode = DeclareLaunchArgument(
         "teleop_mode",
         default_value="keyboard",
         choices=["keyboard", "xbox"],
-        description="Choose the teleoperation mode: 'keyboard' for keyboard control or 'xbox' for Xbox controller."
+        description="Choose the teleoperation mode: 'keyboard' for keyboard control or 'xbox' for Xbox controller.",
     )
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
-        default_value="rectangle",
-        choices=["rectangle", "square", "trencher"],
-        description="Specify the type of robot to launch: 'rectangle', 'square', or 'trencher'. Each option loads the respective robot configuration."
+        default_value="bulldozer",
+        choices=["bulldozer", "trencher"],
+        description="Specify the type of robot to launch: 'bulldozer', or 'trencher'. Each option loads the respective robot configuration.",
     )
 
-    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
+    rtabmap_params_file = os.path.join(
+        config_dir, "params", "rtabmap", "rtabmap_params.yaml"
+    )
+
+    ukf_params_file = os.path.join(
+        config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
 
     topic_remapper_node = Node(
         package="lunabot_simulation", executable="topic_remapper"
@@ -127,32 +136,74 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    rf2o_odometry_node = Node(
-                package='rf2o_laser_odometry',
-                executable='rf2o_laser_odometry_node',
-                name='rf2o_laser_odometry',
-                output='screen',
-                parameters=[{
-                    'laser_scan_topic' : '/scan',
-                    'odom_topic' : '/rf2o_odom',
-                    'publish_tf' : True,
-                    'base_frame_id' : 'base_link',
-                    'odom_frame_id' : 'odom',
-                    'init_pose_from_topic' : '',
-                    'freq' : 30.0}],
-                arguments=["--ros-args", "--log-level", "error"],
+    icp_odometry_node = Node(
+        package="rtabmap_odom",
+        executable="icp_odometry",
+        output="screen",
+        parameters=[
+            {
+                "frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "publish_tf": False,
+                "approx_sync": True,
+                "Reg/Strategy": "1",
+                "Odom/Strategy": "1",
+                "Odom/FilteringStrategy": "1",
+                "Odom/KalmanProcessNoise": "0.001",
+                "Odom/KalmanMeasurementNoise": "0.01",
+                "Icp/PointToPlane": "true",
+                "Icp/Iterations": "10",
+                "Icp/VoxelSize": "0.1",
+                "Icp/Epsilon": "0.001",
+                "Icp/PointToPlaneK": "20",
+                "Icp/PointToPlaneRadius": "0",
+                "Icp/MaxTranslation": "2",
+                "Icp/MaxCorrespondenceDistance": "1",
+                "Icp/Strategy": "1",
+                "Icp/OutlierRatio": "0.7",
+                "Icp/CorrespondenceRatio": "0.01",
+                "Odom/ScanKeyFrameThr": "0.4",
+                "OdomF2M/ScanSubtractRadius": "0.1",
+                "OdomF2M/ScanMaxSize": "15000",
+                "OdomF2M/BundleAdjustment": "false",
+            }
+        ],
+        remappings=[
+            ("scan", "/scan"),
+            ("odom", "/icp_odom"),
+        ],
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
-    ekf_node = Node(
+    rf2o_odometry_node = Node(
+        package="rf2o_laser_odometry",
+        executable="rf2o_laser_odometry_node",
+        name="rf2o_laser_odometry",
+        output="screen",
+        parameters=[
+            {
+                "laser_scan_topic": "/scan",
+                "odom_topic": "/rf2o_odom",
+                "publish_tf": False,
+                "base_frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "init_pose_from_topic": "",
+                "freq": 40.0,
+            }
+        ],
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    ukf_node = Node(
         package="robot_localization",
-        executable="ekf_node",
-        name="ekf_filter_node",
+        executable="ukf_node",
+        name="ukf_filter_node",
         output="screen",
         parameters=[
             {
                 "use_sim_time": True,
             },
-            ekf_params_file,
+            ukf_params_file,
         ],
     )
 
@@ -217,10 +268,10 @@ def generate_launch_description():
     )
 
     map_to_odom_tf = Node(
-            package="tf2_ros",
-            executable="static_transform_publisher",
-            name="map_to_odom_tf",
-            arguments=["0", "0", "0", "0", "0", "0", "map", "odom"]
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="map_to_odom_tf",
+        arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
     )
 
     ld = LaunchDescription()
@@ -240,8 +291,9 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
+                        icp_odometry_node,
                         rf2o_odometry_node,
-                        ekf_node,
+                        ukf_node,
                     ],
                 ),
                 TimerAction(
@@ -275,15 +327,16 @@ def generate_launch_description():
                     ],
                 ),
                 TimerAction(
-                    period=50.0,
+                    period=30.0,
                     actions=[
+                        icp_odometry_node,
                         rf2o_odometry_node,
-                        ekf_node,
+                        ukf_node,
                         slam_node,
                     ],
                 ),
                 TimerAction(
-                    period=60.0,
+                    period=40.0,
                     actions=[
                         nav2_launch,
                     ],

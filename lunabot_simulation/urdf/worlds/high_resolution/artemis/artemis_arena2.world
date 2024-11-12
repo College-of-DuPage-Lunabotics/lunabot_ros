@@ -1,6 +1,5 @@
 <sdf version='1.7'>
   <world name='default'>
-
     <gui fullscreen='0'>
       <camera name='user_camera'>
         <pose>0.550397 7.43232 16.7573 0 1.3538 -1.4587</pose>
@@ -29,7 +28,7 @@
       <grid>false</grid>
       <origin_visual>false</origin_visual>
     </scene>
-    
+
     <physics type='ode'>
       <max_step_size>0.001</max_step_size>
       <real_time_factor>1</real_time_factor>
@@ -39,10 +38,10 @@
     <gravity>0 0 -9.81</gravity>
 
     <model name='lunar_surface'>
-      <pose>0 0 0 0 0 0</pose>
       <static>1</static>
       <link name='link'>
         <visual name='lunar_surface'>
+          <pose>0 0 0 0 0 0</pose>
           <geometry>
             <mesh>
               <uri>model://lunar_surface/lunar_surface.stl</uri>
@@ -58,17 +57,17 @@
           </material>
         </visual>
         <collision name='lunar_surface_collision'>
+          <pose>0 0 -0.1 0 0 0</pose>
           <geometry>
-            <mesh>
-              <uri>model://lunar_surface/lunar_surface.stl</uri>
-              <scale>1 1 1</scale>
-            </mesh>
+            <box>
+              <size>7.22 5.34 0.1</size>
+            </box>
           </geometry>
           <surface>
             <friction>
               <ode>
-                <mu>0.9</mu>
-                <mu2>0.9</mu2>
+                <mu>0.4</mu>
+                <mu2>0.4</mu2>
               </ode>
             </friction>
           </surface>
@@ -112,18 +111,6 @@
       <self_collide>1</self_collide>
       <static>1</static>
       <link name='link'>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>3.0</ixx>
-            <iyy>3.0</iyy>
-            <izz>3.0</izz>
-          </inertia>
-        </inertial>
-        <velocity_decay>
-          <linear>0.3</linear>
-          <angular>0.3</angular>
-        </velocity_decay>
         <visual name='rock_rough'>
           <geometry>
             <mesh>
@@ -155,6 +142,10 @@
             </friction>
           </surface>
         </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
       </link>
     </model>
 
@@ -163,18 +154,6 @@
       <self_collide>1</self_collide>
       <static>1</static>
       <link name='link'>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>3.0</ixx>
-            <iyy>3.0</iyy>
-            <izz>3.0</izz>
-          </inertia>
-        </inertial>
-        <velocity_decay>
-          <linear>0.3</linear>
-          <angular>0.3</angular>
-        </velocity_decay>
         <visual name='rock_rough_2'>
           <geometry>
             <mesh>
@@ -206,18 +185,6 @@
       <self_collide>1</self_collide>
       <static>1</static>
       <link name='link'>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>3.0</ixx>
-            <iyy>3.0</iyy>
-            <izz>3.0</izz>
-          </inertia>
-        </inertial>
-        <velocity_decay>
-          <linear>0.3</linear>
-          <angular>0.3</angular>
-        </velocity_decay>
         <visual name='rock_round'>
           <geometry>
             <mesh>
@@ -249,18 +216,6 @@
       <self_collide>1</self_collide>
       <static>1</static>
       <link name='link'>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>3.0</ixx>
-            <iyy>3.0</iyy>
-            <izz>3.0</izz>
-          </inertia>
-        </inertial>
-        <velocity_decay>
-          <linear>0.3</linear>
-          <angular>0.3</angular>
-        </velocity_decay>
         <visual name='rock_round_2'>
           <geometry>
             <mesh>
@@ -292,18 +247,6 @@
       <self_collide>1</self_collide>
       <static>1</static>
       <link name='link'>
-        <inertial>
-          <mass>5.0</mass>
-          <inertia>
-            <ixx>3.0</ixx>
-            <iyy>3.0</iyy>
-            <izz>3.0</izz>
-          </inertia>
-        </inertial>
-        <velocity_decay>
-          <linear>0.3</linear>
-          <angular>0.3</angular>
-        </velocity_decay>
         <visual name='rock_round_3'>
           <geometry>
             <mesh>
@@ -327,6 +270,10 @@
             </mesh>
           </geometry>
         </collision>
+        <velocity_decay>
+          <linear>0.39</linear>
+          <angular>0.9</angular>
+        </velocity_decay>
       </link>
     </model>
 

@@ -15,16 +15,20 @@ Drive around with WASD:
         w
    a    s    d
 
-Max speed: 0.5
+Max speed: 0.7
 Adjust speed:
 q : Increase linear speed
 z : Decrease linear speed
 e : Increase angular speed
 c : Decrease angular speed
 
-Move the blade with Up/Down arrows:
-Up Arrow: Counter-clockwise
-Down Arrow: Clockwise
+Lift the blade with Up/Down arrows:
+Up Arrow: Increase position
+Down Arrow: Decrease position
+
+Tilt the blade with Left/Right arrows:
+Left Arrow: Counter-clockwise
+Right Arrow: Clockwise
 
 CTRL-C to quit
 """
@@ -46,8 +50,9 @@ speedBindings = {
 bladeBindings = {
     "\x1b[A": -0.025,
     "\x1b[B": 0.025,
+    "\x1b[D": -0.025,
+    "\x1b[C": 0.025,
 }
-
 
 def getKey(settings):
     tty.setraw(sys.stdin.fileno())
@@ -87,11 +92,14 @@ def main():
 
     speed = 0.35
     turn = 0.25
-    max_speed = 0.5
-    max_turn = 0.5
+    max_speed = 0.75
+    max_turn = 0.75
     blade_position = 0.0
+    blade_arm_position = 0.0
     max_blade_position = 0.75
     min_blade_position = -0.75
+    max_blade_arm_position = 1.0
+    min_blade_arm_position = -1.0
     x = 0.0
     th = 0.0
     status = 0.0
@@ -119,12 +127,21 @@ def main():
                     print(msg)
                 status = (status + 1) % 15
             elif key in bladeBindings:
-                blade_position = max(
-                    min(blade_position + bladeBindings[key], max_blade_position),
-                    min_blade_position,
-                )
+                if key in ["\x1b[A", "\x1b[B"]:
+                    blade_arm_position = max(
+                        min(
+                            blade_arm_position + bladeBindings[key],
+                            max_blade_arm_position,
+                        ),
+                        min_blade_arm_position,
+                    )
+                elif key in ["\x1b[D", "\x1b[C"]:
+                    blade_position = max(
+                        min(blade_position + bladeBindings[key], max_blade_position),
+                        min_blade_position,
+                    )
                 blade_msg = Float64MultiArray()
-                blade_msg.data = [blade_position]
+                blade_msg.data = [blade_position, blade_arm_position]
                 blade_pub.publish(blade_msg)
                 continue
             else:
