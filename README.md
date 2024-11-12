@@ -41,9 +41,12 @@ This will permanently append these two lines to your .bashrc file, so there is n
 ```bash
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
-git clone --recursive https://github.com/grayson-arendt/Lunabotics-2025.git
+git clone https://github.com/grayson-arendt/Lunabotics-2025.git
+cd Lunabotics-2025
+git submodule update --init --recursive --remote
+git lfs pull
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, run `git submodule update --init --recursive` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
