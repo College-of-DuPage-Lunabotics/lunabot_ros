@@ -46,7 +46,7 @@ cd Lunabotics-2025
 git submodule update --init --recursive --remote
 git lfs pull
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party`, after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
@@ -65,7 +65,6 @@ If you would prefer to use Foxglove Studio instead of RViz2 to visualize the rob
 sudo snap install foxglove-studio
 ```
 
-
 #### 5. Build the workspace
 
 Building may take some time due to the external packages in `lunabot_third_party`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
@@ -74,7 +73,7 @@ To avoid building the entire workspace all over again after the initial build if
 
 ```bash
 cd ~/lunabot_ws
-colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 4 # Modify number as needed, this is how many packages are built concurrently
+colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed, this is how many packages are built concurrently
 ```
 
 #### 6. (Optional) Set MAKEFLAG and Rebuild

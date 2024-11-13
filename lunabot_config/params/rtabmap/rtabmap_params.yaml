@@ -34,7 +34,7 @@ rtabmap:
     RGBD/MarkerDetection: "true"
     Marker/Dictionary: "20"
     Marker/Length: "0.3125"
-    Rtabmap/StartNewMapOnGoodSignature: "true"
+    Rtabmap/StartNewMapOnGoodSignature: "false"
     Rtabmap/DetectionRate: "80"
     Rtabmap/OdomGuessRatio: "0.2"
     Vis/Odom: "false"
@@ -54,4 +54,3 @@ rtabmap:
     Odom/FilteringStrategy: "1"
     Odom/KalmanProcessNoise: "0.01"
     Odom/KalmanMeasurementNoise: "0.1"
-    Kp/DetectorStrategy: "1"
