@@ -349,7 +349,7 @@
   </gazebo>
 
   <gazebo reference="d455_link">
-    <sensor type="depth" name="d455">
+    <sensor type="camera" name="d455_color">
       <pose>0 0 0 0 0 0</pose>
       <update_rate>60.0</update_rate>
       <visualize>true</visualize>
@@ -372,23 +372,42 @@
           <far>10.0</far>
         </clip>
       </camera>
-      <plugin name="camera1_controller" filename="libgazebo_ros_camera.so">
-        <ros>
-          <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
-          <remapping>/d455/points:=/d455/color/points</remapping>
-          <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
-          <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
-        </ros>
-        <frame_name>d455_optical_link</frame_name>
-        <publish_tf>false</publish_tf>
-        <publish_point_cloud>true</publish_point_cloud>
-      </plugin>
+      <topic>d455/color/image_raw</topic>
+      <camera_info_topic>d455/color/camera_info</camera_info_topic>
+      <gz_frame_id>d455_optical_link</gz_frame_id>
+    </sensor>
+    <sensor type="depth_camera" name="d455_depth">
+      <pose>0 0 0 0 0 0</pose>
+      <update_rate>60.0</update_rate>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>1.540</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <distortion>
+          <k1>-0.06792929080519726</k1>
+          <k2>0.08058277259698843</k2>
+          <k3>-0.04417756393089296</k3>
+          <p1>-0.001690544521662593</p1>
+          <p2>-0.0008235437909836152</p2>
+        </distortion>
+        <clip>
+          <near>0.05</near>
+          <far>10.0</far>
+        </clip>
+      </camera>
+      <topic>d455/depth/image_rect_raw</topic>
+      <camera_info_topic>d455/color/camera_info</camera_info_topic>
+      <gz_frame_id>d455_optical_link</gz_frame_id>
     </sensor>
     <material>Gazebo/Grey</material>
   </gazebo>
 
   <gazebo reference="d456_link">
-    <sensor type="depth" name="d456">
+    <sensor type="camera" name="d456_color">
       <pose>0 0 0 0 0 0</pose>
       <update_rate>60.0</update_rate>
       <visualize>true</visualize>
@@ -411,27 +430,46 @@
           <far>10.0</far>
         </clip>
       </camera>
-      <plugin name="camera2_controller" filename="libgazebo_ros_camera.so">
-        <ros>
-          <remapping>/d456/image_raw:=/d456/color/image_raw</remapping>
-          <remapping>/d456/points:=/d456/color/points</remapping>
-          <remapping>/d456/camera_info:=/d456/color/camera_info</remapping>
-          <remapping>/d456/depth/image_raw:=/d456/depth/image_rect_raw</remapping>
-        </ros>
-        <frame_name>d456_optical_link</frame_name>
-        <publish_tf>false</publish_tf>
-        <publish_point_cloud>true</publish_point_cloud>
-      </plugin>
+      <topic>d456/color/image_raw</topic>
+      <camera_info_topic>d456/color/camera_info</camera_info_topic>
+      <gz_frame_id>d456_optical_link</gz_frame_id>
+    </sensor>
+    <sensor type="depth_camera" name="d456_depth">
+      <pose>0 0 0 0 0 0</pose>
+      <update_rate>60.0</update_rate>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>1.540</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <distortion>
+          <k1>-0.06792929080519726</k1>
+          <k2>0.08058277259698843</k2>
+          <k3>-0.04417756393089296</k3>
+          <p1>-0.001690544521662593</p1>
+          <p2>-0.0008235437909836152</p2>
+        </distortion>
+        <clip>
+          <near>0.05</near>
+          <far>10.0</far>
+        </clip>
+      </camera>
+      <topic>d456/depth/image_rect_raw</topic>
+      <camera_info_topic>d456/color/camera_info</camera_info_topic>
+      <gz_frame_id>d456_optical_link</gz_frame_id>
     </sensor>
     <material>Gazebo/Grey</material>
   </gazebo>
 
   <gazebo reference="s3_lidar_link">
-    <sensor type="ray" name="s3_lidar_link">
+    <sensor type="gpu_lidar" name="s3_lidar_link">
       <pose>0 0 0 0 0 0</pose>
-      <visualize>false</visualize>
+      <visualize>true</visualize>
       <update_rate>50.0</update_rate>
-      <ray>
+      <lidar>
         <scan>
           <horizontal>
             <samples>1080</samples>
@@ -449,25 +487,19 @@
           <mean>0.0</mean>
           <stddev>0.01</stddev>
         </noise>
-      </ray>
-      <plugin name="s3_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
-        <frame_name>s3_lidar_link</frame_name>
-        <ros>
-          <remapping>~/out:=/scan</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <publish_tf>false</publish_tf>
-      </plugin>
+      </lidar>
+      <topic>scan</topic>
+      <gz_frame_id>s3_lidar_link</gz_frame_id>
     </sensor>
     <material>Gazebo/Black</material>
   </gazebo>
 
   <gazebo reference="s2l_lidar_link">
-    <sensor type="ray" name="s2l_lidar_link">
+    <sensor type="gpu_lidar" name="s2l_lidar_link">
       <pose>0 0 0 0 0 0</pose>
-      <visualize>false</visualize>
+      <visualize>true</visualize>
       <update_rate>50.0</update_rate>
-      <ray>
+      <lidar>
         <scan>
           <horizontal>
             <samples>1080</samples>
@@ -485,15 +517,9 @@
           <mean>0.0</mean>
           <stddev>0.01</stddev>
         </noise>
-      </ray>
-      <plugin name="s2l_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
-        <frame_name>s2l_lidar_link</frame_name>
-        <ros>
-          <remapping>~/out:=/scan2</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <publish_tf>false</publish_tf>
-      </plugin>
+      </lidar>
+      <topic>scan2</topic>
+      <gz_frame_id>s2l_lidar_link</gz_frame_id>
     </sensor>
     <material>Gazebo/Black</material>
   </gazebo>
@@ -501,37 +527,31 @@
   <gazebo reference="imu_link">
     <gravity>false</gravity>
     <sensor name="imu_sensor" type="imu">
-      <always_on>true</always_on>
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>1</always_on>
       <update_rate>200</update_rate>
       <visualize>true</visualize>
-      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-        <ros>
-          <namespace></namespace>
-          <remapping>~/out:=/d456/imu/data</remapping>
-        </ros>
-        <bodyName>base_link</bodyName>
-        <gaussianNoise>0.0</gaussianNoise>
-        <xyzOffset>0 0 0</xyzOffset>
-        <rpyOffset>0 0 0</rpyOffset>
-        <frameName>imu_link</frameName>
-        <publish_tf>false</publish_tf>
-        <initialOrientationAsReference>false</initialOrientationAsReference>
-      </plugin>
-      <pose>0 0 0 0 0 0</pose>
+      <gz_frame_id>imu_link</gz_frame_id>
+      <topic>d456/imu/data</topic>
     </sensor>
   </gazebo>
 
   <gazebo>
-    <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
-      <robot_param>robot_description</robot_param>
-      <robot_param_node>robot_state_publisher</robot_param_node>
-      <parameters>$(find lunabot_config)/params/gazebo/gazebo_bulldozer_bot_params.yaml</parameters>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
+    </plugin>
+
+    <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+      <parameters>$(find lunabot_config)/params/gazebo/gz_bulldozer_bot_params.yaml</parameters>
     </plugin>
   </gazebo>
 
-  <ros2_control name="GazeboSystem" type="system">
+  <ros2_control name="IgnitionSystem" type="system">
     <hardware>
-      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+      <plugin>ign_ros2_control/IgnitionSystem</plugin>
     </hardware>
     <joint name="blade_arm_joint">
       <command_interface name="position" />

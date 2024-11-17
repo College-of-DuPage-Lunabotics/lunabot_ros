@@ -42,6 +42,7 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
+    gz_bridge_params = os.path.join(config_dir, "params", "gazebo", "gz_bridge.yaml")
     urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro")
     world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena3.world")
 
@@ -73,11 +74,11 @@ def generate_launch_description():
         description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio."
     )
 
-    declare_gazebo_gui = DeclareLaunchArgument(
-        "gazebo_gui",
+    declare_gz_gui = DeclareLaunchArgument(
+        "gz_gui",
         default_value="true",
         choices=["true", "false"],
-        description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode."
+        description="Sets whether to open gz with its GUI. 'true' opens the GUI, while 'false' runs gz in headless mode."
     )
 
     rviz_launch = Node(
@@ -97,35 +98,51 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("visualization_type", "foxglove"),
     )
 
-    gazebo_launch = IncludeLaunchDescription(
+    gz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
+                get_package_share_directory("ros_gz_sim"), "launch", "gz_sim.launch.py"
             )
         ),
         launch_arguments={
-            "gui": LaunchConfiguration("gazebo_gui"),
-            "world": world_file,
+            'gz_args': f'-r -v4 {world_file}',
+            'on_exit_shutdown': 'true',
         }.items(),
     )
 
-
     spawn_robot_node = Node(
-        package="gazebo_ros",
-        executable="spawn_entity.py",
+        package='ros_gz_sim',
+        executable='create',
         arguments=[
-            "-topic",
-            "robot_description",
-            "-entity",
-            LaunchConfiguration("robot_type"),
-            "-x",
-            "2.5",
-            "-y",
-            "1.6",
-            "-Y",
-            LaunchConfiguration("robot_orientation"),
-            "-z",
-            "0.35",
+            '-topic', 'robot_description',
+            '-name', LaunchConfiguration("robot_type"),
+            '-x', '2.5',
+            '-y', '1.6',
+            '-Y', LaunchConfiguration("robot_orientation"),
+            '-z', '0.35',
+        ],
+        output='screen',
+    )
+
+    gz_param_bridge_node = Node(
+        package="ros_gz_bridge",
+        executable="parameter_bridge",
+        arguments=[
+            "--ros-args",
+            "-p",
+            f"config_file:={gz_bridge_params}",
+        ],
+        output="screen",
+    )
+
+    gz_image_bridge_node = Node(
+        package="ros_gz_image",
+        executable="image_bridge",
+        arguments=[
+            "/d455/color/image_raw",
+            "/d456/color/image_raw",
+            "/d455/depth/image_rect_raw",
+            "/d456/depth/image_rect_raw"
         ],
         output="screen",
     )
@@ -140,13 +157,9 @@ def generate_launch_description():
     )
 
     joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster'],
     )
 
     position_controller_spawner = Node(
@@ -154,8 +167,6 @@ def generate_launch_description():
         executable="spawner",
         arguments=[
             "position_controller",
-            "--controller-manager",
-            "/controller_manager",
         ],
         condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
     )
@@ -167,13 +178,11 @@ def generate_launch_description():
     )
 
     diff_drive_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
+        package='controller_manager',
+        executable='spawner',
         arguments=[
-            "diff_drive_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
+            'diff_drive_controller',
+            ],
     )
 
     robot_real_state_publisher_node = Node(
@@ -203,7 +212,7 @@ def generate_launch_description():
     ld.add_action(declare_visualization_mode)
     ld.add_action(declare_robot_orientation)
     ld.add_action(declare_visualization_type)
-    ld.add_action(declare_gazebo_gui)
+    ld.add_action(declare_gz_gui)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_robot_description))
@@ -214,8 +223,10 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(
             actions=[
-                gazebo_launch,
+                gz_launch,
                 spawn_robot_node,
+                gz_param_bridge_node,
+                gz_image_bridge_node,
                 robot_sim_state_publisher,
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,
@@ -226,7 +237,6 @@ def generate_launch_description():
         )
     )
 
-    # Real mode group
     ld.add_action(
         GroupAction(
             actions=[

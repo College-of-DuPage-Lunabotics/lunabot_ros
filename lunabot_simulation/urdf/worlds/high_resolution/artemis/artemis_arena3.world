@@ -23,7 +23,7 @@
 
     <scene>
       <ambient>0.4 0.4 0.4 1</ambient>
-      <background>18 18 18 255</background>
+      <background>0 0 0 1</background>
       <shadows>1</shadows>
       <grid>false</grid>
       <origin_visual>false</origin_visual>
