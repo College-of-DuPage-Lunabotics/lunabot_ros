@@ -4,8 +4,8 @@ scan_to_scan_filter_chain:
       name: range_filter
       type: laser_filters/LaserScanRangeFilter
       params:
-        lower_threshold: 0.1  # Minimum valid range (adjust based on your lidar's specs)
-        upper_threshold: 7.0  # Maximum valid range (adjust as needed to match your environment)
+        lower_threshold: 0.1
+        upper_threshold: 7.0
     filter2:
       name: median_filter
       type: laser_filters/LaserArrayFilter
