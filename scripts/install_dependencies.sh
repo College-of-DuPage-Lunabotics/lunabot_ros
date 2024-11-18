@@ -12,7 +12,7 @@ install_ros_dependencies() {
 
 install_sensor_dependencies() {
     echo -e "\n------------------------ Install Sensor Dependencies ------------------------ \n"
-    sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-*
+    sudo apt install -y ros-iron-rplidar-ros ros-iron-realsense2-*
 }
 
 install_git_dependencies() {
