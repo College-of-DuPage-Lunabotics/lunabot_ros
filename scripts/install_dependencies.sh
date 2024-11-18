@@ -12,14 +12,15 @@ install_ros_dependencies() {
 
 install_sensor_dependencies() {
     echo -e "\n------------------------ Install Sensor Dependencies ------------------------ \n"
-    sudo apt install -y ros-iron-rplidar-ros ros-iron-realsense2-*
+    sudo apt-get update
+    sudo apt-get install -y ros-iron-rplidar-ros ros-iron-realsense2-*
 }
 
 install_sparkcan() {
     echo -e "\n------------------------ Add Repository and Install sparkcan ------------------------ \n"
-    sudo add-apt-repository ppa:graysonarendt/sparkcan -y
-    sudo apt update
-    sudo apt install sparkcan -y
+    sudo add-apt-get-repository ppa:graysonarendt/sparkcan -y
+    sudo apt-get update
+    sudo apt-get install sparkcan -y
 }
 
 main() {
