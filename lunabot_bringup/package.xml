@@ -19,6 +19,7 @@
   <depend>ros2_controllers</depend>
   <depend>gazebo_ros2_control</depend>
   <depend>xacro</depend>
+  <depend>laser_filters</depend>
   <depend>foxglove_bridge</depend>
   <depend>lunabot_system</depend>
   <depend>lunabot_simulation</depend>

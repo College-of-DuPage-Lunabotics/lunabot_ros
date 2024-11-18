@@ -1,0 +1,26 @@
+scan_to_scan_filter_chain:
+  ros__parameters:
+    filter1:
+      name: range_filter
+      type: laser_filters/LaserScanRangeFilter
+      params:
+        lower_threshold: 0.1  # Minimum valid range (adjust based on your lidar's specs)
+        upper_threshold: 7.0  # Maximum valid range (adjust as needed to match your environment)
+    filter2:
+      name: median_filter
+      type: laser_filters/LaserArrayFilter
+      params:
+        range_filter_chain:
+          filter1:
+            name: median
+            type: filters/MultiChannelMedianFilterFloat
+            params:
+              number_of_observations: 3
+    filter3:
+      name: speckle_filter
+      type: laser_filters/LaserScanSpeckleFilter
+      params:
+        filter_type: 0
+        max_range: 10.0
+        max_range_difference: 0.2
+        filter_window: 2

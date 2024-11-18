@@ -43,7 +43,7 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
     urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro")
-    world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena3.world")
+    world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena2.world")
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",

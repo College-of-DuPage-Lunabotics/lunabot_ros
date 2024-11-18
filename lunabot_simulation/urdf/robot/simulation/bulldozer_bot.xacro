@@ -453,7 +453,7 @@
       <plugin name="s3_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
         <frame_name>s3_lidar_link</frame_name>
         <ros>
-          <remapping>~/out:=/scan</remapping>
+          <remapping>~/out:=/scan_raw</remapping>
         </ros>
         <output_type>sensor_msgs/LaserScan</output_type>
         <publish_tf>false</publish_tf>
@@ -489,7 +489,7 @@
       <plugin name="s2l_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
         <frame_name>s2l_lidar_link</frame_name>
         <ros>
-          <remapping>~/out:=/scan2</remapping>
+          <remapping>~/out:=/scan2_raw</remapping>
         </ros>
         <output_type>sensor_msgs/LaserScan</output_type>
         <publish_tf>false</publish_tf>

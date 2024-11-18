@@ -30,6 +30,9 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
+    s3_params_file = os.path.join(config_dir, "params", "laser_filters", "s3_params.yaml")
+    s2l_params_file = os.path.join(config_dir, "params", "laser_filters", "s2l_params.yaml")
+
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode",
         default_value="manual",
@@ -207,6 +210,24 @@ def generate_launch_description():
         ],
     )
 
+    s3_filter_node = Node(
+                package="laser_filters",
+                executable="scan_to_scan_filter_chain",
+                parameters=[s3_params_file],
+                remappings=[("scan", "/scan_raw"),
+                            ("scan_filtered", "/scan")
+                ]
+    )
+
+    s2l_filter_node = Node(
+                package="laser_filters",
+                executable="scan_to_scan_filter_chain",
+                parameters=[s2l_params_file],
+                remappings=[("scan", "/scan2_raw"),
+                            ("scan_filtered", "/scan2")
+                ]
+    )
+
     localization_server_node = Node(
         package="lunabot_system",
         executable="localization_server",
@@ -294,6 +315,8 @@ def generate_launch_description():
                         icp_odometry_node,
                         rf2o_odometry_node,
                         ukf_node,
+                        s3_filter_node,
+                        s2l_filter_node,
                     ],
                 ),
                 TimerAction(
@@ -333,6 +356,8 @@ def generate_launch_description():
                         rf2o_odometry_node,
                         ukf_node,
                         slam_node,
+                        s3_filter_node,
+                        s2l_filter_node,
                     ],
                 ),
                 TimerAction(
