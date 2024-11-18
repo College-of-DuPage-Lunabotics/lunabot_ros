@@ -9,3 +9,6 @@
 [submodule "lunabot_third_party/rf2o_laser_odometry"]
 	path = lunabot_third_party/rf2o_laser_odometry
 	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git
+[submodule "lunabot_third_party/rmw_zenoh"]
+	path = lunabot_third_party/rmw_zenoh
+	url = https://github.com/ros2/rmw_zenoh.git
