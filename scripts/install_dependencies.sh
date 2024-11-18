@@ -15,13 +15,6 @@ install_sensor_dependencies() {
     sudo apt install -y ros-iron-rplidar-ros ros-iron-realsense2-*
 }
 
-install_git_dependencies() {
-    echo -e "\n------------------------ Install Git Dependencies and Pull LFS------------------------ \n"
-    cd "${WORKSPACE_DIR}/src/Lunabotics-2025"
-    sudo apt install git-lfs -y
-    git lfs pull
-}
-
 install_sparkcan() {
     echo -e "\n------------------------ Add Repository and Install sparkcan ------------------------ \n"
     sudo add-apt-repository ppa:graysonarendt/sparkcan -y
@@ -31,7 +24,6 @@ install_sparkcan() {
 
 main() {
     install_sensor_dependencies
-    install_git_dependencies
     install_sparkcan
     install_ros_dependencies
 }
