@@ -72,7 +72,7 @@ To avoid building the entire workspace all over again after the initial build if
 
 ```bash
 cd ~/lunabot_ws
-colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed, this is how many packages are built concurrently
+colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed
 ```
 
 #### 6. (Optional) Set MAKEFLAG and Rebuild
@@ -91,10 +91,10 @@ The launch files have various parameters that can be set, such as changing the r
 There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
 ##### Manual Mode
-This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Navigation2 and RTAB-Map, but does not launch the `localization_server` or `navigation_client`. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2.
+This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Nav2 and RTAB-Map, but does not launch the `localization_server` or `navigation_client`. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2/Foxglove Studio.
 
 ##### Autonomous Mode
-This launches `localization_server` and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands in the server and client and perform a one-cycle autonomy sequence. 
+This launches `localization_server` and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the localization server and navigation client to perform a one-cycle autonomy sequence. 
 
 #### 1. Navigate to workspace and source setup
 
@@ -210,8 +210,6 @@ cd ~/lunabot_ws
 source install/setup.bash
 ```
 
-#### Open separate terminal windows and source the workspace setup for each next step:
-
 #### 3. Visualize with RViz2 (host computer)
 
 ```bash
@@ -221,10 +219,19 @@ ros2 launch lunabot_bringup visualization_launch.py visualization_mode:=real
 #### 4. Launch the real robot (robot computer)
 
 ```bash
-ros2 launch lunabot_bringup real_launch.py # mode:=autonomous (to run in autonomous mode)
+ros2 launch lunabot_bringup real_launch.py
 ```
 
 ### Parameters
+
+#### real_launch.py
+
+`robot_mode`: Selects the mode of operation.
+  - Options:
+    - `manual`: Runs the robot in manual mode. **(Default)**
+    - `autonomous`: Runs the robot in autonomous mode.
+Example: `robot_mode:=autonomous`
+
 
 #### visualization_launch.py
 `robot_type`: Specifies the robot model to visualize.
@@ -268,7 +275,7 @@ Example: `gazebo_gui:=false`
 
 #### simulation_launch.py
 
-`robot_type`: Defines which robot model parameters to use for Navigation2.
+`robot_type`: Defines which robot model parameters to use for Nav2.
   - Options:
     - `bulldozer`: Defines parameters for the bulldozer robot. **(Default)**
     - `trencher`: Defines parameters the trencher robot.
@@ -297,10 +304,10 @@ Example: `teleop_mode:=xbox`
   - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
   - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
-**lunabot_config**: This package contains configuration files for Navigation2 behavior trees, RViz2 settings, and various 
+**lunabot_config**: This package contains configuration files for Nav2 behavior trees, RViz2 settings, and various parameters.
 - **behavior_trees**
-  - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Navigation2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
-  - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Navigation2 to only replan when path becomes invalid to prevent Navigation2 from repeatedly alternating between ambiguous paths.
+  - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Nav2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
+  - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Nav2 to only replan when path becomes invalid to prevent Nav2 from repeatedly alternating between ambiguous paths.
 - **params**
   - **gazebo**
     - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
@@ -309,9 +316,9 @@ Example: `teleop_mode:=xbox`
     - **s2l_params.yaml**: Parameters for filtering S2L lidar scans.
     - **s3_params.yaml**: Parameters for filtering S3 lidar scans.
   - **nav2**
-    - **nav2_bulldozer_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the bulldozer robot.
-    - **nav2_real_bot_params.yaml**: Parameters for configuring Navigation2 when running on the physical robot.
-    - **nav2_trencher_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the trencher robot.
+    - **nav2_bulldozer_bot_params.yaml**: Parameters for configuring Nav2 in simulation for the bulldozer robot.
+    - **nav2_real_bot_params.yaml**: Parameters for configuring Nav2 when running on the physical robot.
+    - **nav2_trencher_bot_params.yaml**: Parameters for configuring Nav2 in simulation for the trencher robot.
   - **robot_localization**
     - **ukf_params.yaml**: Parameters for the robot_localization Unscented Kalman Filter (UKF).
   - **rtabmap**
