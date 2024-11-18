@@ -7,7 +7,6 @@
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence>
-        <RateController hz="1.0">
           <Fallback name="FallbackComputePathToPose">
             <ReactiveSequence name="CheckIfNewPathNeeded">
               <Inverter>
@@ -17,7 +16,6 @@
             </ReactiveSequence>
             <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
           </Fallback>
-        </RateController>
         <FollowPath path="{path}" controller_id="FollowPath" />
       </PipelineSequence>
       <ReactiveFallback name="FallbackRecoveries">

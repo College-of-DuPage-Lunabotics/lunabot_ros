@@ -180,6 +180,37 @@
       </link>
     </model>
 
+    <model name='rock_rough_3'>
+      <pose>-0.046244 1.8 0.05 0 0 -0.80</pose>
+      <self_collide>1</self_collide>
+      <static>1</static>
+      <link name='link'>
+        <visual name='rock_rough_3'>
+          <geometry>
+            <mesh>
+              <uri>model://rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://rock_rough/materials/scripts</uri>
+              <uri>model://rock_rough/materials/textures</uri>
+              <name>rock_rough</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='rock_rough_3_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://rock_rough/rock_rough.stl</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
     <model name='rock_round'>
       <pose>0.486992 -0.098022 0.05 0 0 0.846674</pose>
       <self_collide>1</self_collide>
