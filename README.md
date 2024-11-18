@@ -9,7 +9,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 **Sensors**
 - RPLidar S3
-- RPLidar S2l
+- RPLidar S2L
 - Intel RealSense D455 Depth Camera
 - Intel RealSense D456 Depth Camera
   
@@ -305,6 +305,9 @@ Example: `teleop_mode:=xbox`
   - **gazebo**
     - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
     - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
+  - **laser_filters**
+    - **s2l_params.yaml**: Parameters for filtering S2L lidar scans.
+    - **s3_params.yaml**: Parameters for filtering S3 lidar scans.
   - **nav2**
     - **nav2_bulldozer_bot_params.yaml**: Parameters for configuring Navigation2 in simulation for the bulldozer robot.
     - **nav2_real_bot_params.yaml**: Parameters for configuring Navigation2 when running on the physical robot.
