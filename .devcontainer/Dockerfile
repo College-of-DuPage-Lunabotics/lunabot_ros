@@ -1,78 +1,86 @@
-# Base image with ROS 2 perception packages
-FROM ros:iron-perception
+# Use the ROS 2 Iron simulation image
+FROM ros:iron
+
+# Set environment variables for ROS
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Arguments for creating a user
 ARG USERNAME=rosdev
 ARG UID=1000
 ARG GID=$UID
+ARG GPU_SUPPORT=false
+ARG GPU_TYPE="none" # Options: "nvidia", "none"
 
-# Install dependencies
-RUN apt update -q \
-    && apt upgrade -q -y \
-    && apt install -y --no-install-recommends \
-    python3-pip \
-    xauth \
-    curl \
-    git \
+# Enable GPU support for NVIDIA based on GPU_TYPE argument
+RUN if [ "$GPU_SUPPORT" = "true" ]; then \
+      if [ "$GPU_TYPE" = "nvidia" ]; then \
+        echo "Installing NVIDIA GPU support"; \
+        apt-get update && apt-get install -y nvidia-container-toolkit && \
+        export NVIDIA_VISIBLE_DEVICES=all && \
+        export NVIDIA_DRIVER_CAPABILITIES=compute,utility,video; \
+      else \
+        echo "No GPU support enabled"; \
+      fi; \
+    fi
+
+# Install base dependencies
+RUN apt-get update && apt-get install -y \
     software-properties-common \
     build-essential \
-    libgazebo-dev \
-    ros-iron-rviz2 \
-    ros-iron-joint-state-publisher-gui \
-    ros-iron-robot-state-publisher \
+    python3-pip \
+    git \
+    git-lfs \
+    curl \
+    libgl1-mesa-glx \
+    libegl1-mesa \
+    libgles2-mesa \
+    libxinerama1 \
+    libxcursor1 \
+    libxrandr2 \
+    x11-apps \
+    alsa-utils \
+    nano \
+    sudo \
     ros-iron-rplidar-ros \
     ros-iron-realsense2-* \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Add SparkCAN repository and install
-RUN add-apt-repository ppa:graysonarendt/sparkcan -y \
-    && apt update -q \
-    && apt install -y sparkcan \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Create and switch to a non-root user
+RUN groupadd -g $GID $USERNAME && \
+    useradd -m -s /bin/bash -u $UID -g $GID $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Create and switch to user
-RUN groupadd -g $GID $USERNAME \
-    && useradd -lm -u $UID -g $USERNAME -s /bin/bash $USERNAME \
-    && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 USER $USERNAME
 
-# Create workspace and set up the src/Lunabotics-2025 structure
-RUN mkdir -p /home/$USERNAME/ros2_ws/src/Lunabotics-2025
-WORKDIR /home/$USERNAME/ros2_ws
+# Set up environment variables and append to .bashrc
+RUN echo 'unset GTK_PATH' >> ~/.bashrc && \
+    echo 'export RMW_IMPLEMENTATION=rmw_zenoh_cpp' >> ~/.bashrc && \
+    echo 'source /opt/ros/iron/setup.bash' >> ~/.bashrc && \
+    echo 'source /home/lunabot_ws/install/setup.bash' >> ~/.bashrc
 
-# Copy configuration files
-RUN echo 'source /opt/ros/'$ROS_DISTRO'/setup.bash' >> /home/$USERNAME/.bashrc \
-    && echo 'source /home/'$USERNAME'/ros2_ws/install/setup.bash' >> /home/$USERNAME/.bashrc
+# Create the workspace directory
+WORKDIR /home/lunabot_ws/src
 
-# Initialize rosdep
+# Clone your repository and initialize submodules
+RUN git clone -b iron https://github.com/grayson-arendt/Lunabotics-2025.git && \
+    cd Lunabotics-2025 && \
+    git submodule update --init --recursive --remote
+
+# Add sparkcan repository and install
 USER root
-RUN apt update -q \
-    && apt install -y --no-install-recommends \
-    python3-rosdep \
-    && if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then rosdep init; fi \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN add-apt-repository ppa:graysonarendt/sparkcan -y && \
+    apt-get update && \
+    apt-get install -y sparkcan && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Initialize and update rosdep
+WORKDIR /home/lunabot_ws
 USER $USERNAME
-RUN rosdep update
+RUN /bin/bash -c "sudo apt-get update && source /opt/ros/iron/setup.bash && \
+    sudo rosdep init 2>/dev/null || true && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -r -y && \
+    sudo apt-get clean && rm -rf /var/lib/apt/lists/*"
 
-# Copy the project to src/Lunabotics-2025
-COPY . /home/$USERNAME/ros2_ws/src/Lunabotics-2025
-
-# Use rosdep to install ROS dependencies
-WORKDIR /home/$USERNAME/ros2_ws
-RUN rosdep install --from-paths src --ignore-src -r -y
-
-# Build the ROS workspace with custom arguments
-RUN /bin/bash -c "source /opt/ros/iron/setup.bash && colcon build --symlink-install --cmake-args \
-    -DRTABMAP_SYNC_MULTI_RGBD=ON \
-    -DWITH_OPENCV=ON \
-    -DWITH_APRILTAG=ON \
-    -DWITH_OPENGV=OFF \
-    -DCMAKE_SUPPRESS_DEVELOPER_WARNINGS=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    --parallel-workers 1"
-
-CMD ["bash"]
+# Set default command
+CMD ["/bin/bash"]

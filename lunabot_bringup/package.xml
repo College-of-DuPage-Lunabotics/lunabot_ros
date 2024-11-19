@@ -8,16 +8,17 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>rviz</depend>
   <depend>robot_state_publisher</depend>
   <depend>joint_state_publisher</depend>
   <depend>gazebo_ros_pkgs</depend>
+  <depend>gazebo_ros2_control</depend>
   <depend>navigation2</depend>
   <depend>apriltag_ros</depend>
   <depend>robot_localization</depend>
   <depend>imu_complementary_filter</depend>
   <depend>ros2_control</depend>
   <depend>ros2_controllers</depend>
-  <depend>gazebo_ros2_control</depend>
   <depend>xacro</depend>
   <depend>perception_pcl</depend>
   <depend>laser_filters</depend>
