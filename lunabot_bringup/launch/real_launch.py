@@ -17,9 +17,9 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
 
-    nav2_params_file = os.path.join(config_dir, "params", "nav2_real_bot_params.yaml")
-    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "ekf_params.yaml")
+    nav2_params_file = os.path.join(config_dir, "params", "nav2", "nav2_real_bot_params.yaml")
+    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap", "rtabmap_params.yaml")
+    ekf_params_file = os.path.join(config_dir, "params", "robot_localization", "ekf_params.yaml")
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "autonomous"]
