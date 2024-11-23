@@ -19,7 +19,7 @@ def generate_launch_description():
 
     nav2_params_file = os.path.join(config_dir, "params", "nav2", "nav2_real_bot_params.yaml")
     rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "robot_localization", "ekf_params.yaml")
+    ekf_params_file = os.path.join(config_dir, "params", "robot_localization", "ukf_params.yaml")
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "autonomous"]

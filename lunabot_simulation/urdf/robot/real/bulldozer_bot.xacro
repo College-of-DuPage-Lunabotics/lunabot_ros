@@ -242,22 +242,10 @@
     <origin xyz="-0.125 0 0.5762" rpy="0 0 3.14" />
   </joint>
 
-  <joint name="d455_optical_joint" type="fixed">
-    <parent link="d455_link" />
-    <child link="d455_optical_link" />
-    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
-  </joint>
-
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
     <origin xyz="-0.0555 0 0.5762" rpy="0 0.523599 0" />
-  </joint>
-
-  <joint name="d456_optical_joint" type="fixed">
-    <parent link="d456_link" />
-    <child link="d456_optical_link" />
-    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
   <joint name="base_s3_lidar_joint" type="fixed">
