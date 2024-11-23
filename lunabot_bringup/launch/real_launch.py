@@ -74,7 +74,7 @@ def generate_launch_description():
         package="rtabmap_slam",
         executable="rtabmap",
         name="rtabmap",
-        output="log",
+        output="screen",
         parameters=[
             {
                 "use_sim_time": False,
@@ -211,7 +211,7 @@ def generate_launch_description():
                 "channel_type": "serial",
                 "serial_port": "/dev/ttyUSB0",
                 "serial_baudrate": 1000000,
-                "frame_id": "lidar1_link",
+                "frame_id": "s3_lidar_link",
                 "inverted": False,
                 "angle_compensate": True,
                 "scan_mode": "DenseBoost",
@@ -240,8 +240,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.profile": "640x480x30",
-            "rgb_camera.profile": "640x480x30",
+            "depth_module.depth_profile": "640x480x60",
+            "rgb_camera.color_profile": "640x480x60",
         }.items(),
     )
 
@@ -257,8 +257,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method2": "2",
-            "depth_module.profile": "640x480x30",
-            "rgb_camera.profile": "640x480x30",
+            "depth_module.depth_profile": "640x480x60",
+            "rgb_camera.color_profile": "640x480x60",
         }.items(),
     )
 
@@ -314,6 +314,13 @@ def generate_launch_description():
             }
         ],
     )
+    
+    map_to_odom_tf = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="map_to_odom_tf",
+        arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
+    )
 
     ld = LaunchDescription()
 
@@ -328,6 +335,8 @@ def generate_launch_description():
     ld.add_action(d455_imu_filter)
     ld.add_action(d456_imu_filter)
     ld.add_action(robot_controller_node)
+    ld.add_action(map_to_odom_tf)
+
 
     ld.add_action(
         GroupAction(
