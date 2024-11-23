@@ -17,9 +17,18 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
 
-    nav2_params_file = os.path.join(config_dir, "params", "nav2", "nav2_real_bot_params.yaml")
-    rtabmap_params_file = os.path.join(config_dir, "params", "rtabmap", "rtabmap_params.yaml")
-    ekf_params_file = os.path.join(config_dir, "params", "robot_localization", "ukf_params.yaml")
+    nav2_params_file = os.path.join(
+        config_dir, "params", "nav2", "nav2_real_bot_params.yaml"
+    )
+    rtabmap_params_file = os.path.join(
+        config_dir, "params", "rtabmap", "rtabmap_params.yaml"
+    )
+    ukf_params_file = os.path.join(
+        config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
+    s3_params_file = os.path.join(
+        config_dir, "params", "laser_filters", "s3_params.yaml"
+    )
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "autonomous"]
@@ -65,7 +74,7 @@ def generate_launch_description():
         package="rtabmap_slam",
         executable="rtabmap",
         name="rtabmap",
-        output="screen",
+        output="log",
         parameters=[
             {
                 "use_sim_time": False,
@@ -74,11 +83,12 @@ def generate_launch_description():
                 "subscribe_rgbd": True,
                 "subscribe_rgb": False,
                 "subscribe_odom_info": False,
+                "odom_sensor_sync": True,
                 "frame_id": "base_link",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
-                "publish_tf": True,
-                "publish_tf_odom": True,
+                "publish_tf": False,
+                "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
                 "sync_queue_size": 1000,
@@ -108,20 +118,25 @@ def generate_launch_description():
                 "publish_tf": False,
                 "approx_sync": True,
                 "Reg/Strategy": "1",
-                "Odom/Strategy": "0",
+                "Odom/Strategy": "1",
                 "Odom/FilteringStrategy": "1",
                 "Odom/KalmanProcessNoise": "0.001",
                 "Odom/KalmanMeasurementNoise": "0.01",
-                "Odom/GuessMotion": "true",
-                "Odom/GuessSmoothingDelay": "0.1",
-                "Icp/VoxelSize": "0.02",
                 "Icp/PointToPlane": "true",
-                "Icp/PointToPlaneRadius": "0.0",
+                "Icp/Iterations": "10",
+                "Icp/VoxelSize": "0.1",
+                "Icp/Epsilon": "0.001",
                 "Icp/PointToPlaneK": "20",
-                "Icp/CorrespondenceRatio": "0.3",
-                "Icp/PMOutlierRatio": "0.65",
-                "Icp/Epsilon": "0.0013",
-                "Icp/MaxCorrespondenceDistance": "0.05",
+                "Icp/PointToPlaneRadius": "0",
+                "Icp/MaxTranslation": "2",
+                "Icp/MaxCorrespondenceDistance": "1",
+                "Icp/Strategy": "1",
+                "Icp/OutlierRatio": "0.7",
+                "Icp/CorrespondenceRatio": "0.01",
+                "Odom/ScanKeyFrameThr": "0.4",
+                "OdomF2M/ScanSubtractRadius": "0.1",
+                "OdomF2M/ScanMaxSize": "15000",
+                "OdomF2M/BundleAdjustment": "false",
             }
         ],
         remappings=[
@@ -131,33 +146,35 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    rgbd_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="rgbd_odometry",
+    rf2o_odometry_node = Node(
+        package="rf2o_laser_odometry",
+        executable="rf2o_laser_odometry_node",
+        name="rf2o_laser_odometry",
         output="screen",
         parameters=[
             {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
+                "laser_scan_topic": "/scan",
+                "odom_topic": "/rf2o_odom",
                 "publish_tf": False,
-                "approx_sync": True,
-                "subscribe_rgbd": True,
+                "base_frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "init_pose_from_topic": "",
+                "freq": 20.0,
             }
         ],
-        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    ekf_node = Node(
+    ukf_node = Node(
         package="robot_localization",
-        executable="ekf_node",
-        name="ekf_filter_node",
+        executable="ukf_node",
+        name="ukf_filter_node",
         output="screen",
         parameters=[
             {
-                "use_sim_time": True,
+                "use_sim_time": False,
             },
-            ekf_params_file,
+            ukf_params_file,
         ],
     )
 
@@ -198,9 +215,17 @@ def generate_launch_description():
                 "inverted": False,
                 "angle_compensate": True,
                 "scan_mode": "DenseBoost",
+                "scan_frequency": 20.0,
             }
         ],
         output="screen",
+    )
+
+    s3_filter_node = Node(
+        package="laser_filters",
+        executable="scan_to_scan_filter_chain",
+        parameters=[s3_params_file],
+        remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
     d455_launch = IncludeLaunchDescription(
@@ -215,8 +240,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.profile": "640x360x30",
-            "rgb_camera.profile": "640x360x30",
+            "depth_module.profile": "640x480x30",
+            "rgb_camera.profile": "640x480x30",
         }.items(),
     )
 
@@ -232,8 +257,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method2": "2",
-            "depth_module.profile": "640x360x30",
-            "rgb_camera.profile": "640x360x30",
+            "depth_module.profile": "640x480x30",
+            "rgb_camera.profile": "640x480x30",
         }.items(),
     )
 
@@ -296,6 +321,7 @@ def generate_launch_description():
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
     ld.add_action(s3_lidar_node)
+    ld.add_action(s3_filter_node)
     ld.add_action(d455_launch)
     ld.add_action(d456_launch)
     ld.add_action(imu_rotator_node)
@@ -310,8 +336,8 @@ def generate_launch_description():
                     period=2.0,
                     actions=[
                         icp_odometry_node,
-                        rgbd_odometry_node,
-                        ekf_node,
+                        rf2o_odometry_node,
+                        ukf_node,
                     ],
                 ),
                 TimerAction(
@@ -345,8 +371,8 @@ def generate_launch_description():
                     period=50.0,
                     actions=[
                         icp_odometry_node,
-                        rgbd_odometry_node,
-                        ekf_node,
+                        rf2o_odometry_node,
+                        ukf_node,
                         slam_node,
                     ],
                 ),

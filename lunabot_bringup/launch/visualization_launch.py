@@ -109,7 +109,6 @@ def generate_launch_description():
         }.items(),
     )
 
-
     spawn_robot_node = Node(
         package="gazebo_ros",
         executable="spawn_entity.py",
@@ -191,12 +190,6 @@ def generate_launch_description():
         parameters=[{"use_sim_time": False}],
     )
 
-    joy_node = Node(
-        package="joy",
-        executable="joy_node",
-        name="joy_node",
-    )
-
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_type)
@@ -226,11 +219,9 @@ def generate_launch_description():
         )
     )
 
-    # Real mode group
     ld.add_action(
         GroupAction(
             actions=[
-                joy_node,
                 robot_real_state_publisher_node,
                 joint_state_publisher_node,
             ],

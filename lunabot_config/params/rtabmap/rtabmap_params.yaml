@@ -35,7 +35,7 @@ rtabmap:
     Marker/Dictionary: "20"
     Marker/Length: "0.3125"
     Rtabmap/StartNewMapOnGoodSignature: "false"
-    Rtabmap/DetectionRate: "80"
+    Rtabmap/DetectionRate: "10"
     Rtabmap/OdomGuessRatio: "0.2"
     Vis/Odom: "false"
     Icp/VoxelSize: "0.1"
