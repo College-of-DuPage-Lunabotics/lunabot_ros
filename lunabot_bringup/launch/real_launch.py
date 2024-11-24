@@ -283,22 +283,21 @@ def generate_launch_description():
     )
 
     d456_imu_filter = Node(
-        package="imu_complementary_filter",
-        executable="complementary_filter_node",
-        name="complementary_filter_gain_node",
+        package="imu_filter_madgwick",
+        executable="imu_filter_madgwick_node",
+        name="madgwick_filter_node",
         output="screen",
         parameters=[
-            {"publish_tf": False},
-            {"fixed_frame": "odom"},
-            {"do_bias_estimation": True},
-            {"do_adaptive_gain": True},
-            {"use_mag": False},
-            {"gain_acc": 0.01},
-            {"gain_mag": 0.01},
+            {
+                "use_mag": False,  # Set to True if using magnetometer data
+                "world_frame": "odom",  # Fixed frame for the filter
+                "publish_tf": True,     # Publish the odom -> base_link transform
+                "gain": 0.1,            # Madgwick filter gain
+            }
         ],
         remappings=[
-            ("imu/data_raw", "/d456/imu/data_raw"),
-            ("imu/data", "/d456/imu/data"),
+            ("imu/data_raw", "/d456/imu/data_raw"),  # Input raw IMU data
+            ("imu/data", "/d456/imu/data"),         # Output filtered IMU data
         ],
     )
 
