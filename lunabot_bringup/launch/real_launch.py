@@ -2,6 +2,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
 from launch.conditions import LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
@@ -321,9 +322,20 @@ def generate_launch_description():
         arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
     )
 
+    canable_start_process = ExecuteProcess(
+        cmd=[
+            "bash",
+            "-c",
+            "~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
+        ],
+        output="screen",
+        condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
+    ld.add_action(canable_start_process)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
     ld.add_action(s3_lidar_node)

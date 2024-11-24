@@ -195,28 +195,20 @@ Make sure all cameras are unplugged while setting up the udev rules.
 
 ### Running Launch Files
 
-#### 1. Initialize SocketCAN (robot computer)
-
-```bash
-cd ~/lunabot_ws/src/Lunabotics-2025/scripts/
-chmod +x canable_start.sh
-./canable_start.sh
-```
-
-#### 2. Source workspace setup (both host and robot computer)
+#### 1. Source workspace setup (both host and robot computer)
 
 ```bash
 cd ~/lunabot_ws
 source install/setup.bash
 ```
 
-#### 3. Visualize with RViz2 (host computer)
+#### 2. Visualize with RViz2 (host computer)
 
 ```bash
 ros2 launch lunabot_bringup visualization_launch.py visualization_mode:=real
 ```
 
-#### 4. Launch the real robot (robot computer)
+#### 3. Launch the real robot (robot computer)
 
 ```bash
 ros2 launch lunabot_bringup real_launch.py
