@@ -42,7 +42,7 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "trencher_bot.xacro")
+    urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "bulldozer_bot.xacro")
     world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena2.world")
 
     declare_robot_type = DeclareLaunchArgument(
@@ -108,7 +108,6 @@ def generate_launch_description():
             "world": world_file,
         }.items(),
     )
-
 
     spawn_robot_node = Node(
         package="gazebo_ros",
@@ -191,12 +190,6 @@ def generate_launch_description():
         parameters=[{"use_sim_time": False}],
     )
 
-    joy_node = Node(
-        package="joy",
-        executable="joy_node",
-        name="joy_node",
-    )
-
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_type)
@@ -226,11 +219,9 @@ def generate_launch_description():
         )
     )
 
-    # Real mode group
     ld.add_action(
         GroupAction(
             actions=[
-                joy_node,
                 robot_real_state_publisher_node,
                 joint_state_publisher_node,
             ],

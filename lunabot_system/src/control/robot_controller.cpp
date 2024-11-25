@@ -4,6 +4,7 @@
  * @date 9/18/2024
  */
 
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <unistd.h>
@@ -23,8 +24,8 @@ class RobotController : public rclcpp::Node
   public:
     RobotController()
         : Node("motor_controller"), manual_enabled_(true), robot_disabled_(false), left_wheel_motor_("can0", 1),
-          right_wheel_motor_("can0", 2), lift_actuator_motor_("can0", 3),
-          tilt_actuator_left_motor_("can0", 4), tilt_actuator_right_motor_("can0", 5)
+          right_wheel_motor_("can0", 2), lift_actuator_motor_("can0", 3), tilt_actuator_left_motor_("can0", 4),
+          tilt_actuator_right_motor_("can0", 5)
     {
         velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10, std::bind(&RobotController::velocity_callback, this, std::placeholders::_1));
@@ -34,27 +35,7 @@ class RobotController : public rclcpp::Node
         declare_and_get_parameters();
         apply_controller_mode();
 
-        left_wheel_motor_.SetMotorType(MotorType::kBrushless);
-        right_wheel_motor_.SetMotorType(MotorType::kBrushless);
-        lift_actuator_motor_.SetMotorType(MotorType::kBrushed);
-        tilt_actuator_left_motor_.SetMotorType(MotorType::kBrushed);
-        tilt_actuator_right_motor_.SetMotorType(MotorType::kBrushed);
-
-        left_wheel_motor_.SetIdleMode(IdleMode::kBrake);
-        right_wheel_motor_.SetIdleMode(IdleMode::kBrake);
-        lift_actuator_motor_.SetIdleMode(IdleMode::kBrake);
-        tilt_actuator_left_motor_.SetIdleMode(IdleMode::kBrake);
-        tilt_actuator_right_motor_.SetIdleMode(IdleMode::kBrake);
-
-        right_wheel_motor_.SetInverted(true);
-
-        left_wheel_motor_.BurnFlash();
-        right_wheel_motor_.BurnFlash();
-        lift_actuator_motor_.BurnFlash();
-        tilt_actuator_left_motor_.BurnFlash();
-        tilt_actuator_right_motor_.BurnFlash();
-
-        RCLCPP_INFO(get_logger(), "MANUAL CONTROL: ENABLED");
+        RCLCPP_INFO(get_logger(), "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
     }
 
   private:
@@ -86,7 +67,7 @@ class RobotController : public rclcpp::Node
         else if (switch_mode_)
             RCLCPP_INFO(get_logger(), "SWITCH MODE");
         else
-            RCLCPP_ERROR(get_logger(), "NO CONTROLLER SELECTED, CHECK LAUNCH PARAMETERS");
+            RCLCPP_ERROR(get_logger(), "\033[1;31mNO CONTROLLER SELECTED, CHECK LAUNCH PARAMETERS\033[0m");
     }
 
     /**
@@ -129,11 +110,11 @@ class RobotController : public rclcpp::Node
             }
         }
 
-        left_wheel_motor_.SetDutyCycle(left_speed_ * speed_multiplier_);
-        right_wheel_motor_.SetDutyCycle(right_speed_ * speed_multiplier_);
-        lift_actuator_motor_.SetDutyCycle(lift_actuator_speed_);
-        tilt_actuator_left_motor_.SetDutyCycle(tilt_actuator_speed_);
-        tilt_actuator_right_motor_.SetDutyCycle(tilt_actuator_speed_);
+        left_wheel_motor_.SetDutyCycle(std::clamp(left_speed_ * speed_multiplier_, -1.0, 1.0));
+        right_wheel_motor_.SetDutyCycle(std::clamp(right_speed_ * speed_multiplier_, -1.0, 1.0));
+        lift_actuator_motor_.SetDutyCycle(std::clamp(lift_actuator_speed_, -1.0, 1.0));
+        tilt_actuator_left_motor_.SetDutyCycle(std::clamp(tilt_actuator_speed_, -1.0, 1.0));
+        tilt_actuator_right_motor_.SetDutyCycle(std::clamp(tilt_actuator_speed_, -1.0, 1.0));
     }
 
     /**
@@ -159,13 +140,13 @@ class RobotController : public rclcpp::Node
         if (share_button_)
         {
             manual_enabled_ = true;
-            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "MANUAL CONTROL: ENABLED");
+            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
         }
 
         if (menu_button_)
         {
             manual_enabled_ = false;
-            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "AUTONOMOUS CONTROL: ENABLED");
+            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "\033[1;33mAUTONOMOUS CONTROL:\033[0m \033[1;32mENABLED\033[0m");
         }
 
         if (manual_enabled_)
@@ -178,7 +159,7 @@ class RobotController : public rclcpp::Node
 
             if (robot_disabled_)
             {
-                RCLCPP_ERROR(get_logger(), "ROBOT DISABLED");
+                RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
             }
             else
             {
@@ -194,20 +175,21 @@ class RobotController : public rclcpp::Node
      */
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr velocity_msg)
     {
-        if (!manual_enabled_ && navigation_enabled_)
+        if (!manual_enabled_)
         {
             SparkMax::Heartbeat();
             double linear_velocity = velocity_msg->linear.x;
             double angular_velocity = velocity_msg->angular.z;
-            double wheel_radius = outdoor_mode_ ? 0.2 : 0.1016;
+            double wheel_radius = outdoor_mode_ ? 0.2 : 0.127;
             double wheel_distance = 0.5;
 
-            double velocity_left_cmd = 0.4 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
+            double velocity_left_cmd =
+                -0.1 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
             double velocity_right_cmd =
-                0.4 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
+                -0.1 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
 
-            left_wheel_motor_.SetDutyCycle(velocity_left_cmd);
-            right_wheel_motor_.SetDutyCycle(velocity_right_cmd);
+            left_wheel_motor_.SetDutyCycle(std::clamp(velocity_left_cmd, -1.0, 1.0));
+            right_wheel_motor_.SetDutyCycle(std::clamp(velocity_right_cmd, -1.0, 1.0));
         }
     }
 
@@ -232,7 +214,7 @@ class RobotController : public rclcpp::Node
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
 
-    bool manual_enabled_, navigation_enabled_, robot_disabled_;
+    bool manual_enabled_, robot_disabled_;
     bool xbox_mode_, ps4_mode_, switch_mode_, outdoor_mode_;
     double speed_multiplier_, left_speed_, right_speed_, lift_actuator_speed_, tilt_actuator_speed_;
     bool home_button_, share_button_, menu_button_, a_button_, b_button_, x_button_, y_button_;
