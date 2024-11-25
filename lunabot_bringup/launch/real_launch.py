@@ -257,7 +257,7 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "true",
             "enable_accel": "true",
-            "unite_imu_method2": "2",
+            "unite_imu_method": "2",
             "depth_module.depth_profile": "640x480x60",
             "rgb_camera.color_profile": "640x480x60",
         }.items(),
@@ -284,21 +284,22 @@ def generate_launch_description():
     )
 
     d456_imu_filter = Node(
-        package="imu_filter_madgwick",
-        executable="imu_filter_madgwick_node",
-        name="madgwick_filter_node",
+        package="imu_complementary_filter",
+        executable="complementary_filter_node",
+        name="complementary_filter_gain_node",
         output="screen",
         parameters=[
-            {
-                "use_mag": False,  # Set to True if using magnetometer data
-                "world_frame": "odom",  # Fixed frame for the filter
-                "publish_tf": True,     # Publish the odom -> base_link transform
-                "gain": 0.1,            # Madgwick filter gain
-            }
+            {"publish_tf": False},
+            {"fixed_frame": "odom"},
+            {"do_bias_estimation": True},
+            {"do_adaptive_gain": True},
+            {"use_mag": False},
+            {"gain_acc": 0.01},
+            {"gain_mag": 0.01},
         ],
         remappings=[
-            ("imu/data_raw", "/d456/imu/data_raw"),  # Input raw IMU data
-            ("imu/data", "/d456/imu/data"),         # Output filtered IMU data
+            ("imu/data_raw", "/d456/imu/data_raw"),
+            ("imu/data", "/d456/imu/data"),
         ],
     )
 
@@ -326,10 +327,9 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-c",
-            "~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
+            "sudo ~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
         ],
         output="screen",
-        condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
     )
 
     ld = LaunchDescription()
@@ -347,7 +347,6 @@ def generate_launch_description():
     ld.add_action(d456_imu_filter)
     ld.add_action(robot_controller_node)
     ld.add_action(map_to_odom_tf)
-
 
     ld.add_action(
         GroupAction(
