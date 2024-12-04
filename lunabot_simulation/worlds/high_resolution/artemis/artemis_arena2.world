@@ -109,7 +109,7 @@
     <model name='rock_rough'>
       <pose>-0.27549 -0.706665 0.05 0 0 -2.17367</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_rough'>
           <geometry>
@@ -152,7 +152,7 @@
     <model name='rock_rough_2'>
       <pose>2.65456 -2.72569 0.05 0 0 -0.62</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_rough_2'>
           <geometry>
@@ -177,13 +177,17 @@
             </mesh>
           </geometry>
         </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
       </link>
     </model>
 
     <model name='rock_rough_3'>
       <pose>-0.046244 1.8 0.05 0 0 -0.80</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_rough_3'>
           <geometry>
@@ -208,13 +212,17 @@
             </mesh>
           </geometry>
         </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
       </link>
     </model>
 
     <model name='rock_round'>
       <pose>0.486992 -0.098022 0.05 0 0 0.846674</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_round'>
           <geometry>
@@ -239,13 +247,17 @@
             </mesh>
           </geometry>
         </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
       </link>
     </model>
 
     <model name='rock_round_2'>
       <pose>-0.046244 0.773163 0.05 0 0 -0.80</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_round_2'>
           <geometry>
@@ -270,13 +282,17 @@
             </mesh>
           </geometry>
         </collision>
+        <velocity_decay>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
+        </velocity_decay>
       </link>
     </model>
 
     <model name='rock_round_3'>
       <pose>-1.31619 -0.801557 0.05 0 0 2.55</pose>
       <self_collide>1</self_collide>
-      <static>1</static>
+      <static>0</static>
       <link name='link'>
         <visual name='rock_round_3'>
           <geometry>

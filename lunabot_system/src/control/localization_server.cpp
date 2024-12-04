@@ -39,9 +39,9 @@ class LocalizationServer : public rclcpp::Node
      * @brief Constructor for the LocalizationServer class.
      */
     LocalizationServer()
-        : Node("localization_server"), d455_tag1_detected_(false), d455_tag2_detected_(false),
-          d456_tag1_detected_(false), d456_tag2_detected_(false), turn_direction_set_(false), aligned_(false),
-          alignment_started_(false), goal_received_(false), initial_rotation_started_(false)
+        : Node("localization_server"), d455_tag_7_detected_(false), d455_tag_11_detected_(false),
+          d456_tag_7_detected_(false), d456_tag_11_detected_(false), turn_direction_set_(false), turn_clockwise_(false),
+          timer_started_(false), success_(false)
     {
         d455_image_subscriber_ = create_subscription<sensor_msgs::msg::Image>(
             "d455/color/image_raw", 10,
@@ -60,7 +60,7 @@ class LocalizationServer : public rclcpp::Node
             std::bind(&LocalizationServer::handle_cancel, this, std::placeholders::_1),
             std::bind(&LocalizationServer::handle_accepted, this, std::placeholders::_1));
 
-        timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&LocalizationServer::align_robot, this));
+        timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&LocalizationServer::localize, this));
     }
 
   private:
@@ -70,8 +70,6 @@ class LocalizationServer : public rclcpp::Node
      */
     rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &, std::shared_ptr<const Localization::Goal>)
     {
-        goal_received_ = true;
-        alignment_started_ = false;
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
@@ -101,127 +99,89 @@ class LocalizationServer : public rclcpp::Node
     {
         auto result = std::make_shared<Localization::Result>();
 
-        while (!aligned_ && rclcpp::ok())
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (aligned_)
+        while (!success_ && rclcpp::ok())
         {
-            RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32mLOCALIZATION SUCCESS!\033[0m");
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        if (success_)
+        {
+            RCLCPP_INFO(this->get_logger(), "\033[1;32mLOCALIZATION SUCCESS!\033[0m");
             result->success = true;
-            result->x = -lateral_distance_;
-            result->y = depth_distance_;
-            result->yaw = tag1_yaw;
             goal_handle->succeed(result);
         }
-        else
-        {
-            RCLCPP_ERROR(this->get_logger(), "\033[1;31mLOCALIZATION FAILED!\033[0m");
-            result->success = false;
-            goal_handle->abort(result);
-        }
     }
+
     /**
-     * @brief Aligns the robot with the detected AprilTag.
+     * @brief Aligns the robot to face east with the D455 camera facing AprilTag with tag 7.
      */
-
-    void align_robot()
+    void localize()
     {
-        geometry_msgs::msg::Twist twist;
-
-        if (!alignment_started_)
+        if (!timer_started_)
         {
-            alignment_start_time_ = now();
-            alignment_started_ = true;
+            start_time_ = now();
+            timer_started_ = true;
         }
 
-        double elapsed_time = (now() - alignment_start_time_).seconds();
-
-        if (elapsed_time > 60.0 && !aligned_)
+        if (!turn_direction_set_)
         {
-            twist.angular.z = 0.0;
-            cmd_vel_publisher_->publish(twist);
-            aligned_ = false;
-            return;
-        }
-
-        if (aligned_)
-        {
-            twist.angular.z = 0.0;
-            cmd_vel_publisher_->publish(twist);
-            return;
-        }
-
-        if (d455_tag1_detected_)
-        {
-            double yaw_error = normalize_angle(tag1_yaw);
-            if (std::abs(yaw_error) > 0.025)
-            {
-                twist.angular.z = yaw_error > 0 ? -0.1 : 0.1;
-            }
-            else
-            {
-                twist.angular.z = 0.0;
-                aligned_ = true;
-                RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNMENT COMPLETE WITH TAG 7.\033[0m");
-            }
-        }
-        else if (!turn_direction_set_)
-        {
-            if (!d455_tag1_detected_ && !d456_tag1_detected_ && !initial_rotation_started_)
-            {
-                initial_rotation_started_ = true;
-                RCLCPP_INFO(this->get_logger(), "\033[1;33mNO TAGS DETECTED. STARTING SLOW ROTATION...\033[0m");
-
-                twist.angular.z = -0.01;
-                cmd_vel_publisher_->publish(twist);
-                return;
-            }
-
-            turn_counterclockwise_ = d455_tag1_detected_ ? false : (d456_tag1_detected_ || d456_tag2_detected_);
+            turn_clockwise_ = d455_tag_7_detected_ || !d456_tag_11_detected_;
             turn_direction_set_ = true;
         }
-        else
+
+        twist.angular.z = turn_clockwise_ ? 0.3 : -0.3;
+
+        if (d455_tag_7_detected_ && std::abs(normalize_angle(tag_7_yaw_)) < 0.025)
         {
-            twist.angular.z = turn_counterclockwise_ ? 0.1 : -0.1;
+            success_ = true;
+            twist.angular.z = 0.0;
         }
 
-        cmd_vel_publisher_->publish(twist);
+        if ((now() - start_time_).seconds() < 30.0)
+        {
+            cmd_vel_publisher_->publish(twist);
+        }
+
+        else
+        {
+            RCLCPP_WARN_ONCE(this->get_logger(), "\033[1;33mLOCALIZATION TIMED OUT.\033[0m");
+        }
     }
+
     /**
      * @brief Detects AprilTags in images from the D455 camera.
-     * @param inputImage Image message from the D455 camera.
+     * @param input_image Image message from the D455 camera.
      */
-
-    void d455_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
+    void d455_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr input_image)
     {
-        process_apriltag(inputImage, d455_tag1_detected_, d455_tag2_detected_, d455_overlay_publisher_, true);
+        process_apriltag(input_image, d455_tag_7_detected_, d455_tag_11_detected_, d455_overlay_publisher_, true);
     }
 
     /**
      * @brief Detects AprilTags in images from the D456 camera.
-     * @param inputImage Image message from the D456 camera.
+     * @param input_image Image message from the D456 camera.
      */
-    void d456_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr inputImage)
+    void d456_detect_apriltag(const sensor_msgs::msg::Image::SharedPtr input_image)
     {
-        process_apriltag(inputImage, d456_tag1_detected_, d456_tag2_detected_, d456_overlay_publisher_, false);
+        process_apriltag(input_image, d456_tag_7_detected_, d456_tag_11_detected_, d456_overlay_publisher_, false);
     }
 
     /**
      * @brief Processes detected AprilTags, calculates pose, and publishes overlay image.
-     * @param inputImage Image message.
-     * @param tag1_detected Flag for detecting tag1.
-     * @param tag2_detected Flag for detecting tag2.
+     * @param input_image Input image message.
+     * @param tag_7_detected_ Flag for tag 7 detection.
+     * @param tag_11_detected_ Flag for tag 11 detection
      * @param overlay_publisher Publisher for overlay image.
-     * @param calculate_yaw_ Boolean to calculate yaw for detected tags.
+     * @param calculate_tag_ Flag to determine whether to calculate yaw and distances for the detected tag.
      */
-    void process_apriltag(const sensor_msgs::msg::Image::SharedPtr &inputImage, bool &tag1_detected,
-                          bool &tag2_detected,
+    void process_apriltag(const sensor_msgs::msg::Image::SharedPtr &input_image, bool &tag_7_detected_,
+                          bool &tag_11_detected_,
                           const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr &overlay_publisher,
-                          bool calculate_yaw_)
+                          bool calculate_tag_)
     {
         try
         {
-            auto currentImage_ptr = cv_bridge::toCvCopy(inputImage, inputImage->encoding);
+            auto currentImage_ptr = cv_bridge::toCvCopy(input_image, input_image->encoding);
             auto outputImage = currentImage_ptr->image.clone();
             std::vector<int> markerIds;
             std::vector<std::vector<cv::Point2f>> markerCorners;
@@ -242,14 +202,14 @@ class LocalizationServer : public rclcpp::Node
                 for (size_t i = 0; i < markerIds.size(); ++i)
                 {
                     int tagId = markerIds[i];
-                    tag1_detected = (tagId == 7 ? true : tag1_detected);
-                    tag2_detected = (tagId == 11 ? true : tag2_detected);
+                    tag_7_detected_ = (tagId == 7 ? true : tag_7_detected_);
+                    tag_11_detected_ = (tagId == 11 ? true : tag_11_detected_);
 
-                    if (calculate_yaw_ && tag1_detected)
+                    if (calculate_tag_ && tag_7_detected_)
                     {
                         calculate_distances(tvecs[i], lateral_distance_, depth_distance_);
-                        calculate_yaw(rvecs[i], tag1_yaw);
-                        tag1_yaw = normalize_angle(tag1_yaw);
+                        calculate_yaw(rvecs[i], tag_7_yaw_);
+                        tag_7_yaw_ = normalize_angle(tag_7_yaw_);
                     }
                 }
                 cv::aruco::drawDetectedMarkers(outputImage, markerCorners, markerIds);
@@ -262,8 +222,8 @@ class LocalizationServer : public rclcpp::Node
             }
             else
             {
-                tag1_detected = false;
-                tag2_detected = false;
+                tag_7_detected_ = false;
+                tag_11_detected_ = false;
             }
         }
         catch (const std::exception &e)
@@ -301,27 +261,25 @@ class LocalizationServer : public rclcpp::Node
     /**
      * @brief Calculates yaw from rotation vector.
      * @param rvec Rotation vector.
-     * @param tag1_yaw Calculated yaw for tag1.
+     * @param tag_7_yaw_ Calculated yaw for tag_7.
      */
-    void calculate_yaw(const cv::Vec3d &rvec, double &tag1_yaw)
+    void calculate_yaw(const cv::Vec3d &rvec, double &tag_7_yaw_)
     {
         cv::Mat rotation_matrix;
         cv::Rodrigues(rvec, rotation_matrix);
-        tag1_yaw = asin(rotation_matrix.at<double>(2, 0));
+        tag_7_yaw_ = asin(rotation_matrix.at<double>(2, 0));
     }
 
-    bool d455_tag1_detected_, d455_tag2_detected_, d456_tag1_detected_, d456_tag2_detected_;
-    bool turn_direction_set_, turn_counterclockwise_, aligned_, goal_received_, alignment_started_,
-        initial_rotation_started_;
-    double lateral_distance_, depth_distance_, tag1_yaw;
+    bool d455_tag_7_detected_, d455_tag_11_detected_, d456_tag_7_detected_, d456_tag_11_detected_;
+    bool turn_direction_set_, turn_clockwise_, timer_started_, success_;
+    double lateral_distance_, depth_distance_, tag_7_yaw_;
 
-    rclcpp::Time alignment_start_time_;
+    rclcpp::Time start_time_;
     rclcpp::TimerBase::SharedPtr timer_;
+    geometry_msgs::msg::Twist twist;
     rclcpp_action::Server<Localization>::SharedPtr action_server_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d455_image_subscriber_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d456_image_subscriber_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d455_overlay_publisher_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d456_overlay_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d455_image_subscriber_, d456_image_subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d455_overlay_publisher_, d456_overlay_publisher_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 };
 

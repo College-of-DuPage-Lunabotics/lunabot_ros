@@ -16,7 +16,7 @@ from launch.actions import (
 )
 
 def set_orientation(context, *args, **kwargs):
-    orientations = {"north": -1.5708, "east": 3.1416, "south": -1.5708, "west": 0.0}
+    orientations = {"north": -1.5708, "east": 3.1416, "south": 1.5708, "west": 0.0}
     random_orientation = random.choice(list(orientations.values()))
     chosen_orientation = context.launch_configurations.get("robot_orientation")
 
@@ -33,7 +33,7 @@ def set_robot_description(context, *args, **kwargs):
     robot_type = context.launch_configurations.get("robot_type")
     config_dir = get_package_share_directory("lunabot_simulation")
 
-    urdf_file = os.path.join(config_dir, "urdf", "robot", "simulation", f"{robot_type}_bot.xacro")
+    urdf_file = os.path.join(config_dir, "urdf", "simulation", f"{robot_type}_bot.xacro")
     return [SetLaunchConfiguration("robot_simulation_description", Command(["xacro ", urdf_file]))]
 
 
@@ -42,8 +42,8 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_real_file = os.path.join(simulation_dir, "urdf", "robot", "real", "bulldozer_bot.xacro")
-    world_file = os.path.join(simulation_dir, "urdf", "worlds", "high_resolution", "artemis", "artemis_arena2.world")
+    urdf_real_file = os.path.join(simulation_dir, "urdf", "real", "bulldozer_bot.xacro")
+    world_file = os.path.join(simulation_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world")
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",

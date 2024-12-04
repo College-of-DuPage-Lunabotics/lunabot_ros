@@ -178,7 +178,7 @@ class NavigationClient : public rclcpp::Node
             }
 
             twist_msg.linear.x = -0.3;
-            twist_msg.angular.z = (std::abs(yaw_error) > 0.05) ? 0.3 * yaw_error / std::abs(yaw_error) : 0.0;
+            twist_msg.angular.z = (std::abs(yaw_error) > 0.05) ? 0.7 * yaw_error / std::abs(yaw_error) : 0.0;
             cmd_vel_publisher_->publish(twist_msg);
 
             double distance_to_goal = sqrt(pow(target_x - current_x_odom_, 2) + pow(target_y - current_y_odom_, 2));

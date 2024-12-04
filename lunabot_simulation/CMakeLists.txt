@@ -41,9 +41,9 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install URDF and models
+# Install models, URDF, and worlds
 install(
-  DIRECTORY urdf models
+  DIRECTORY models urdf worlds
   DESTINATION share/${PROJECT_NAME}/
 )
 

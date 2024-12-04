@@ -184,9 +184,9 @@ class RobotController : public rclcpp::Node
             double wheel_distance = 0.5;
 
             double velocity_left_cmd =
-                -0.1 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
-            double velocity_right_cmd =
                 -0.1 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
+            double velocity_right_cmd =
+                -0.1 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
 
             left_wheel_motor_.SetDutyCycle(std::clamp(velocity_left_cmd, -1.0, 1.0));
             right_wheel_motor_.SetDutyCycle(std::clamp(velocity_right_cmd, -1.0, 1.0));
