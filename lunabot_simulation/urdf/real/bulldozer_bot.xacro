@@ -251,7 +251,7 @@
   <joint name="base_s3_lidar_joint" type="fixed">
     <parent link="base_link" />
     <child link="s3_lidar_link" />
-    <origin xyz="-0.09025 0 0.6" rpy="0 0 0" />
+    <origin xyz="-0.09025 0 0.6" rpy="0 0 3.14" />
   </joint>
 
   <joint name="base_s2l_lidar_joint" type="fixed">

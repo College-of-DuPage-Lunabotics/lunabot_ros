@@ -257,7 +257,7 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "true",
             "enable_accel": "true",
-            "unite_imu_method2": "2",
+            "unite_imu_method": "2",
             "depth_module.depth_profile": "640x480x60",
             "rgb_camera.color_profile": "640x480x60",
         }.items(),
@@ -327,10 +327,9 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-c",
-            "~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
+            "sudo ~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
         ],
         output="screen",
-        condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
     )
 
     ld = LaunchDescription()
@@ -348,7 +347,6 @@ def generate_launch_description():
     ld.add_action(d456_imu_filter)
     ld.add_action(robot_controller_node)
     ld.add_action(map_to_odom_tf)
-
 
     ld.add_action(
         GroupAction(
