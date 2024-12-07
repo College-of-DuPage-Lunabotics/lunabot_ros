@@ -202,13 +202,21 @@ cd ~/lunabot_ws
 source install/setup.bash
 ```
 
-#### 2. Visualize with RViz2 (host computer)
+#### 2. Connect controller and run joy node (host computer)
+
+Connect your controller either through a wired or Bluetooth connection to the host computer then run:
+
+```bash
+ros2 run joy joy_node
+```
+
+#### 3. Visualize with RViz2 (host computer)
 
 ```bash
 ros2 launch lunabot_bringup visualization_launch.py visualization_mode:=real
 ```
 
-#### 3. Launch the real robot (robot computer)
+#### 4. Launch the real robot (robot computer)
 
 ```bash
 ros2 launch lunabot_bringup real_launch.py

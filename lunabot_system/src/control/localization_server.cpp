@@ -125,7 +125,8 @@ class LocalizationServer : public rclcpp::Node
 
         if (!turn_direction_set_)
         {
-            turn_clockwise_ = d455_tag_7_detected_ || !d456_tag_11_detected_;
+            success_ = d455_tag_7_detected_;
+            turn_clockwise_ = !d456_tag_11_detected_;
             turn_direction_set_ = true;
         }
 

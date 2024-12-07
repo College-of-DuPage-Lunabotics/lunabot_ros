@@ -107,7 +107,7 @@ class NavigationClient : public rclcpp::Node
         geometry_msgs::msg::Pose goal_pose;
 
         goal_pose.position.x = initial_x_ + 3.7;
-        goal_pose.position.y = initial_y_ + 1.5;
+        goal_pose.position.y = initial_y_ + 2.0;
         goal_pose.orientation.z = 0.707;
         goal_pose.orientation.w = 0.707;
 
@@ -135,7 +135,7 @@ class NavigationClient : public rclcpp::Node
     }
 
     /**
-     * @brief Callback for the odometry message, uses current odometry and compares to  goal to navigate the robot to
+     * @brief Callback for the odometry message, uses current odometry and compares to goal to navigate the robot to
      * the construction zone.
      * @param msg The odometry message.
      */
@@ -178,11 +178,11 @@ class NavigationClient : public rclcpp::Node
             }
 
             twist_msg.linear.x = -0.3;
-            twist_msg.angular.z = (std::abs(yaw_error) > 0.05) ? 0.7 * yaw_error / std::abs(yaw_error) : 0.0;
+            twist_msg.angular.z = (std::abs(yaw_error) > 0.05) ? 0.7 * yaw_error : 0.0;
             cmd_vel_publisher_->publish(twist_msg);
 
             double distance_to_goal = sqrt(pow(target_x - current_x_odom_, 2) + pow(target_y - current_y_odom_, 2));
-            RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS\033[0m", distance_to_goal);
+            RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS, YAW ERROR: %.2f\033[0m", distance_to_goal, yaw_error);
 
             if (distance_to_goal <= 0.3)
             {
