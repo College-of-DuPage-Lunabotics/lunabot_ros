@@ -33,8 +33,15 @@ class NavigationClient : public rclcpp::Node
     /**
      * @brief Constructor for the NavigationClient class.
      */
-    NavigationClient() : Node("navigator_client"), goal_reached_(false), localization_done_(false)
+    NavigationClient()
+        : Node("navigator_client"), goal_reached_(false), localization_done_(false), alignment_done_(false),
+          previous_error_(0.0), error_sum_(0.0), previous_time_(this->now())
     {
+
+        this->declare_parameter("kP", 7.0);  // Proportional gain
+        this->declare_parameter("kI", 0.15); // Integral gain
+        this->declare_parameter("kD", 3.0);  // Derivative gain
+
         nav_to_pose_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
         localization_client_ = rclcpp_action::create_client<Localization>(this, "localization_action");
         cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -141,6 +148,13 @@ class NavigationClient : public rclcpp::Node
      */
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
+        double kP = this->get_parameter("kP").as_double();
+        double kI = this->get_parameter("kI").as_double();
+        double kD = this->get_parameter("kD").as_double();
+
+        rclcpp::Time current_time = this->now();
+        double dt = (current_time - previous_time_).seconds();
+
         current_x_odom_ = msg->pose.pose.position.x;
         current_y_odom_ = msg->pose.pose.position.y;
 
@@ -172,17 +186,25 @@ class NavigationClient : public rclcpp::Node
                 else
                 {
                     alignment_done_ = true;
-                    RCLCPP_INFO(this->get_logger(), "\033[1;36mALIGNMENT COMPLETE, STARTING BACKWARD MOVEMENT...\033[0m");
+                    RCLCPP_INFO(this->get_logger(),
+                                "\033[1;36mALIGNMENT COMPLETE, STARTING BACKWARD MOVEMENT...\033[0m");
                 }
                 return;
             }
 
+            error_sum_ += yaw_error * dt;
+            double predicted_error = (yaw_error - previous_error_) / dt;
+
             twist_msg.linear.x = -0.3;
-            twist_msg.angular.z = (std::abs(yaw_error) > 0.05) ? 0.7 * yaw_error : 0.0;
+            twist_msg.angular.z = kP * yaw_error + kI * error_sum_ + kD * predicted_error;
+
+            previous_error_ = yaw_error;
+            previous_time_ = current_time;
             cmd_vel_publisher_->publish(twist_msg);
 
             double distance_to_goal = sqrt(pow(target_x - current_x_odom_, 2) + pow(target_y - current_y_odom_, 2));
-            RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS, YAW ERROR: %.2f\033[0m", distance_to_goal, yaw_error);
+            RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS, YAW ERROR: %.2f\033[0m",
+                        distance_to_goal, yaw_error);
 
             if (distance_to_goal <= 0.3)
             {
@@ -214,10 +236,12 @@ class NavigationClient : public rclcpp::Node
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Time previous_time_;
 
     bool goal_reached_, localization_done_, alignment_done_;
     double current_x_odom_, current_y_odom_, initial_x_odom_, initial_y_odom_;
     double distance_traveled_, initial_x_, initial_y_;
+    double previous_error_, error_sum_;
 };
 
 /**
