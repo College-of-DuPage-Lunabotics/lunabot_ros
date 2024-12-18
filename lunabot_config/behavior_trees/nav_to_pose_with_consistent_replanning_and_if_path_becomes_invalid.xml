@@ -7,7 +7,7 @@
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence>
-        <RateController hz="0.5">
+        <RateController hz="0.2">
           <Fallback name="FallbackComputePathToPose">
             <ReactiveSequence name="CheckIfNewPathNeeded">
               <Inverter>
