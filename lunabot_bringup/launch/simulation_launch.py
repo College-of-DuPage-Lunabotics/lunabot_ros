@@ -63,7 +63,7 @@ def generate_launch_description():
     )
 
     topic_remapper_node = Node(
-        package="lunabot_simulation", executable="topic_remapper"
+        package="lunabot_util", executable="topic_remapper"
     )
 
     rgbd_sync1_node = Node(
@@ -228,15 +228,22 @@ def generate_launch_description():
                 ]
     )
 
+    excavation_server_node = Node(
+        package="lunabot_nav",
+        executable="excavation_server",
+        name="excavation_server",
+        output="screen",
+    )
+
     localization_server_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="localization_server",
         name="localization_server",
         output="screen",
     )
 
     navigation_client_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="navigation_client",
         name="navigation_client",
         output="screen",
@@ -345,6 +352,7 @@ def generate_launch_description():
                 TimerAction(
                     period=3.0,
                     actions=[
+                        excavation_server_node,
                         localization_server_node,
                         navigation_client_node,
                     ],

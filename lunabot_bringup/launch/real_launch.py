@@ -179,15 +179,22 @@ def generate_launch_description():
         ],
     )
 
+    excavation_server_node = Node(
+        package="lunabot_nav",
+        executable="excavation_server",
+        name="excavation_server",
+        output="screen",
+    )
+
     localization_server_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="localization_server",
         name="localization_server",
         output="screen",
     )
 
     navigation_client_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="navigation_client",
         name="navigation_client",
         output="screen",
@@ -303,11 +310,11 @@ def generate_launch_description():
         ],
     )
 
-    imu_rotator_node = Node(package="lunabot_system", executable="imu_rotator")
+    imu_rotator_node = Node(package="lunabot_util", executable="imu_rotator")
 
-    robot_controller_node = Node(
-        package="lunabot_system",
-        executable="robot_controller",
+    controller_teleop_node = Node(
+        package="lunabot_teleop",
+        executable="controller_teleop",
         parameters=[
             {
                 "switch_mode": True,
@@ -345,7 +352,7 @@ def generate_launch_description():
     ld.add_action(imu_rotator_node)
     ld.add_action(d455_imu_filter)
     ld.add_action(d456_imu_filter)
-    ld.add_action(robot_controller_node)
+    ld.add_action(controller_teleop_node)
     ld.add_action(map_to_odom_tf)
 
     ld.add_action(
@@ -382,6 +389,7 @@ def generate_launch_description():
                 TimerAction(
                     period=5.0,
                     actions=[
+                        excavation_server_node,
                         localization_server_node,
                         navigation_client_node,
                     ],
