@@ -16,7 +16,7 @@ Drive around with WASD:
         w
    a    s    d
 
-Max speed: 0.7
+Max speed: 0.75
 Adjust speed:
 q : Increase linear speed
 z : Decrease linear speed

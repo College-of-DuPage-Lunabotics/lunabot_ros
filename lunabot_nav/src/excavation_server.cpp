@@ -31,7 +31,7 @@ class ExcavationServer : public rclcpp::Node
      */
     ExcavationServer()
         : Node("excavation_server"), success_(false), goal_active_(false), alignment_done_(false), current_x_(0.0),
-          current_y_(0.0), previous_error_(0.0), error_sum_(0.0), previous_time_(this->now())
+          current_y_(0.0), current_yaw_(0.0), previous_error_(0.0), error_sum_(0.0), previous_time_(this->now())
     {
         this->declare_parameter("kP", 7.0);  // Proportional gain
         this->declare_parameter("kI", 0.15); // Integral gain
@@ -46,7 +46,7 @@ class ExcavationServer : public rclcpp::Node
             std::bind(&ExcavationServer::handle_accepted, this, std::placeholders::_1));
 
         odometry_subscriber_ = create_subscription<nav_msgs::msg::Odometry>(
-            "odom", 10, std::bind(&ExcavationServer::odometry_callback, this, std::placeholders::_1));
+            "odometry/filtered", 10, std::bind(&ExcavationServer::odometry_callback, this, std::placeholders::_1));
 
         excavation_timer_ =
             create_wall_timer(std::chrono::milliseconds(100), std::bind(&ExcavationServer::excavate, this));
@@ -98,6 +98,7 @@ class ExcavationServer : public rclcpp::Node
         {
             result->success = true;
             goal_handle->succeed(result);
+            rclcpp::shutdown();
         }
     }
 
@@ -150,14 +151,13 @@ class ExcavationServer : public rclcpp::Node
                 twist_msg.angular.z = 0.3 * yaw_error / std::abs(yaw_error);
                 twist_msg.linear.x = 0.0;
                 cmd_vel_publisher_->publish(twist_msg);
-                RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNING TO GOAL...\033[0m");
+                RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNING TO GOAL... YAW: %.2f\033[0m", current_yaw_);
             }
             else
             {
                 alignment_done_ = true;
                 RCLCPP_INFO(this->get_logger(), "\033[1;36mALIGNMENT COMPLETE, STARTING BACKWARD MOVEMENT...\033[0m");
             }
-            return;
         }
 
         error_sum_ += yaw_error * dt;
@@ -170,8 +170,8 @@ class ExcavationServer : public rclcpp::Node
         previous_time_ = current_time;
 
         double distance_to_goal = sqrt(pow(target_x - current_x_, 2) + pow(target_y - current_y_, 2));
-        RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS, current_yaw_ ERROR: %.2f\033[0m",
-                    distance_to_goal, yaw_error);
+        RCLCPP_INFO(this->get_logger(), "\033[1;35mDISTANCE TO GOAL: %.2f METERS, YAW ERROR: %.2f\033[0m",
+                        distance_to_goal, yaw_error);
 
         if (distance_to_goal <= 0.3)
         {

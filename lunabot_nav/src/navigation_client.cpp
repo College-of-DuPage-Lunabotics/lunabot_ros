@@ -26,23 +26,43 @@ class NavigationClient : public rclcpp::Node
      * @brief Constructor for the NavigationClient class.
      */
     NavigationClient()
-        : Node("navigation_client"), goal_reached_(false), excavation_done_(false), localization_done_(false)
+        : Node("navigation_client"), start_localization_(true), start_navigation_(false), start_excavation_(false)
     {
-        nav_to_pose_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
+        navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
         localization_client_ = rclcpp_action::create_client<Localization>(this, "localization_action");
         excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
 
-        timer_ =
-            this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::start_localization, this));
+        execution_timer_ =
+            this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
     }
 
   private:
+
     /**
-     * @brief Initiates localization and retrieves the initial pose.
+     * @brief Runs the main execution sequence.
      */
-    void start_localization()
+    void execute()
     {
-        if (!localization_client_->wait_for_action_server(std::chrono::seconds(10)))
+        if (start_localization_)
+        {
+            request_localization();
+        }
+        else if (start_navigation_)
+        {
+            request_navigation();
+        }
+        else if (start_excavation_)
+        {
+            request_excavation();
+        }
+    }
+
+    /**
+     * @brief Sends localization request to localization server.
+     */
+    void request_localization()
+    {
+        if (!localization_client_->wait_for_action_server(std::chrono::seconds(1)))
         {
             RCLCPP_WARN_ONCE(this->get_logger(), "\033[1;LOCALIZATION ACTION SERVER NOT AVAILABLE.\033[0m");
             return;
@@ -54,6 +74,7 @@ class NavigationClient : public rclcpp::Node
             std::bind(&NavigationClient::handle_localization_result, this, std::placeholders::_1);
 
         localization_client_->async_send_goal(goal_msg, send_goal_options);
+        start_localization_ = false;
     }
 
     /**
@@ -66,10 +87,9 @@ class NavigationClient : public rclcpp::Node
         {
             initial_x_ = result.result->x;
             initial_y_ = result.result->y;
-            localization_done_ = true;
             RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32mLOCALIZATION COMPLETE. INITIAL POSE: [%.2f, %.2f]\033[0m",
                              initial_x_, initial_y_);
-            send_navigation_goal();
+            start_navigation_ = true;
         }
         else
         {
@@ -79,21 +99,23 @@ class NavigationClient : public rclcpp::Node
     }
 
     /**
-     * @brief Sends the navigation goal to the excavation zone.
+     * @brief Sends goal request to navigation server.
      */
-    void send_navigation_goal()
+    void request_navigation()
     {
-        if (goal_reached_ || !nav_to_pose_client_->wait_for_action_server(std::chrono::seconds(10)))
+        if (!navigation_client_->wait_for_action_server(std::chrono::seconds(1)))
         {
             RCLCPP_WARN_ONCE(this->get_logger(), "\033[1;33mNAVIGATION ACTION SERVER NOT AVAILABLE.\033[0m");
             return;
         }
 
+        std::this_thread::sleep_for(std::chrono::seconds(7)); // Wait for Nav2 to finish loading
+
         auto goal_msg = NavigateToPose::Goal();
         geometry_msgs::msg::Pose goal_pose;
 
-        goal_pose.position.x = initial_x_ + 3.7;
-        goal_pose.position.y = initial_y_ + 2.0;
+        goal_pose.position.x = initial_x_ + 2.7;
+        goal_pose.position.y = initial_y_ + 1.2;
         goal_pose.orientation.z = 0.707;
         goal_pose.orientation.w = 0.707;
 
@@ -103,24 +125,23 @@ class NavigationClient : public rclcpp::Node
 
         auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
         send_goal_options.result_callback =
-            std::bind(&NavigationClient::goal_result_callback, this, std::placeholders::_1);
+            std::bind(&NavigationClient::handle_navigation_result, this, std::placeholders::_1);
 
         RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE...\033[0m");
-        nav_to_pose_client_->async_send_goal(goal_msg, send_goal_options);
+        navigation_client_->async_send_goal(goal_msg, send_goal_options);
+        start_navigation_ = false;
     }
 
     /**
      * @brief Callback for the result of the navigation goal.
      * @param result The result of the goal execution.
      */
-    void goal_result_callback(const GoalHandleNavigate::WrappedResult &result)
+    void handle_navigation_result(const GoalHandleNavigate::WrappedResult &result)
     {
         if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
         {
             RCLCPP_INFO_ONCE(this->get_logger(), "\033[1;32mEXCAVATION ZONE REACHED. REQUESTING EXCAVATION...\033[0m");
-            goal_reached_ = true;
-
-            request_excavation();
+            start_excavation_ = true;
         }
 
         else if (result.code == rclcpp_action::ResultCode::ABORTED)
@@ -134,7 +155,7 @@ class NavigationClient : public rclcpp::Node
      */
     void request_excavation()
     {
-        if (excavation_done_ || !excavation_client_->wait_for_action_server(std::chrono::seconds(10)))
+        if (!excavation_client_->wait_for_action_server(std::chrono::seconds(1)))
         {
             RCLCPP_WARN_ONCE(this->get_logger(), "\033[1;33mEXCAVATION ACTION SERVER NOT AVAILABLE.\033[0m");
             return;
@@ -143,21 +164,21 @@ class NavigationClient : public rclcpp::Node
         auto goal_msg = Excavation::Goal();
         auto send_goal_options = rclcpp_action::Client<Excavation>::SendGoalOptions();
         send_goal_options.result_callback =
-            std::bind(&NavigationClient::excavation_result_callback, this, std::placeholders::_1);
+            std::bind(&NavigationClient::handle_excavation_result, this, std::placeholders::_1);
 
         excavation_client_->async_send_goal(goal_msg, send_goal_options);
+        start_excavation_ = false;
     }
 
     /**
      * @brief Callback for the result of the excavation action.
      * @param result The result of the excavation action.
      */
-    void excavation_result_callback(const GoalHandleExcavation::WrappedResult &result)
+    void handle_excavation_result(const GoalHandleExcavation::WrappedResult &result)
     {
         if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
         {
             RCLCPP_INFO(this->get_logger(), "\033[1;32mEXCAVATION SUCCESS!\033[0m");
-            excavation_done_ = true;
         }
         else
         {
@@ -165,12 +186,12 @@ class NavigationClient : public rclcpp::Node
         }
     }
 
-    rclcpp_action::Client<NavigateToPose>::SharedPtr nav_to_pose_client_;
+    rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
     rclcpp_action::Client<Localization>::SharedPtr localization_client_;
     rclcpp_action::Client<Excavation>::SharedPtr excavation_client_;
-    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr execution_timer_;
 
-    bool goal_reached_, excavation_done_, localization_done_;
+    bool start_localization_, start_navigation_, start_excavation_;
     double initial_x_, initial_y_;
 };
 

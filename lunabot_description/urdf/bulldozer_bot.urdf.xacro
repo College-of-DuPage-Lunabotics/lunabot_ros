@@ -381,7 +381,7 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="camera1_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="d455_controller" filename="libgazebo_ros_camera.so">
           <ros>
             <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
             <remapping>/d455/points:=/d455/color/points</remapping>
@@ -420,7 +420,7 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="camera2_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="d456_controller" filename="libgazebo_ros_camera.so">
           <ros>
             <remapping>/d456/image_raw:=/d456/color/image_raw</remapping>
             <remapping>/d456/points:=/d456/color/points</remapping>
@@ -439,7 +439,7 @@
       <sensor type="ray" name="s3_lidar_link">
         <pose>0 0 0 0 0 0</pose>
         <visualize>false</visualize>
-        <update_rate>50.0</update_rate>
+        <update_rate>20.0</update_rate>
         <ray>
           <scan>
             <horizontal>
@@ -475,7 +475,7 @@
       <sensor type="ray" name="s2l_lidar_link">
         <pose>0 0 0 0 0 0</pose>
         <visualize>false</visualize>
-        <update_rate>50.0</update_rate>
+        <update_rate>20.0</update_rate>
         <ray>
           <scan>
             <horizontal>

@@ -38,7 +38,7 @@ def set_robot_description(context, *args, **kwargs):
     urdf_file = os.path.join(config_dir, "urdf", f"{robot_type}_bot.urdf.xacro")
     return [
         SetLaunchConfiguration(
-            "robot_simulation_description", Command(["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")])
+            "robot_description", Command(["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")])
         )
     ]
 
@@ -141,16 +141,16 @@ def generate_launch_description():
         output="screen",
     )
 
-    robot_sim_state_publisher = Node(
+    robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
         parameters=[
             {
                 "robot_description": LaunchConfiguration(
-                    "robot_simulation_description"
+                    "robot_description"
                 ),
-                "use_sim_time": True,
+                "use_sim_time": LaunchConfiguration("use_sim"),
             }
         ],
     )
@@ -192,18 +192,6 @@ def generate_launch_description():
         ],
     )
 
-    robot_real_state_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[
-            {
-                "robot_description": Command(["xacro ", urdf_real_file]),
-                "use_sim_time": False,
-            }
-        ],
-    )
-
     joint_state_publisher_node = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
@@ -223,13 +211,13 @@ def generate_launch_description():
 
     ld.add_action(rviz_launch)
     ld.add_action(foxglove_bridge_launch)
+    ld.add_action(robot_state_publisher)
 
     ld.add_action(
         GroupAction(
             actions=[
                 gazebo_launch,
                 spawn_robot_node,
-                robot_sim_state_publisher,
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,
                 position_controller_spawner,
@@ -242,7 +230,6 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(
             actions=[
-                robot_real_state_publisher_node,
                 joint_state_publisher_node,
             ],
             condition=LaunchConfigurationEquals("use_sim", "false"),

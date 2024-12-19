@@ -103,7 +103,7 @@ class LocalizationServer : public rclcpp::Node
         if (success_)
         {
             result->x = depth_distance_;
-            result->y = lateral_distance_;
+            result->y = -lateral_distance_ + 1.0;
             result->success = true;
             goal_handle->succeed(result);
         }
