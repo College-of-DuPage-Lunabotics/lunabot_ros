@@ -1,6 +1,7 @@
 /**
  * @file navigation_client.cpp
- * @brief Sends navigation goals, retrieves initial pose from the localization server, and requests excavation action.
+ * @author Grayson Arendt
+ * @date 12/19/2024
  */
 
 #include <chrono>
