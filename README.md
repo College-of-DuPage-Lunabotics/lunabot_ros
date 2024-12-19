@@ -45,7 +45,7 @@ git clone https://github.com/grayson-arendt/Lunabotics-2025.git
 cd Lunabotics-2025
 git submodule update --init --recursive --remote
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `lunabot_third_party` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `third_party_libraries` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
@@ -66,7 +66,7 @@ sudo snap install foxglove-studio
 
 #### 5. Build the workspace
 
-Building may take some time due to the external packages in `lunabot_third_party`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
+Building may take some time due to the external packages in `third_party_libraries`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
 
 To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
 
@@ -291,12 +291,11 @@ Example: `robot_mode:=autonomous`
 Example: `teleop_mode:=xbox`
 
 ## Project Structure
-
-**lunabot_autonomy**: This package contains action servers and clients required for autonomy.
-- **src**
-    - **excavation_server.cpp**: Performs the excavation sequence upon request.
-    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
-    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
+**lunabot_bringup**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
+- **launch**
+  - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
+  - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
+  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
 **lunabot_config**: This package contains configuration files for Nav2 behavior trees, RViz2 settings, and various parameters.
 - **behavior_trees**
@@ -320,37 +319,36 @@ Example: `teleop_mode:=xbox`
 - **rviz**
   - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
 
-**lunabot_desription**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
-- **models**: Contains environmental models for the Gazebo simulation.
+**lunabot_description**: This package contains meshes and URDF descriptions for simulating the robot in Gazebo and RViz2.
+- **meshes**: Contains robot meshes.
 - **urdf**: Contains URDF descriptions.
-  - **robot**
-    - **real**
-      - **trencher_bot.xacro**: URDF description of a high resolution real robot that utilizes a trencher digging mechanism.
-    - **simulation**
-      - **bulldozer_bot.xacro**: URDF description of a simulated bulldozer robot.
-      - **trencher_bot.xacro**: URDF description of a simulated trencher robot.
-  - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
-    - **high_resolution**: Contains high resolution world files.
-      - **artemis**: Contains world files simulating the Artemis arena.
-        - **artemis_arena.world**
-        - **artemis_arena2.world**
-        - **artemis_arena3.world**
-    - **low_resolution**: Contains low resolution world files.
-      - **artemis**: Contains world files simulating the Artemis arena.
-        - **artemis_arena.world**
-        - **artemis_arena2.world**
-        - **artemis_arena3.world**
+    - **bulldozer_bot.xacro**: URDF description of a bulldozer robot.
+    - **trencher_bot.xacro**: URDF description of a trencher robot.
 
-**lunabot_launch**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
-- **launch**
-  - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
-  - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
+**lunabot_gazebo**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
+- **models**: Contains environmental models for the Gazebo simulation.
+- **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
+  - **high_resolution**: Contains high resolution world files.
+    - **artemis**: Contains world files simulating the Artemis arena.
+      - **artemis_arena.world**
+      - **artemis_arena2.world**
+      - **artemis_arena3.world**
+  - **low_resolution**: Contains low resolution world files.
+    - **artemis**: Contains world files simulating the Artemis arena.
+      - **artemis_arena.world**
+      - **artemis_arena2.world**
+      - **artemis_arena3.world**
 
 **lunabot_msgs**: This package contains custom action messages.
 - **action**
   - **Excavation.action**: Message for excavation action.
   - **Localization.action**: Message for localization action.
+
+**lunabot_nav**: This package contains action servers and clients required for autonomous navigation.
+- **src**
+    - **excavation_server.cpp**: Performs the excavation sequence upon request.
+    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
+    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
 
 **lunabot_teleop**: This package contains teleop nodes for both keyboard and game controller.
 - **src**
