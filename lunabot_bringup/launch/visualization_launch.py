@@ -15,69 +15,76 @@ from launch.actions import (
     GroupAction,
 )
 
+
 def set_orientation(context, *args, **kwargs):
     orientations = {"north": -1.5708, "east": 3.1416, "south": 1.5708, "west": 0.0}
     random_orientation = random.choice(list(orientations.values()))
-    chosen_orientation = context.launch_configurations.get("robot_orientation")
+    chosen_orientation = context.launch_configurations.get("robot_heading")
 
     if chosen_orientation == "random":
-        return [SetLaunchConfiguration("robot_orientation", str(random_orientation))]
+        return [SetLaunchConfiguration("robot_heading", str(random_orientation))]
     else:
         return [
             SetLaunchConfiguration(
-                "robot_orientation", str(orientations[chosen_orientation])
+                "robot_heading", str(orientations[chosen_orientation])
             )
         ]
 
+
 def set_robot_description(context, *args, **kwargs):
     robot_type = context.launch_configurations.get("robot_type")
-    config_dir = get_package_share_directory("lunabot_simulation")
+    config_dir = get_package_share_directory("lunabot_description")
 
-    urdf_file = os.path.join(config_dir, "urdf", "simulation", f"{robot_type}_bot.xacro")
-    return [SetLaunchConfiguration("robot_simulation_description", Command(["xacro ", urdf_file]))]
+    urdf_file = os.path.join(config_dir, "urdf", f"{robot_type}_bot.urdf.xacro")
+    return [
+        SetLaunchConfiguration(
+            "robot_description", Command(["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")])
+        )
+    ]
 
 
 def generate_launch_description():
-    simulation_dir = get_package_share_directory("lunabot_simulation")
+    gazebo_dir = get_package_share_directory("lunabot_gazebo")
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_real_file = os.path.join(simulation_dir, "urdf", "real", "bulldozer_bot.xacro")
-    world_file = os.path.join(simulation_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world")
+
+    world_file = os.path.join(
+        gazebo_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world"
+    )
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
         default_value="bulldozer",
         choices=["bulldozer", "trencher"],
-        description="Defines the robot configuration to use: 'bulldozer', or 'trencher', each with unique characteristics and capabilities."
+        description="Defines the robot configuration to use: 'bulldozer', or 'trencher', each with unique characteristics and capabilities.",
     )
 
-    declare_visualization_mode = DeclareLaunchArgument(
-        "visualization_mode",
-        default_value="simulation",
-        choices=["simulation", "real"],
-        description="Selects the visualization context: 'simulation' for a simulated environment or 'real' for real-world robot visualization."
+    declare_use_sim = DeclareLaunchArgument(
+        "use_sim",
+        default_value="true",
+        description="Specifies whether the robot is in simulation mode 'true' or real-world mode 'false'.",
     )
 
-    declare_robot_orientation = DeclareLaunchArgument(
-        "robot_orientation",
+    declare_robot_heading = DeclareLaunchArgument(
+        "robot_heading",
         default_value="east",
         choices=["north", "east", "south", "west", "random"],
-        description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation."
+        description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation.",
     )
 
-    declare_visualization_type = DeclareLaunchArgument(
-        "visualization_type",
+    declare_vis_type = DeclareLaunchArgument(
+        "vis_type",
         default_value="rviz",
         choices=["rviz", "foxglove"],
-        description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio."
+        description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio.",
     )
 
     declare_gazebo_gui = DeclareLaunchArgument(
         "gazebo_gui",
         default_value="true",
         choices=["true", "false"],
-        description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode."
+        description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode.",
     )
 
     rviz_launch = Node(
@@ -85,16 +92,18 @@ def generate_launch_description():
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
-        condition=LaunchConfigurationEquals("visualization_type", "rviz"),
+        condition=LaunchConfigurationEquals("vis_type", "rviz"),
     )
 
     foxglove_bridge_launch = IncludeLaunchDescription(
         XMLLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("foxglove_bridge"), "launch", "foxglove_bridge_launch.xml"
+                get_package_share_directory("foxglove_bridge"),
+                "launch",
+                "foxglove_bridge_launch.xml",
             )
         ),
-        condition=LaunchConfigurationEquals("visualization_type", "foxglove"),
+        condition=LaunchConfigurationEquals("vis_type", "foxglove"),
     )
 
     gazebo_launch = IncludeLaunchDescription(
@@ -122,19 +131,24 @@ def generate_launch_description():
             "-y",
             "1.6",
             "-Y",
-            LaunchConfiguration("robot_orientation"),
+            LaunchConfiguration("robot_heading"),
             "-z",
             "0.35",
         ],
         output="screen",
     )
 
-    robot_sim_state_publisher = Node(
+    robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         output="screen",
         parameters=[
-            {"robot_description": LaunchConfiguration("robot_simulation_description"), "use_sim_time": True}
+            {
+                "robot_description": LaunchConfiguration(
+                    "robot_description"
+                ),
+                "use_sim_time": LaunchConfiguration("use_sim"),
+            }
         ],
     )
 
@@ -160,7 +174,7 @@ def generate_launch_description():
     )
 
     blade_joint_controller_node = Node(
-        package="lunabot_simulation",
+        package="lunabot_util",
         executable="blade_joint_controller",
         condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
     )
@@ -175,15 +189,6 @@ def generate_launch_description():
         ],
     )
 
-    robot_real_state_publisher_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[
-            {"robot_description": Command(["xacro ", urdf_real_file]), "use_sim_time": False}
-        ],
-    )
-
     joint_state_publisher_node = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
@@ -193,9 +198,9 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_type)
-    ld.add_action(declare_visualization_mode)
-    ld.add_action(declare_robot_orientation)
-    ld.add_action(declare_visualization_type)
+    ld.add_action(declare_use_sim)
+    ld.add_action(declare_robot_heading)
+    ld.add_action(declare_vis_type)
     ld.add_action(declare_gazebo_gui)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
@@ -203,29 +208,28 @@ def generate_launch_description():
 
     ld.add_action(rviz_launch)
     ld.add_action(foxglove_bridge_launch)
+    ld.add_action(robot_state_publisher)
 
     ld.add_action(
         GroupAction(
             actions=[
                 gazebo_launch,
                 spawn_robot_node,
-                robot_sim_state_publisher,
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,
                 position_controller_spawner,
                 blade_joint_controller_node,
             ],
-            condition=LaunchConfigurationEquals("visualization_mode", "simulation"),
+            condition=LaunchConfigurationEquals("use_sim", "true"),
         )
     )
 
     ld.add_action(
         GroupAction(
             actions=[
-                robot_real_state_publisher_node,
                 joint_state_publisher_node,
             ],
-            condition=LaunchConfigurationEquals("visualization_mode", "real"),
+            condition=LaunchConfigurationEquals("use_sim", "false"),
         )
     )
 

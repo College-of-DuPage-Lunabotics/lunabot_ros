@@ -21,9 +21,13 @@
   <depend>xacro</depend>
   <depend>laser_filters</depend>
   <depend>foxglove_bridge</depend>
-  <depend>lunabot_system</depend>
-  <depend>lunabot_simulation</depend>
+  <depend>cyclonedds</depend>
+  <depend>lunabot_nav</depend>
+  <depend>lunabot_description</depend>
   <depend>lunabot_config</depend>
+  <depend>lunabot_teleop</depend>
+  <depend>lunabot_util</depend>
+  <depend>lunabot_gazebo</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

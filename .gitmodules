@@ -1,11 +1,11 @@
-[submodule "lunabot_third_party/rtabmap"]
-	path = lunabot_third_party/rtabmap
+[submodule "third_party_libraries/rtabmap"]
+	path = third_party_libraries/rtabmap
 	url = https://github.com/introlab/rtabmap.git
-	branch = 0.21.4-humble
-[submodule "lunabot_third_party/rtabmap_ros"]
-	path = lunabot_third_party/rtabmap_ros
+	branch = 0.21.9-humble
+[submodule "third_party_libraries/rtabmap_ros"]
+	path = third_party_libraries/rtabmap_ros
 	url = https://github.com/introlab/rtabmap_ros.git
-	branch = 0.21.4-humble
-[submodule "lunabot_third_party/rf2o_laser_odometry"]
-	path = lunabot_third_party/rf2o_laser_odometry
+	branch = 0.21.9-humble
+[submodule "third_party_libraries/rf2o_laser_odometry"]
+	path = third_party_libraries/rf2o_laser_odometry
 	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git

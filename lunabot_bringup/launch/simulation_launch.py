@@ -30,8 +30,12 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
-    s3_params_file = os.path.join(config_dir, "params", "laser_filters", "s3_params.yaml")
-    s2l_params_file = os.path.join(config_dir, "params", "laser_filters", "s2l_params.yaml")
+    s3_params_file = os.path.join(
+        config_dir, "params", "laser_filters", "s3_params.yaml"
+    )
+    s2l_params_file = os.path.join(
+        config_dir, "params", "laser_filters", "s2l_params.yaml"
+    )
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode",
@@ -62,9 +66,7 @@ def generate_launch_description():
         config_dir, "params", "robot_localization", "ukf_params.yaml"
     )
 
-    topic_remapper_node = Node(
-        package="lunabot_simulation", executable="topic_remapper"
-    )
+    topic_remapper_node = Node(package="lunabot_util", executable="topic_remapper")
 
     rgbd_sync1_node = Node(
         package="rtabmap_sync",
@@ -178,6 +180,44 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "error"],
     )
 
+    rgbd_odometry_node = Node(
+        package="rtabmap_odom",
+        executable="rgbd_odometry",
+        output="screen",
+        parameters=[
+            {
+                "frame_id": "base_link",
+                "odom_frame_id": "odom",
+                "publish_tf": False,
+                "approx_sync": True,
+                "subscribe_rgbd": True,
+                "Odom/Strategy": "0",
+                "Odom/FilteringStrategy": "1",
+                "Odom/KalmanProcessNoise": "0.001",
+                "Odom/KalmanMeasurementNoise": "0.01",
+                "RGBD/LinearUpdate": "0.1",
+                "RGBD/AngularUpdate": "0.1",
+                "RGBD/MaxLocalKeyFrames": "5",
+                "RGBD/NeighborLinkRefining": "true",
+                "RGBD/ProximityBySpace": "true",
+                "RGBD/ProximityMaxGraphDepth": "2",
+                "RGBD/ProximityPathMaxNeighbors": "1",
+                "Vis/MinInliers": "15",
+                "Vis/EstimationType": "0",
+                "Vis/FeatureType": "6",
+                "Vis/MaxFeatures": "1000",
+                "Vis/CorNNType": "0",
+                "Vis/CorNNDR": "0.8",
+                "Vis/Epipolar": "false",
+                "Odom/ScanKeyFrameThr": "0.6",
+                "OdomF2M/ScanSubtractRadius": "0.1",
+                "OdomF2M/ScanMaxSize": "15000",
+            }
+        ],
+        remappings=[("rgbd_image", "/d455/rgbd_image"), ("odom", "/rgbd_odom")],
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
     rf2o_odometry_node = Node(
         package="rf2o_laser_odometry",
         executable="rf2o_laser_odometry_node",
@@ -211,32 +251,35 @@ def generate_launch_description():
     )
 
     s3_filter_node = Node(
-                package="laser_filters",
-                executable="scan_to_scan_filter_chain",
-                parameters=[s3_params_file],
-                remappings=[("scan", "/scan_raw"),
-                            ("scan_filtered", "/scan")
-                ]
+        package="laser_filters",
+        executable="scan_to_scan_filter_chain",
+        parameters=[s3_params_file],
+        remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
     s2l_filter_node = Node(
-                package="laser_filters",
-                executable="scan_to_scan_filter_chain",
-                parameters=[s2l_params_file],
-                remappings=[("scan", "/scan2_raw"),
-                            ("scan_filtered", "/scan2")
-                ]
+        package="laser_filters",
+        executable="scan_to_scan_filter_chain",
+        parameters=[s2l_params_file],
+        remappings=[("scan", "/scan2_raw"), ("scan_filtered", "/scan2")],
+    )
+
+    excavation_server_node = Node(
+        package="lunabot_nav",
+        executable="excavation_server",
+        name="excavation_server",
+        output="screen",
     )
 
     localization_server_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="localization_server",
         name="localization_server",
         output="screen",
     )
 
     navigation_client_node = Node(
-        package="lunabot_system",
+        package="lunabot_nav",
         executable="navigation_client",
         name="navigation_client",
         output="screen",
@@ -313,6 +356,7 @@ def generate_launch_description():
                     period=2.0,
                     actions=[
                         icp_odometry_node,
+                        rgbd_odometry_node,
                         rf2o_odometry_node,
                         ukf_node,
                         s3_filter_node,
@@ -345,6 +389,7 @@ def generate_launch_description():
                 TimerAction(
                     period=3.0,
                     actions=[
+                        excavation_server_node,
                         localization_server_node,
                         navigation_client_node,
                     ],
@@ -353,6 +398,7 @@ def generate_launch_description():
                     period=30.0,
                     actions=[
                         icp_odometry_node,
+                        rgbd_odometry_node,
                         rf2o_odometry_node,
                         ukf_node,
                         slam_node,

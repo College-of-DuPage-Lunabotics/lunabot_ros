@@ -31,7 +31,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 ```bash
 echo 'unset GTK_PATH' >> ~/.bashrc
-echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+echo 'source /opt/ros/humble/setup.bash ' >> ~/.bashrc
 ```
 
 This will permanently append these two lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc` or `gedit ~/.bashrc` if you prefer a text editor GUI instead.
@@ -87,14 +87,13 @@ Next, rebuild using the same commands in step **5. Build the workspace**.
 ## Simulating the Robot
 The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `visualization_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
 
-
 There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
 ##### Manual Mode
-This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Nav2 and RTAB-Map, but does not launch the `localization_server` or `navigation_client`. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2/Foxglove Studio.
+This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Nav2 and RTAB-Map, but does not launch any autonomy action clients/servers. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2/Foxglove Studio.
 
 ##### Autonomous Mode
-This launches `localization_server` and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the localization server and navigation client to perform a one-cycle autonomy sequence. 
+This launches `excavation_server`,`localization_server`, and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the excavation server, localization server, and navigation client to perform a one-cycle autonomy sequence. 
 
 #### 1. Navigate to workspace and source setup
 
@@ -107,13 +106,13 @@ source install/setup.bash
 #### 2. Launch visualization
 
 ```bash
-ros2 launch lunabot_bringup visualization_launch.py 
+ros2 launch lunabot_launch visualization_launch.py 
 ```
 
 #### 3. Launch mapping and navigation
 
 ```bash
-ros2 launch lunabot_bringup simulation_launch.py 
+ros2 launch lunabot_launch simulation_launch.py 
 ```
 
 ##### RViz2
@@ -129,11 +128,9 @@ ros2 launch lunabot_bringup simulation_launch.py
 
 ## Running the Physical Robot
 
-
 ### SSH Into Robot Computer
 
 SSH (Secure Shell) allows you access another device over the network and run commands. The **host computer** is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
-
 
 #### 1. Install and enable SSH server (host computer):
 ```bash
@@ -213,13 +210,13 @@ ros2 run joy joy_node
 #### 3. Visualize with RViz2 (host computer)
 
 ```bash
-ros2 launch lunabot_bringup visualization_launch.py visualization_mode:=real
+ros2 launch lunabot_launch visualization_launch.py visualization_mode:=real
 ```
 
 #### 4. Launch the real robot (robot computer)
 
 ```bash
-ros2 launch lunabot_bringup real_launch.py
+ros2 launch lunabot_launch real_launch.py
 ```
 
 ### Parameters
@@ -232,7 +229,6 @@ ros2 launch lunabot_bringup real_launch.py
     - `autonomous`: Runs the robot in autonomous mode.
 Example: `robot_mode:=autonomous`
 
-
 #### visualization_launch.py
 `robot_type`: Specifies the robot model to visualize.
   - Options:
@@ -241,7 +237,7 @@ Example: `robot_mode:=autonomous`
 
 Example: `robot_type:=trencher`
 
-`robot_orientation`: Sets the initial orientation of the robot in Gazebo.
+`robot_heading`: Sets the initial orientation of the robot in Gazebo.
   - Options:
     - `north`: Points the robot north.
     - `south`: Points the robot south.
@@ -249,21 +245,21 @@ Example: `robot_type:=trencher`
     - `west`: Points the robot west.
     - `random`: Assigns a random orientation.
 
-Example: `robot_orientation:=random`
+Example: `robot_heading:=random`
 
-`visualization_mode`: Specifies whether to launch Gazebo or not.
+`use_sim`: Specifies whether to launch Gazebo or not.
   - Options:
-    - `simulation`: Launches simulated robot in Gazebo. **(Default)**
-    - `real`: Only launches RViz2 or Foxglove Studio instead of Gazebo, will receive data from real hardware.
+    - `true`: Launches simulated robot in Gazebo. **(Default)**
+    - `false`: Only launches RViz2 or Foxglove Studio instead of Gazebo, will receive data from real hardware.
 
-Example: `visualization_mode:=real`
+Example: `use_sim:=false`
 
-`visualization_type`: Choose between RViz2 or Foxglove Studio for visualization.
+`vis_type`: Choose between RViz2 or Foxglove Studio for visualization.
 - Options:
   - `rviz`: Opens visualization in RViz2. **(Default)**
   - `foxglove`: Launches Foxglove bridge to allow for connecting in the Foxglove Studio app.
 
-Example: `visualization_type:=foxglove`
+Example: `vis_type:=foxglove`
 
 `gazebo_gui`: Enables or disables the Gazebo GUI.
 - Options:
@@ -271,7 +267,6 @@ Example: `visualization_type:=foxglove`
   - `false`: Runs Gazebo in headless mode, may be useful if your computer has limited resources.
 
 Example: `gazebo_gui:=false`
-
 
 #### simulation_launch.py
 
@@ -295,14 +290,13 @@ Example: `robot_mode:=autonomous`
 
 Example: `teleop_mode:=xbox`
 
-
 ## Project Structure
 
-**lunabot_bringup**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
-- **launch**
-  - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
-  - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
+**lunabot_autonomy**: This package contains action servers and clients required for autonomy.
+- **src**
+    - **excavation_server.cpp**: Performs the excavation sequence upon request.
+    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
+    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
 
 **lunabot_config**: This package contains configuration files for Nav2 behavior trees, RViz2 settings, and various parameters.
 - **behavior_trees**
@@ -326,15 +320,8 @@ Example: `teleop_mode:=xbox`
 - **rviz**
   - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
 
-**lunabot_simulation**: This package contains assets and code for simulating the robot in Gazebo.
-
+**lunabot_desription**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
 - **models**: Contains environmental models for the Gazebo simulation.
-- **src**
-  - **teleop**: Contains teleop scripts.
-    - **keyboard_teleop.py**: Script for teleoping the robot using keyboard inputs.
-  - **utils**: Contains utility nodes.
-    - **blade_joint_controller.cpp**: Source code for controlling the bulldozer blade's joint.
-    - **topic_remapper.cpp**: Remaps Gazebo controller topic names.
 - **urdf**: Contains URDF descriptions.
   - **robot**
     - **real**
@@ -354,20 +341,28 @@ Example: `teleop_mode:=xbox`
         - **artemis_arena2.world**
         - **artemis_arena3.world**
 
+**lunabot_launch**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
+- **launch**
+  - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
+  - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
+  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
-**lunabot_system**: This package contains various autonomy/manual controllers and utilities.
+**lunabot_msgs**: This package contains custom action messages.
 - **action**
-  - **Localization.action**: Action definition for localization.
+  - **Excavation.action**: Message for excavation action.
+  - **Localization.action**: Message for localization action.
+
+**lunabot_teleop**: This package contains teleop nodes for both keyboard and game controller.
 - **src**
-  - **control**
-    - **localization_server.cpp**: Server responsible for handling localization with AprilTags.
-    - **navigation_client.cpp**: Receives localization response and sends navigation goals and triggers robot behaviors when goals are reached.
-    - **robot_controller.cpp**: Converts `/cmd_vel` commands and `/joy` inputs into physical motor speed outputs.
-  - **utils**
+    - **controller_teleop.cpp**: Converts `/joy` and `/cmd_vel` topic inputs into physical motor speed outputs.
+    - **keyboard_teleop.py**: Script for controlling the robot via keyboard in Gazebo.
+
+**lunabot_util**: This package contains various utility nodes.
+- **src**
+    - **blade_joint_controller.cpp**: Sets position of blade joint in Gazebo based on controller input.
     - **hardware_monitor.cpp**: Monitors hardware topics and outputs error messages if sensor data is not received.
     - **imu_rotator.cpp**: Processes and rotates IMU data into the East-North-Up (ENU) frame.
-
-**lunabot_third_party** This folder contains third party packages.
+    - **topic_remapper.cpp**: Remaps Gazebo controller topic names.
 
 **scripts**: This folder contains various setup and utility scripts.
 - **config**
@@ -376,4 +371,6 @@ Example: `teleop_mode:=xbox`
 - **canable_start.sh**: Sets up the CAN bus interface for motor controller communication.
 - **install_dependencies.sh**: Script to install required dependencies for the robot software.
 - **setup_udev_rules.sh**: Script to set up udev rules for the Intel RealSense camera.
+
+**third_party_libraries** This folder contains third party packages such as RTAB-Map.
 
