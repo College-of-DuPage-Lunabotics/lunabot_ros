@@ -20,6 +20,10 @@
     <color rgba="0.89 0.89 0.89 1.0" />
   </material>
 
+  <!-- ================================= -->
+  <!--            BODY LINKS             -->
+  <!-- ================================= -->
+
   <link name="base_link">
     <visual>
       <geometry>
@@ -39,6 +43,10 @@
       <inertia ixx="1.3669" ixy="0.0" ixz="0.0" iyy="3.3602" iyz="0.0" izz="4.7271" />
     </inertial>
   </link>
+
+  <!-- ================================= -->
+  <!--           SENSOR LINKS            -->
+  <!-- ================================= -->
 
   <link name="lidar_link">
     <visual>
@@ -93,6 +101,10 @@
   <link name="d456_optical_link"></link>
 
   <link name="imu_link"></link>
+
+  <!-- ================================= -->
+  <!--            WHEEL LINKS            -->
+  <!-- ================================= -->
 
   <link name="front_right_wheel_link">
     <inertial>
@@ -150,33 +162,14 @@
     </collision>
   </link>
 
-  <joint name="base_rear_right_wheel_joint" type="continuous">
-    <parent link="base_link" />
-    <child link="rear_right_wheel_link" />
-    <origin xyz="-0.305 -0.25 0.08" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-  </joint>
+  <!-- ================================= -->
+  <!--            BODY JOINTS            -->
+  <!-- ================================= -->
 
-  <joint name="base_rear_left_wheel_joint" type="continuous">
-    <parent link="base_link" />
-    <child link="rear_left_wheel_link" />
-    <origin xyz="-0.305 0.25 0.08" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-  </joint>
 
-  <joint name="base_front_right_wheel_joint" type="continuous">
-    <parent link="base_link" />
-    <child link="front_right_wheel_link" />
-    <origin xyz="0.1515 -0.25 0.08" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-  </joint>
-
-  <joint name="base_front_left_wheel_joint" type="continuous">
-    <parent link="base_link" />
-    <child link="front_left_wheel_link" />
-    <origin xyz="0.1515 0.25 0.08" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-  </joint>
+  <!-- ================================= -->
+  <!--           SENSOR JOINTS           -->
+  <!-- ================================= -->
 
   <joint name="base_lidar_joint" type="fixed">
     <parent link="base_link" />
@@ -214,9 +207,43 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
+  <!-- ================================= -->
+  <!--            WHEEL JOINTS           -->
+  <!-- ================================= -->
+
+  <joint name="base_rear_right_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="rear_right_wheel_link" />
+    <origin xyz="-0.305 -0.25 0.08" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="base_rear_left_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="rear_left_wheel_link" />
+    <origin xyz="-0.305 0.25 0.08" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="base_front_right_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="front_right_wheel_link" />
+    <origin xyz="0.1515 -0.25 0.08" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <joint name="base_front_left_wheel_joint" type="continuous">
+    <parent link="base_link" />
+    <child link="front_left_wheel_link" />
+    <origin xyz="0.1515 0.25 0.08" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+  </joint>
+
+  <!-- ================================= -->
+  <!--       GAZEBO CONFIGURATION        -->
+  <!-- ================================= -->
 
   <xacro:if value="$(arg use_sim)">
-
     <gazebo reference="front_right_wheel_link">
       <material>Gazebo/DarkGrey</material>
       <mu>1.0</mu>

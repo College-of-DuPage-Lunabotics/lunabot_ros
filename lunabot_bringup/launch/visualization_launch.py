@@ -44,14 +44,11 @@ def set_robot_description(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    description_dir = get_package_share_directory("lunabot_description")
     gazebo_dir = get_package_share_directory("lunabot_gazebo")
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_real_file = os.path.join(
-        description_dir, "urdf", "bulldozer_bot.urdf.xacro"
-    )
+
     world_file = os.path.join(
         gazebo_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world"
     )

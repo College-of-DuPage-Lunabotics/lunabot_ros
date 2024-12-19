@@ -31,7 +31,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 ```bash
 echo 'unset GTK_PATH' >> ~/.bashrc
-echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+echo 'source /opt/ros/humble/setup.bash ' >> ~/.bashrc
 ```
 
 This will permanently append these two lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc` or `gedit ~/.bashrc` if you prefer a text editor GUI instead.

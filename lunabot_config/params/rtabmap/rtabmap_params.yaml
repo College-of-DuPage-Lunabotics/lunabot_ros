@@ -7,7 +7,7 @@ rtabmap:
     Grid/RangeMax: "10.0"
     Grid/MaxObstacleHeight: "0.6"
     Grid/RayTracing: "true"
-    Reg/Force3DoF: "true"
+    Reg/Force3DoF: "false"
     Reg/Strategy: "1"
     RGBD/ProximityBySpace: "true"
     RGBD/ProximityByTime: "true"
