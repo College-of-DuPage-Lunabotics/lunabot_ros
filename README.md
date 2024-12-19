@@ -106,13 +106,13 @@ source install/setup.bash
 #### 2. Launch visualization
 
 ```bash
-ros2 launch lunabot_launch visualization_launch.py 
+ros2 launch lunabot_bringup visualization_launch.py 
 ```
 
 #### 3. Launch mapping and navigation
 
 ```bash
-ros2 launch lunabot_launch simulation_launch.py 
+ros2 launch lunabot_bringup simulation_launch.py 
 ```
 
 ##### RViz2
@@ -210,13 +210,13 @@ ros2 run joy joy_node
 #### 3. Visualize with RViz2 (host computer)
 
 ```bash
-ros2 launch lunabot_launch visualization_launch.py visualization_mode:=real
+ros2 launch lunabot_bringup visualization_launch.py use_sim:=false
 ```
 
 #### 4. Launch the real robot (robot computer)
 
 ```bash
-ros2 launch lunabot_launch real_launch.py
+ros2 launch lunabot_bringup real_launch.py
 ```
 
 ### Parameters
@@ -326,7 +326,7 @@ Example: `teleop_mode:=xbox`
     - **trencher_bot.xacro**: URDF description of a trencher robot.
 
 **lunabot_gazebo**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
-- **models**: Contains environmental models for the Gazebo simulation.
+- **models**: Contains models for the Gazebo simulation.
 - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
   - **high_resolution**: Contains high resolution world files.
     - **artemis**: Contains world files simulating the Artemis arena.
