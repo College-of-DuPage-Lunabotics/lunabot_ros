@@ -44,13 +44,13 @@ def set_robot_description(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    gazebo_dir = get_package_share_directory("lunabot_gazebo")
+    sim_dir = get_package_share_directory("lunabot_sim")
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
     world_file = os.path.join(
-        gazebo_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world"
+        sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world"
     )
 
     declare_robot_type = DeclareLaunchArgument(
@@ -80,8 +80,8 @@ def generate_launch_description():
         description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio.",
     )
 
-    declare_gazebo_gui = DeclareLaunchArgument(
-        "gazebo_gui",
+    declare_sim_gui = DeclareLaunchArgument(
+        "sim_gui",
         default_value="true",
         choices=["true", "false"],
         description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode.",
@@ -106,14 +106,14 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("vis_type", "foxglove"),
     )
 
-    gazebo_launch = IncludeLaunchDescription(
+    sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
                 get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
             )
         ),
         launch_arguments={
-            "gui": LaunchConfiguration("gazebo_gui"),
+            "gui": LaunchConfiguration("sim_gui"),
             "world": world_file,
         }.items(),
     )
@@ -201,7 +201,7 @@ def generate_launch_description():
     ld.add_action(declare_use_sim)
     ld.add_action(declare_robot_heading)
     ld.add_action(declare_vis_type)
-    ld.add_action(declare_gazebo_gui)
+    ld.add_action(declare_sim_gui)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_robot_description))
@@ -213,7 +213,7 @@ def generate_launch_description():
     ld.add_action(
         GroupAction(
             actions=[
-                gazebo_launch,
+                sim_launch,
                 spawn_robot_node,
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,

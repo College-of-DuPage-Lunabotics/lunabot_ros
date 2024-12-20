@@ -85,7 +85,7 @@ export MAKEFLAGS="-j1" # Modify number as needed
 Next, rebuild using the same commands in step **5. Build the workspace**.
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `visualization_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
 
 There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
@@ -106,13 +106,13 @@ source install/setup.bash
 #### 2. Launch visualization
 
 ```bash
-ros2 launch lunabot_bringup visualization_launch.py 
+ros2 launch lunabot_bringup vis_launch.py 
 ```
 
 #### 3. Launch mapping and navigation
 
 ```bash
-ros2 launch lunabot_bringup simulation_launch.py 
+ros2 launch lunabot_bringup sim_launch.py
 ```
 
 ##### RViz2
@@ -210,7 +210,7 @@ ros2 run joy joy_node
 #### 3. Visualize with RViz2 (host computer)
 
 ```bash
-ros2 launch lunabot_bringup visualization_launch.py use_sim:=false
+ros2 launch lunabot_bringup vis_launch.py use_sim:=false
 ```
 
 #### 4. Launch the real robot (robot computer)
@@ -226,10 +226,10 @@ ros2 launch lunabot_bringup real_launch.py
 `robot_mode`: Selects the mode of operation.
   - Options:
     - `manual`: Runs the robot in manual mode. **(Default)**
-    - `autonomous`: Runs the robot in autonomous mode.
-Example: `robot_mode:=autonomous`
+    - `auto`: Runs the robot in autonomous mode.
+Example: `robot_mode:=auto`
 
-#### visualization_launch.py
+#### vis_launch.py
 `robot_type`: Specifies the robot model to visualize.
   - Options:
     - `bulldozer`: Visualizes the bulldozer robot. **(Default)**
@@ -254,6 +254,13 @@ Example: `robot_heading:=random`
 
 Example: `use_sim:=false`
 
+`sim_gui`: Enables or disables the Gazebo GUI.
+- Options:
+  - `true`: Runs Gazebo with its GUI. **(Default)**
+  - `false`: Runs Gazebo in headless mode, may be useful if your computer has limited resources.
+
+Example: `sim_gui:=false`
+
 `vis_type`: Choose between RViz2 or Foxglove Studio for visualization.
 - Options:
   - `rviz`: Opens visualization in RViz2. **(Default)**
@@ -261,14 +268,7 @@ Example: `use_sim:=false`
 
 Example: `vis_type:=foxglove`
 
-`gazebo_gui`: Enables or disables the Gazebo GUI.
-- Options:
-  - `true`: Runs Gazebo with its GUI. **(Default)**
-  - `false`: Runs Gazebo in headless mode, may be useful if your computer has limited resources.
-
-Example: `gazebo_gui:=false`
-
-#### simulation_launch.py
+#### sim_launch.py
 
 `robot_type`: Defines which robot model parameters to use for Nav2.
   - Options:
@@ -280,8 +280,8 @@ Example: `robot_type:=trencher`
 `robot_mode`: Selects the mode of operation.
   - Options:
     - `manual`: Runs the robot in manual mode. **(Default)**
-    - `autonomous`: Runs the robot in autonomous mode.
-Example: `robot_mode:=autonomous`
+    - `auto`: Runs the robot in autonomous mode.
+Example: `robot_mode:=auto`
 
 `teleop_mode` : Chooses the teleoperation method.
   - Options:
@@ -294,8 +294,8 @@ Example: `teleop_mode:=xbox`
 **lunabot_bringup**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
 - **launch**
   - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
-  - **simulation_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-  - **visualization_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
+  - **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
+  - **vis_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
 **lunabot_config**: This package contains configuration files for Nav2 behavior trees, RViz2 settings, and various parameters.
 - **behavior_trees**
@@ -325,7 +325,18 @@ Example: `teleop_mode:=xbox`
     - **bulldozer_bot.xacro**: URDF description of a bulldozer robot.
     - **trencher_bot.xacro**: URDF description of a trencher robot.
 
-**lunabot_gazebo**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
+**lunabot_msgs**: This package contains custom action messages.
+- **action**
+  - **Excavation.action**: Message for excavation action.
+  - **Localization.action**: Message for localization action.
+
+**lunabot_nav**: This package contains action servers and clients required for autonomous navigation.
+- **src**
+    - **excavation_server.cpp**: Performs the excavation sequence upon request.
+    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
+    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
+
+**lunabot_sim**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
 - **models**: Contains models for the Gazebo simulation.
 - **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
   - **high_resolution**: Contains high resolution world files.
@@ -338,17 +349,6 @@ Example: `teleop_mode:=xbox`
       - **artemis_arena.world**
       - **artemis_arena2.world**
       - **artemis_arena3.world**
-
-**lunabot_msgs**: This package contains custom action messages.
-- **action**
-  - **Excavation.action**: Message for excavation action.
-  - **Localization.action**: Message for localization action.
-
-**lunabot_nav**: This package contains action servers and clients required for autonomous navigation.
-- **src**
-    - **excavation_server.cpp**: Performs the excavation sequence upon request.
-    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
-    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
 
 **lunabot_teleop**: This package contains teleop nodes for both keyboard and game controller.
 - **src**
