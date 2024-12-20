@@ -32,7 +32,7 @@ def generate_launch_description():
     )
 
     declare_robot_mode = DeclareLaunchArgument(
-        "robot_mode", default_value="manual", choices=["manual", "autonomous"]
+        "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
 
     rgbd_sync1_node = Node(
@@ -410,7 +410,7 @@ def generate_launch_description():
                     ],
                 ),
             ],
-            condition=LaunchConfigurationEquals("robot_mode", "autonomous"),
+            condition=LaunchConfigurationEquals("robot_mode", "auto"),
         )
     )
 

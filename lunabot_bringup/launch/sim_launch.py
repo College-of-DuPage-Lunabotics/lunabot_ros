@@ -40,8 +40,8 @@ def generate_launch_description():
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode",
         default_value="manual",
-        choices=["manual", "autonomous"],
-        description="Select 'manual' for teleoperated mode or 'autonomous' for autonomous mode.",
+        choices=["manual", "auto"],
+        description="Select 'manual' for teleoperated mode or 'auto' for auto mode.",
     )
 
     declare_teleop_mode = DeclareLaunchArgument(
@@ -413,7 +413,7 @@ def generate_launch_description():
                     ],
                 ),
             ],
-            condition=LaunchConfigurationEquals("robot_mode", "autonomous"),
+            condition=LaunchConfigurationEquals("robot_mode", "auto"),
         )
     )
 
