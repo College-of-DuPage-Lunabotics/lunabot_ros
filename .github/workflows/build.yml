@@ -41,6 +41,10 @@ jobs:
         cd ~/lunabot_ws/src/Lunabotics-2025
         git submodule update --init --recursive
 
+	- name: Mark repository as safe
+	  run: git config --global --add safe.directory /__w/Lunabotics-2025/Lunabotics-2025
+
+
     - name: Install dependencies
       run: |
         apt-get update
