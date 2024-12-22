@@ -23,7 +23,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 ## Build Status
 
-| ROS 2 Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/ros2-humble-ci-pipeline.yml/badge.svg?branch=master)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/ros2-humble-ci-pipeline.yml) |
+| ROS 2 Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml) |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ## Installation
