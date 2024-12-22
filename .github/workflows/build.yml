@@ -22,9 +22,7 @@ jobs:
     - name: Set up workspace
       run: |
         mkdir -p ~/lunabot_ws/src
-        mv * ~/lunabot_ws/src/Lunabotics-2025
-        cd ~/lunabot_ws/src/Lunabotics-2025
-        git submodule update --init --recursive
+        mv $(pwd) ~/lunabot_ws/src/Lunabotics-2025
 
     - name: Set up ROS 2 Humble
       uses: ros-tooling/setup-ros@v0.7
@@ -71,5 +69,6 @@ jobs:
         source /opt/ros/humble/setup.bash
         cd ~/lunabot_ws
         colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1
+
 
 
