@@ -2,73 +2,42 @@ name: build
 
 on:
   push:
-    branches:
-      - master
-      - development
+    branches: [ master, development ]
   pull_request:
-    branches:
-      - master
-      - development
+    branches: [ master, development ]
 
 jobs:
-  setup:
+  build:
     runs-on: ubuntu-22.04
-    name: Setup and Install Dependencies
-
     steps:
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v3
-
     - name: Set up workspace
       run: |
-        mkdir -p ~/lunabot_ws/src
-        mv $(pwd) ~/lunabot_ws/src/Lunabotics-2025
-
-    - name: Set up ROS 2 Humble
+        mkdir -p ~/lunabot_ws/src/Lunabotics-2025
+        cp -r . ~/lunabot_ws/src/Lunabotics-2025
+        cd ~/lunabot_ws/src/Lunabotics-2025
+        git submodule update --init --recursive
+    - name: Set up ROS 2
       uses: ros-tooling/setup-ros@v0.7
       with:
         required-ros-distributions: humble
-
-    - name: Install Sensor Dependencies
+    - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-*
-
-    - name: Install Git LFS and Pull LFS Data
-      run: |
-        cd ~/lunabot_ws/src/Lunabotics-2025
-        sudo apt update
-        sudo apt install -y git-lfs
+        sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-* git-lfs
         git lfs pull
-
-    - name: Install sparkcan
-      run: |
-        sudo apt update
         sudo add-apt-repository ppa:graysonarendt/sparkcan -y
         sudo apt update
         sudo apt install -y sparkcan
-
-    - name: Install ROS Dependencies Using rosdep
-      run: |
         cd ~/lunabot_ws
         sudo rosdep init 2>/dev/null || true
         rosdep update
         rosdep install --from-paths src --ignore-src -r -y
-
-  build:
-    runs-on: ubuntu-22.04
-    needs: setup
-    name: Build Workspace
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Build the workspace
+    - name: Build
       run: |
         source /opt/ros/humble/setup.bash
         cd ~/lunabot_ws
         colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1
-
 
 
