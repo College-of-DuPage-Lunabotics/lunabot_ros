@@ -54,6 +54,7 @@ jobs:
       run: |
         source /opt/ros/humble/setup.bash
         cd ~/lunabot_ws
+        export MAKEFLAGS="-j1"
         colcon build --symlink-install \
           --cmake-args \
             -DRTABMAP_SYNC_MULTI_RGBD=ON \
