@@ -13,56 +13,43 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-jammy-ros-humble-desktop-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Install ccache
-      run: |
-        apt-get update
-        apt-get install -y ccache
+      - name: Setup workspace
+        run: |
+          mkdir -p ~/lunabot_ws/src/Lunabotics-2025
+          cp -r . ~/lunabot_ws/src/Lunabotics-2025
+          cd ~/lunabot_ws/src/Lunabotics-2025
+          git submodule update --init --recursive
 
-    - name: Cache ccache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/ccache
-        key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.cpp','**/*.hpp','**/*.cc','**/*.h','**/*.cxx','**/*.hxx') }}
-        restore-keys: ${{ runner.os }}-ccache-
+      - name: Mark repository as safe
+        run: git config --global --add safe.directory /__w/Lunabotics-2025/Lunabotics-2025
 
-    - name: Configure ccache
-      run: |
-        ccache -M 2G
-        echo "export CC='ccache gcc'" >> $GITHUB_ENV
-        echo "export CXX='ccache g++'" >> $GITHUB_ENV
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y ros-humble-rplidar-ros ros-humble-realsense2-* git-lfs
+          git lfs pull
+          apt-get install -y software-properties-common
+          add-apt-repository ppa:graysonarendt/sparkcan -y
+          apt-get update
+          apt-get install -y sparkcan
+          cd ~/lunabot_ws
+          rosdep init || true
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
 
-    - name: Setup workspace
-      run: |
-        mkdir -p ~/lunabot_ws/src/Lunabotics-2025
-        cp -r . ~/lunabot_ws/src/Lunabotics-2025
-        cd ~/lunabot_ws/src/Lunabotics-2025
-        git submodule update --init --recursive
+      - name: Build
+        run: |
+          source /opt/ros/humble/setup.bash
+          cd ~/lunabot_ws
+          colcon build --symlink-install \
+            --cmake-args \
+              -DRTABMAP_SYNC_MULTI_RGBD=ON \
+              -DWITH_OPENCV=ON \
+              -DWITH_APRILTAG=ON \
+              -DWITH_OPENGV=OFF \
+            --parallel-workers 4
 
-	- name: Mark repository as safe
-	  run: git config --global --add safe.directory /__w/Lunabotics-2025/Lunabotics-2025
-
-
-    - name: Install dependencies
-      run: |
-        apt-get update
-        apt-get install -y ros-humble-rplidar-ros ros-humble-realsense2-* git-lfs
-        git lfs pull
-        # Example for installing sparkcan
-        apt-get install -y software-properties-common
-        add-apt-repository ppa:graysonarendt/sparkcan -y
-        apt-get update
-        apt-get install -y sparkcan
-        cd ~/lunabot_ws
-        rosdep init || true
-        rosdep update
-        rosdep install --from-paths src --ignore-src -r -y
-
-    - name: Build
-      run: |
-        source /opt/ros/humble/setup.bash
-        cd ~/lunabot_ws
-        colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 4
 
