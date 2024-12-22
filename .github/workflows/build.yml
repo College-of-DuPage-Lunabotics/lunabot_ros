@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: rostooling/setup-ros-docker:ubuntu-jammy-ros-humble-desktop-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
