@@ -19,6 +19,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Mark repository as safe
+        run: git config --global --add safe.directory /__w/Lunabotics-2025/Lunabotics-2025
+
       - name: Setup workspace
         run: |
           mkdir -p ~/lunabot_ws/src/Lunabotics-2025
@@ -26,22 +29,28 @@ jobs:
           cd ~/lunabot_ws/src/Lunabotics-2025
           git submodule update --init --recursive
 
-      - name: Mark repository as safe
-        run: git config --global --add safe.directory /__w/Lunabotics-2025/Lunabotics-2025
-
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y ros-humble-rplidar-ros ros-humble-realsense2-* git-lfs
+          apt-get install -y \
+            ros-humble-rplidar-ros \
+            ros-humble-realsense2-* \
+            git-lfs \
+            software-properties-common
+
           git lfs pull
-          apt-get install -y software-properties-common
+
           add-apt-repository ppa:graysonarendt/sparkcan -y
           apt-get update
           apt-get install -y sparkcan
+
+          source /opt/ros/humble/setup.bash
           cd ~/lunabot_ws
+
           rosdep init || true
           rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
+
+          rosdep install --from-paths src --ignore-src --rosdistro humble -r -y
 
       - name: Build
         run: |
@@ -53,6 +62,7 @@ jobs:
               -DWITH_OPENCV=ON \
               -DWITH_APRILTAG=ON \
               -DWITH_OPENGV=OFF \
-            --parallel-workers 4
+            --parallel-workers 1
+
 
 
