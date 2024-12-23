@@ -1,6 +1,6 @@
 # Project Overview
 
-This repository contains the software developed by the College of DuPage team for the 2024-2025 NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04 for x86-64 architecture.
+This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04 for x86-64 architecture.
 
 ## System Components
 
@@ -25,7 +25,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 | ROS 2 Distro | Project Status |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Humble | [![build](https://github.com/grayson-arendt/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/grayson-arendt/lunabot_ros/actions/workflows/build.yml) |
+| Humble | [![build](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml) |
 
 
 ## Installation
@@ -48,7 +48,7 @@ This will permanently append these two lines to your .bashrc file, so there is n
 ```bash
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
-git clone https://github.com/grayson-arendt/lunabot_ros.git
+git clone https://github.com/College-of-DuPage-Lunabotics/lunabot_ros.git
 cd lunabot_ros
 git submodule update --init --recursive --remote
 ```
