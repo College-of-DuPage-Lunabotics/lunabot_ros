@@ -162,7 +162,7 @@ ssh-keygen
 ```bash
 whoami
 ```
-This will return the username of the host, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `grayson` for `grayson@NUC`.
+This will return the username of the host, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `asrock` for `asrock@asrock-main`.
 
 Next, get the IP address:
 ```bash
@@ -186,6 +186,7 @@ ssh asrock@192.168.10.1 # (General format: username@ip_address)
 
 ```bash
 sudo usermod -a -G dialout $USER
+sudo reboot
 ```
 
 Use `ls /dev/ttyUSB*` to identify device numbers if the lidars are disconnected and reconnected, then adjust the lidar `"serial_port"` parameters in `real_launch.py` accordingly.
