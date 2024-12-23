@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+
+  <name>lunabot_ros</name>
+  <version>1.0.0</version>
+  <description>This package bundles all the lunabot packages as a metapackage.</description>
+  <maintainer email="grayson.n.arendt5@gmail.com">Grayson Arendt</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>lunabot_bringup</exec_depend>
+  <exec_depend>lunabot_config</exec_depend>
+  <exec_depend>lunabot_description</exec_depend>
+  <exec_depend>lunabot_msgs</exec_depend>
+  <exec_depend>lunabot_nav</exec_depend>
+  <exec_depend>lunabot_sim</exec_depend>
+  <exec_depend>lunabot_teleop</exec_depend>
+  <exec_depend>lunabot_util</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>

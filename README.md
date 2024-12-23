@@ -25,7 +25,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 | ROS 2 Distro | Project Status |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml) |
+| Humble | [![build](https://github.com/grayson-arendt/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/grayson-arendt/lunabot_ros/actions/workflows/build.yml) |
 
 
 ## Installation
@@ -48,18 +48,18 @@ This will permanently append these two lines to your .bashrc file, so there is n
 ```bash
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
-git clone https://github.com/grayson-arendt/Lunabotics-2025.git
-cd Lunabotics-2025
+git clone https://github.com/grayson-arendt/lunabot_ros.git
+cd lunabot_ros
 git submodule update --init --recursive --remote
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `third_party_packages` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `third_party_packages` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `lunabot_ros` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
 Run the installation script to install the required dependencies. `chmod +x` gives permission for the script to be executable.
 
 ```bash
-cd ~/lunabot_ws/src/Lunabotics-2025/scripts
+cd ~/lunabot_ws/src/lunabot_ros/scripts
 chmod +x install_dependencies.sh
 ./install_dependencies.sh
 ```
@@ -145,7 +145,7 @@ sudo systemctl start ssh
 sudo systemctl enable ssh
 ```
 
-#### 2. Install and enable SSH client (client):
+#### 2. Install SSH client (client):
 
 ```bash
 sudo apt update
@@ -196,7 +196,7 @@ Use `ls /dev/ttyUSB*` to identify device numbers if the lidars are disconnected 
 #### 2. Setup camera udev rules (host)
 
 ```bash
-cd ~/lunabot_ws/src/Lunabotics-2025/scripts
+cd ~/lunabot_ws/src/lunabot_ros/scripts
 chmod +x setup_udev_rules.sh
 sudo ./setup_udev_rules.sh
 ```
