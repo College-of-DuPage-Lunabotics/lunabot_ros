@@ -2,7 +2,7 @@
 <package format="3">
   <name>lunabot_nav</name>
   <version>1.0.0</version>
-  <description>This package contains action servers/clients for one-cycle autonomy.</description>
+  <description>This package contains action servers and clients required for autonomous navigation.</description>
   <maintainer email="grayson.n.arendt5@gmail.com">Grayson Arendt</maintainer>
   <license>MIT</license>
 

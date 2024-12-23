@@ -13,6 +13,10 @@
 #include "lunabot_msgs/action/excavation.hpp"
 #include "lunabot_msgs/action/localization.hpp"
 
+/**
+ * @class NavigationClient
+ * @brief Handles localization responses and sends navigation and excavation requests.
+ */
 class NavigationClient : public rclcpp::Node
 {
   public:

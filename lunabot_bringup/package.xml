@@ -2,7 +2,7 @@
 <package format="3">
   <name>lunabot_bringup</name>
   <version>1.0.0</version>
-  <description>This package contains launch files.</description>
+  <description>This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real-world hardware.</description>
   <maintainer email="grayson.n.arendt5@gmail.com">Grayson Arendt</maintainer>
   <license>MIT</license>
 
@@ -10,24 +10,23 @@
 
   <depend>robot_state_publisher</depend>
   <depend>joint_state_publisher</depend>
-  <depend>gazebo_ros_pkgs</depend>
   <depend>navigation2</depend>
   <depend>apriltag_ros</depend>
   <depend>robot_localization</depend>
   <depend>imu_complementary_filter</depend>
-  <depend>ros2_control</depend>
-  <depend>ros2_controllers</depend>
-  <depend>gazebo_ros2_control</depend>
-  <depend>xacro</depend>
   <depend>laser_filters</depend>
   <depend>foxglove_bridge</depend>
-  <depend>cyclonedds</depend>
-  <depend>lunabot_nav</depend>
-  <depend>lunabot_description</depend>
+  <depend>ros2_control</depend>
+  <depend>ros2_controllers</depend>
+  <depend>gazebo_ros_pkgs</depend>
+  <depend>gazebo_ros2_control</depend>
+  <depend>xacro</depend>
   <depend>lunabot_config</depend>
+  <depend>lunabot_description</depend>
+  <depend>lunabot_nav</depend>
+  <depend>lunabot_sim</depend>
   <depend>lunabot_teleop</depend>
   <depend>lunabot_util</depend>
-  <depend>lunabot_sim</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

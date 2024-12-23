@@ -3,7 +3,7 @@
 <package format="3">
   <name>lunabot_sim</name>
   <version>1.0.0</version>
-  <description>This package contains the world files and models for Gazebo simulation.</description>
+  <description>This package contains models and world files for simulation in Gazebo.</description>
   <maintainer email="grayson.n.arendt5@gmail.com">Grayson Arendt</maintainer>
   <license>MIT</license>
 
