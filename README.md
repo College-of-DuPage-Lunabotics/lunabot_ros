@@ -12,7 +12,7 @@ This repository contains the software developed by the College of DuPage team fo
 - RPLidar S2L
 - Intel RealSense D455 Depth Camera
 - Intel RealSense D456 Depth Camera
-  
+
 **Hardware**
 - REV Robotics NEO Vortex (x2)
 - REV Robotics Spark Max (x2)
@@ -90,15 +90,17 @@ export MAKEFLAGS="-j1" # Modify number as needed
 Next, rebuild using the same commands in step **5. Build the workspace**.
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. 
 
-There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
+There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**.
 
 ##### Manual Mode
 This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Nav2 and RTAB-Map, but does not launch any autonomy action clients/servers. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2/Foxglove Studio.
 
 ##### Autonomous Mode
-This launches `excavation_server`,`localization_server`, and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the excavation server, localization server, and navigation client to perform a one-cycle autonomy sequence. 
+This launches `excavation_server`,`localization_server`, and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the excavation server, localization server, and navigation client to perform a one-cycle autonomy sequence.
+
+**A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).**
 
 #### 1. Navigate to workspace and source setup
 
