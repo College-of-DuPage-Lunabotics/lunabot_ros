@@ -21,6 +21,11 @@ This repository contains the software developed by the College of DuPage team fo
 - Turnigy 14.8V 12000mAh LiPo Battery
 - ODrive USB-CAN Adapter
 
+## Build Status
+
+| ROS 2 Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml) |
+|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
 ## Installation
 
 **Note: You will need to have already installed ROS 2 Humble before continuing with installation. The guide can be found [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html). Install both `ros-humble-desktop` and `ros-dev-tools`.**
@@ -45,7 +50,7 @@ git clone https://github.com/grayson-arendt/Lunabotics-2025.git
 cd Lunabotics-2025
 git submodule update --init --recursive --remote
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `third_party_libraries` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
+**If you have previously cloned this repository and do not see anything in the folders located in `third_party_packages` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `Lunabotics-2025` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
@@ -66,7 +71,7 @@ sudo snap install foxglove-studio
 
 #### 5. Build the workspace
 
-Building may take some time due to the external packages in `third_party_libraries`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
+Building may take some time due to the external packages in `third_party_packages`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
 
 To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
 
@@ -85,7 +90,7 @@ export MAKEFLAGS="-j1" # Modify number as needed
 Next, rebuild using the same commands in step **5. Build the workspace**.
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the parameters can be found in this section [here](#parameters).
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).
 
 There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
@@ -218,157 +223,3 @@ ros2 launch lunabot_bringup vis_launch.py use_sim:=false
 ```bash
 ros2 launch lunabot_bringup real_launch.py
 ```
-
-### Parameters
-
-#### real_launch.py
-
-`robot_mode`: Selects the mode of operation.
-  - Options:
-    - `manual`: Runs the robot in manual mode. **(Default)**
-    - `auto`: Runs the robot in autonomous mode.
-Example: `robot_mode:=auto`
-
-#### vis_launch.py
-`robot_type`: Specifies the robot model to visualize.
-  - Options:
-    - `bulldozer`: Visualizes the bulldozer robot. **(Default)**
-    - `trencher`: Visualizes the trencher robot.
-
-Example: `robot_type:=trencher`
-
-`robot_heading`: Sets the initial orientation of the robot in Gazebo.
-  - Options:
-    - `north`: Points the robot north.
-    - `south`: Points the robot south.
-    - `east`: Points the robot east. **(Default)**
-    - `west`: Points the robot west.
-    - `random`: Assigns a random orientation.
-
-Example: `robot_heading:=random`
-
-`use_sim`: Specifies whether to launch Gazebo or not.
-  - Options:
-    - `true`: Launches simulated robot in Gazebo. **(Default)**
-    - `false`: Only launches RViz2 or Foxglove Studio instead of Gazebo, will receive data from real hardware.
-
-Example: `use_sim:=false`
-
-`sim_gui`: Enables or disables the Gazebo GUI.
-- Options:
-  - `true`: Runs Gazebo with its GUI. **(Default)**
-  - `false`: Runs Gazebo in headless mode, may be useful if your computer has limited resources.
-
-Example: `sim_gui:=false`
-
-`vis_type`: Choose between RViz2 or Foxglove Studio for visualization.
-- Options:
-  - `rviz`: Opens visualization in RViz2. **(Default)**
-  - `foxglove`: Launches Foxglove bridge to allow for connecting in the Foxglove Studio app.
-
-Example: `vis_type:=foxglove`
-
-#### sim_launch.py
-
-`robot_type`: Defines which robot model parameters to use for Nav2.
-  - Options:
-    - `bulldozer`: Defines parameters for the bulldozer robot. **(Default)**
-    - `trencher`: Defines parameters the trencher robot.
-
-Example: `robot_type:=trencher`
-
-`robot_mode`: Selects the mode of operation.
-  - Options:
-    - `manual`: Runs the robot in manual mode. **(Default)**
-    - `auto`: Runs the robot in autonomous mode.
-Example: `robot_mode:=auto`
-
-`teleop_mode` : Chooses the teleoperation method.
-  - Options:
-    - `keyboard`: Uses keyboard for teleoperation. **(Default)**
-    - `xbox`: Uses Xbox controller for teleoperation.
-
-Example: `teleop_mode:=xbox`
-
-## Project Structure
-**lunabot_bringup**: This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real world hardware.
-- **launch**
-  - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
-  - **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-  - **vis_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
-
-**lunabot_config**: This package contains configuration files for Nav2 behavior trees, RViz2 settings, and various parameters.
-- **behavior_trees**
-  - **nav_through_poses_w_replanning_and_recovery.xml**: A behavior tree used with Nav2 to implement behaviors like goal replanning and recovery for NavigateThroughPoses action.
-  - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: A behavior tree used with Nav2 to only replan when path becomes invalid to prevent Nav2 from repeatedly alternating between ambiguous paths.
-- **params**
-  - **gazebo**
-    - **gazebo_bulldozer_bot_params.yaml**: Parameters for bulldozer style robot joint controllers in the Gazebo simulation.
-    - **gazebo_trencher_bot_params.yaml**: Parameters for trencher style robot joint controllers in the Gazebo simulation.
-  - **laser_filters**
-    - **s2l_params.yaml**: Parameters for filtering S2L lidar scans.
-    - **s3_params.yaml**: Parameters for filtering S3 lidar scans.
-  - **nav2**
-    - **nav2_bulldozer_bot_params.yaml**: Parameters for configuring Nav2 in simulation for the bulldozer robot.
-    - **nav2_real_bot_params.yaml**: Parameters for configuring Nav2 when running on the physical robot.
-    - **nav2_trencher_bot_params.yaml**: Parameters for configuring Nav2 in simulation for the trencher robot.
-  - **robot_localization**
-    - **ukf_params.yaml**: Parameters for the robot_localization Unscented Kalman Filter (UKF).
-  - **rtabmap**
-    - **rtabmap_params.yaml**: Parameters for configuring RTAB-Map.
-- **rviz**
-  - **robot_view.rviz**: Configuration file for RViz2 that defines what topics are visualized.
-
-**lunabot_description**: This package contains meshes and URDF descriptions for simulating the robot in Gazebo and RViz2.
-- **meshes**: Contains robot meshes.
-- **urdf**: Contains URDF descriptions.
-    - **bulldozer_bot.xacro**: URDF description of a bulldozer robot.
-    - **trencher_bot.xacro**: URDF description of a trencher robot.
-
-**lunabot_msgs**: This package contains custom action messages.
-- **action**
-  - **Excavation.action**: Message for excavation action.
-  - **Localization.action**: Message for localization action.
-
-**lunabot_nav**: This package contains action servers and clients required for autonomous navigation.
-- **src**
-    - **excavation_server.cpp**: Performs the excavation sequence upon request.
-    - **localization_server.cpp**: Localizes the robot upon request using AprilTags.
-    - **navigation_client.cpp**: Receives localization response and sends navigation and excavation requests.
-
-**lunabot_sim**: This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
-- **models**: Contains models for the Gazebo simulation.
-- **worlds**: Gazebo world files for simulating the arena, each has different rock and crater placements.
-  - **high_resolution**: Contains high resolution world files.
-    - **artemis**: Contains world files simulating the Artemis arena.
-      - **artemis_arena.world**
-      - **artemis_arena2.world**
-      - **artemis_arena3.world**
-  - **low_resolution**: Contains low resolution world files.
-    - **artemis**: Contains world files simulating the Artemis arena.
-      - **artemis_arena.world**
-      - **artemis_arena2.world**
-      - **artemis_arena3.world**
-
-**lunabot_teleop**: This package contains teleop nodes for both keyboard and game controller.
-- **src**
-    - **controller_teleop.cpp**: Converts `/joy` and `/cmd_vel` topic inputs into physical motor speed outputs.
-    - **keyboard_teleop.py**: Script for controlling the robot via keyboard in Gazebo.
-
-**lunabot_util**: This package contains various utility nodes.
-- **src**
-    - **blade_joint_controller.cpp**: Sets position of blade joint in Gazebo based on controller input.
-    - **hardware_monitor.cpp**: Monitors hardware topics and outputs error messages if sensor data is not received.
-    - **imu_rotator.cpp**: Processes and rotates IMU data into the East-North-Up (ENU) frame.
-    - **topic_remapper.cpp**: Remaps Gazebo controller topic names.
-
-**scripts**: This folder contains various setup and utility scripts.
-- **config**
-  - **99-realsense-d4xx-mipi-dfu.rules**: Udev rules for RealSense D456 cameras.
-  - **99-realsense-libusb.rules**: Udev rules for RealSense cameras using the USB interface.
-- **canable_start.sh**: Sets up the CAN bus interface for motor controller communication.
-- **install_dependencies.sh**: Script to install required dependencies for the robot software.
-- **setup_udev_rules.sh**: Script to set up udev rules for the Intel RealSense camera.
-
-**third_party_libraries** This folder contains third party packages such as RTAB-Map.
-
