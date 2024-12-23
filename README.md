@@ -12,7 +12,7 @@ This repository contains the software developed by the College of DuPage team fo
 - RPLidar S2L
 - Intel RealSense D455 Depth Camera
 - Intel RealSense D456 Depth Camera
-  
+
 **Hardware**
 - REV Robotics NEO Vortex (x2)
 - REV Robotics Spark Max (x2)
@@ -90,15 +90,10 @@ export MAKEFLAGS="-j1" # Modify number as needed
 Next, rebuild using the same commands in step **5. Build the workspace**.
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory. A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `vis_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory.
 
-There are two `robot_mode` options for simulating the robot: **manual** and **autonomous**. 
 
-##### Manual Mode
-This launches a teleop node for controlling the Gazebo robot with either a keyboard or Xbox controller along with Nav2 and RTAB-Map, but does not launch any autonomy action clients/servers. In this mode, you can drive the robot around, map the arena, and play around with setting Nav2 goals in RViz2/Foxglove Studio.
-
-##### Autonomous Mode
-This launches `excavation_server`,`localization_server`, and `navigation_client` and will not allow the user to teleop the robot. Instead, it will follow the commands from the excavation server, localization server, and navigation client to perform a one-cycle autonomy sequence. 
+**A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).**
 
 #### 1. Navigate to workspace and source setup
 
@@ -135,9 +130,11 @@ ros2 launch lunabot_bringup sim_launch.py
 
 ### SSH into Robot Computer
 
-SSH (Secure Shell) allows you access another device over the network and run commands. The **client computer** is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
+SSH (Secure Shell) allows you to access another device over the network and run commands. In this context:
+- The **client** is your personal computer (e.g., your laptop).
+- The **host** is the robot's onboard computer (e.g., ASRock 4X4 BOX-8840U).
 
-#### 1. Install and enable SSH server (client computer):
+#### 1. Install and enable SSH server (host):
 ```bash
 sudo apt update
 sudo apt install openssh-server
@@ -146,46 +143,55 @@ sudo systemctl start ssh
 sudo systemctl enable ssh
 ```
 
-#### 2. Create SSH-key (client computer)
+#### 2. Install and enable SSH client (client):
+
+```bash
+sudo apt update
+sudo apt install openssh-client
+
+```
+
+#### 3. Create SSH-key (client)
 
 ```bash
 ssh-keygen
 ```
 
-#### 3. Get username and IP address (robot computer)
+#### 4. Get username and IP address (host)
 
 ```bash
 whoami
 ```
-This will return the username of the robot computer, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `grayson` for `grayson@NUC`.
+This will return the username of the host, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `asrock` for `asrock@asrock-main`.
 
 Next, get the IP address:
 ```bash
-clientname -I
+hostname -I
 ```
 
 The IP address is the first set of numbers in the list.
 
-#### 4. Establish SSH connection (client computer)
+#### 5. Establish SSH connection (client)
 
-Using the username and IP address from the previous step, now you can connect to the robot computer. It may look something like this for example:
+Using the username and IP address from the previous step, now you can connect to the host. It may look something like this for example:
 
 ```bash
 ssh asrock@192.168.10.1 # (General format: username@ip_address)
 ```
- It will ask you if you are sure you want to connect, type `yes`. Then, confirm by typing in the robot computer's password. 
+ It will ask you if you are sure you want to connect, type `yes`. Then, confirm by typing in the host's password. 
 
 ### Configure Device Permissions 
 
-#### 1. Add user to dialout group then restart (robot computer)
+#### 1. Add user to dialout group then restart (host)
 
 ```bash
 sudo usermod -a -G dialout $USER
+sudo reboot
 ```
 
 Use `ls /dev/ttyUSB*` to identify device numbers if the lidars are disconnected and reconnected, then adjust the lidar `"serial_port"` parameters in `real_launch.py` accordingly.
 
-#### 2. Setup camera udev rules (robot computer)
+#### 2. Setup camera udev rules (host)
 
 ```bash
 cd ~/lunabot_ws/src/Lunabotics-2025/scripts
@@ -197,28 +203,28 @@ Make sure all cameras are unplugged while setting up the udev rules.
 
 ### Running Launch Files
 
-#### 1. Source workspace setup (both client and robot computer)
+#### 1. Source workspace setup (both client and host)
 
 ```bash
 cd ~/lunabot_ws
 source install/setup.bash
 ```
 
-#### 2. Connect controller and run joy node (client computer)
+#### 2. Connect controller and run joy node (client)
 
-Connect your controller either through a wired or Bluetooth connection to the client computer then run:
+Connect your controller either through a wired or Bluetooth connection to the client computer.
 
 ```bash
 ros2 run joy joy_node
 ```
 
-#### 3. Visualize with RViz2 (client computer)
+#### 3. Visualize with RViz2 (client)
 
 ```bash
 ros2 launch lunabot_bringup vis_launch.py use_sim:=false
 ```
 
-#### 4. Launch the real robot (robot computer)
+#### 4. Launch the real robot (host)
 
 ```bash
 ros2 launch lunabot_bringup real_launch.py
