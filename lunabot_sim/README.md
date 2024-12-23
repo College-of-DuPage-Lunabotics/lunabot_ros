@@ -1,6 +1,6 @@
 # lunabot_sim
 
-This package contains assets and URDF descriptions for simulating the robot in Gazebo and RViz2.
+This package contains models and world files for simulation in Gazebo.
 
 ## Content
 - **models**: Gazebo simulation models.

@@ -133,11 +133,11 @@ ros2 launch lunabot_bringup sim_launch.py
 
 ## Running the Physical Robot
 
-### SSH Into Robot Computer
+### SSH into Robot Computer
 
-SSH (Secure Shell) allows you access another device over the network and run commands. The **host computer** is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
+SSH (Secure Shell) allows you access another device over the network and run commands. The **client computer** is the computer that you are personally interfacing with, such as laptop. For any future steps that require being ran on the robot computer, you will need to be connected via SSH.
 
-#### 1. Install and enable SSH server (host computer):
+#### 1. Install and enable SSH server (client computer):
 ```bash
 sudo apt update
 sudo apt install openssh-server
@@ -146,7 +146,7 @@ sudo systemctl start ssh
 sudo systemctl enable ssh
 ```
 
-#### 2. Create SSH-key (host computer)
+#### 2. Create SSH-key (client computer)
 
 ```bash
 ssh-keygen
@@ -161,12 +161,12 @@ This will return the username of the robot computer, although you can also see t
 
 Next, get the IP address:
 ```bash
-hostname -I
+clientname -I
 ```
 
 The IP address is the first set of numbers in the list.
 
-#### 4. Establish SSH connection (host computer)
+#### 4. Establish SSH connection (client computer)
 
 Using the username and IP address from the previous step, now you can connect to the robot computer. It may look something like this for example:
 
@@ -197,22 +197,22 @@ Make sure all cameras are unplugged while setting up the udev rules.
 
 ### Running Launch Files
 
-#### 1. Source workspace setup (both host and robot computer)
+#### 1. Source workspace setup (both client and robot computer)
 
 ```bash
 cd ~/lunabot_ws
 source install/setup.bash
 ```
 
-#### 2. Connect controller and run joy node (host computer)
+#### 2. Connect controller and run joy node (client computer)
 
-Connect your controller either through a wired or Bluetooth connection to the host computer then run:
+Connect your controller either through a wired or Bluetooth connection to the client computer then run:
 
 ```bash
 ros2 run joy joy_node
 ```
 
-#### 3. Visualize with RViz2 (host computer)
+#### 3. Visualize with RViz2 (client computer)
 
 ```bash
 ros2 launch lunabot_bringup vis_launch.py use_sim:=false
