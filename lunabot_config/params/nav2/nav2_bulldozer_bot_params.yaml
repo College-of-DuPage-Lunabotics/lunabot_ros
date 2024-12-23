@@ -90,11 +90,11 @@ controller_server:
       debug_trajectory_details: true
       min_vel_x: 0.0
       min_vel_y: 0.0
-      max_vel_x: 0.26
+      max_vel_x: 0.4
       max_vel_y: 0.0
       max_vel_theta: 1.0
       min_speed_xy: 0.0
-      max_speed_xy: 0.26
+      max_speed_xy: 0.4
       min_speed_theta: 0.0
       acc_lim_x: 2.5
       acc_lim_y: 0.0
@@ -114,10 +114,10 @@ controller_server:
       short_circuit_trajectory_evaluation: true
       limit_vel_cmd_in_traj: false
       stateful: true
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "ObstacleFootprintCritic", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 10.0
-      ObstacleFootprintCritic.scale: 55.0
-      PathAlign.scale: 40.0
+      critics: ["RotateToGoal", "BaseObstacle", "ObstacleFootprintCritic", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      BaseObstacle.scale: 7.0
+      ObstacleFootprintCritic.scale: 40.0
+      PathAlign.scale: 65.0
       GoalAlign.scale: 24.0
       PathAlign.forward_point_distance: 0.1
       GoalAlign.forward_point_distance: 0.1
@@ -198,7 +198,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
         footprint_clearing_enabled: true
-        inflation_radius: 1.1
+        inflation_radius: 0.8
         cost_scaling_factor: 3.0
         inflate_unknown: false
         inflate_around_unknown: true
@@ -221,7 +221,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 1.1
+        inflation_radius: 0.8
         footprint_clearing_enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -299,8 +299,8 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.26, 0.0, 1.0]
-    min_velocity: [-0.26, 0.0, -1.0]
+    max_velocity: [0.4, 0.0, 1.0]
+    min_velocity: [-0.4, 0.0, -1.0]
     max_accel: [2.5, 0.0, 3.2]
     max_decel: [-2.5, 0.0, -3.2]
     odom_topic: "odom"
