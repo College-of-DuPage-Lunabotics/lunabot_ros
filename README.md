@@ -1,6 +1,6 @@
 # Project Overview
 
-This repository contains the software developed by the College of DuPage team for the 2024-2025 NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04.
+This repository contains the software developed by the College of DuPage team for the 2024-2025 NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04 for x86-64 architecture.
 
 ## System Components
 
@@ -25,7 +25,7 @@ This repository contains the software developed by the College of DuPage team fo
 
 | ROS 2 Distro | Project Status |
 |--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml) |
+| Humble | [![build](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/grayson-arendt/Lunabotics-2025/actions/workflows/build.yml) |
 
 
 ## Installation
@@ -214,7 +214,7 @@ source install/setup.bash
 
 #### 2. Connect controller and run joy node (client)
 
-Connect your controller either through a wired or Bluetooth connection to the client computer.
+Connect your controller either through a wired or Bluetooth connection to the client.
 
 ```bash
 ros2 run joy joy_node
