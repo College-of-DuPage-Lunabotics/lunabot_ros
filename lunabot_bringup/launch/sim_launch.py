@@ -325,7 +325,7 @@ def generate_launch_description():
             "--",
             "bash",
             "-c",
-            "ros2 run lunabot_simulation keyboard_teleop.py; exit",
+            "ros2 run lunabot_teleop keyboard_teleop.py; exit",
         ],
         output="screen",
         condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
