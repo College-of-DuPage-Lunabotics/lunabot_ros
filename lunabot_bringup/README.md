@@ -5,7 +5,7 @@ This package contains launch files to bring up autonomy nodes, Gazebo simulation
 ## Launch Files
 - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
 - **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-- **vis_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
+- **viz_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
 
 ## Parameters
 
@@ -35,7 +35,7 @@ This package contains launch files to bring up autonomy nodes, Gazebo simulation
     - `xbox`: Uses Xbox controller for teleoperation.
   - Example: `teleop_mode:=xbox`
 
-### vis_launch.py
+### viz_launch.py
 - `robot_type`: Specifies the robot model to visualize.
   - Options:
     - `bulldozer`: Visualizes the bulldozer robot. **(Default)**
@@ -63,8 +63,8 @@ This package contains launch files to bring up autonomy nodes, Gazebo simulation
     - `false`: Runs Gazebo in headless mode.
   - Example: `sim_gui:=false`
 
-- `vis_type`: Choose between RViz2 or Foxglove Studio for visualization.
+- `viz_type`: Choose between RViz2 or Foxglove Studio for visualization.
   - Options:
     - `rviz`: Opens visualization in RViz2. **(Default)**
     - `foxglove`: Launches Foxglove bridge to allow for connecting in the Foxglove Studio app.
-  - Example: `vis_type:=foxglove`
+  - Example: `viz_type:=foxglove`

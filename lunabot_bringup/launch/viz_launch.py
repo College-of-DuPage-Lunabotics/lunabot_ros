@@ -73,8 +73,8 @@ def generate_launch_description():
         description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation.",
     )
 
-    declare_vis_type = DeclareLaunchArgument(
-        "vis_type",
+    declare_viz_type = DeclareLaunchArgument(
+        "viz_type",
         default_value="rviz",
         choices=["rviz", "foxglove"],
         description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio.",
@@ -92,7 +92,7 @@ def generate_launch_description():
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
-        condition=LaunchConfigurationEquals("vis_type", "rviz"),
+        condition=LaunchConfigurationEquals("viz_type", "rviz"),
     )
 
     foxglove_bridge_launch = IncludeLaunchDescription(
@@ -103,7 +103,7 @@ def generate_launch_description():
                 "foxglove_bridge_launch.xml",
             )
         ),
-        condition=LaunchConfigurationEquals("vis_type", "foxglove"),
+        condition=LaunchConfigurationEquals("viz_type", "foxglove"),
     )
 
     sim_launch = IncludeLaunchDescription(
@@ -200,7 +200,7 @@ def generate_launch_description():
     ld.add_action(declare_robot_type)
     ld.add_action(declare_use_sim)
     ld.add_action(declare_robot_heading)
-    ld.add_action(declare_vis_type)
+    ld.add_action(declare_viz_type)
     ld.add_action(declare_sim_gui)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
