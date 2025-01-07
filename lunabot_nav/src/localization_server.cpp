@@ -179,27 +179,30 @@ class LocalizationServer : public rclcpp::Node
     {
         try
         {
-            auto currentImage_ptr = cv_bridge::toCvCopy(input_image, input_image->encoding);
-            auto outputImage = currentImage_ptr->image.clone();
-            std::vector<int> markerIds;
-            std::vector<std::vector<cv::Point2f>> markerCorners;
+            auto current_image = cv_bridge::toCvCopy(input_image, input_image->encoding);
 
-            cv::Mat cameraMatrix = (cv::Mat1d(3, 3) << 383.4185742519996, 0, 309.4326377845713, 0, 385.0909007102088,
+            cv::GaussianBlur(current_image->image, current_image->image, cv::Size(5, 5), 0.8);
+
+            auto outputImage = current_image->image.clone();
+            std::vector<int> marker_ids;
+            std::vector<std::vector<cv::Point2f>> marker_corners;
+
+            cv::Mat camera_matrix = (cv::Mat1d(3, 3) << 383.4185742519996, 0, 309.4326377845713, 0, 385.0909007102088,
                                     240.749949733094, 0, 0, 1);
-            cv::Mat distortionCoefficients = (cv::Mat1d(1, 5) << -0.06792929080519726, 0.08058277259698843,
+            cv::Mat distortion_coefficients = (cv::Mat1d(1, 5) << -0.06792929080519726, 0.08058277259698843,
                                               -0.001690544521662593, -0.0008235437909836152, -0.04417756393089296);
             std::vector<cv::Vec3d> rvecs, tvecs;
 
             auto dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_APRILTAG_36h11);
-            cv::aruco::detectMarkers(currentImage_ptr->image, dictionary, markerCorners, markerIds);
-            cv::aruco::estimatePoseSingleMarkers(markerCorners, 0.235, cameraMatrix, distortionCoefficients, rvecs,
+            cv::aruco::detectMarkers(current_image->image, dictionary, marker_corners, marker_ids);
+            cv::aruco::estimatePoseSingleMarkers(marker_corners, 0.235, camera_matrix, distortion_coefficients, rvecs,
                                                  tvecs);
 
-            if (!markerIds.empty())
+            if (!marker_ids.empty())
             {
-                for (size_t i = 0; i < markerIds.size(); ++i)
+                for (size_t i = 0; i < marker_ids.size(); ++i)
                 {
-                    int tagId = markerIds[i];
+                    int tagId = marker_ids[i];
                     tag_7_detected_ = (tagId == 7 ? true : tag_7_detected_);
                     tag_11_detected_ = (tagId == 11 ? true : tag_11_detected_);
 
@@ -210,10 +213,10 @@ class LocalizationServer : public rclcpp::Node
                         tag_7_yaw_ = normalize_angle(tag_7_yaw_);
                     }
                 }
-                cv::aruco::drawDetectedMarkers(outputImage, markerCorners, markerIds);
-                for (size_t i = 0; i < markerIds.size(); ++i)
+                cv::aruco::drawDetectedMarkers(outputImage, marker_corners, marker_ids);
+                for (size_t i = 0; i < marker_ids.size(); ++i)
                 {
-                    cv::aruco::drawAxis(outputImage, cameraMatrix, distortionCoefficients, rvecs[i], tvecs[i], 0.1);
+                    cv::aruco::drawAxis(outputImage, camera_matrix, distortion_coefficients, rvecs[i], tvecs[i], 0.1);
                 }
                 overlay_publisher->publish(
                     *cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", outputImage).toImageMsg());

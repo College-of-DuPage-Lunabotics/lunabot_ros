@@ -1,7 +1,7 @@
 /**
  * @file excavation_server.cpp
  * @author Grayson Arendt
- * @date 12/19/2024
+ * @date 12/29/2024
  */
 
 #include <chrono>
@@ -33,7 +33,7 @@ class ExcavationServer : public rclcpp::Node
         : Node("excavation_server"), success_(false), goal_active_(false), alignment_done_(false), current_x_(0.0),
           current_y_(0.0), current_yaw_(0.0), previous_error_(0.0), error_sum_(0.0), previous_time_(this->now())
     {
-        this->declare_parameter("kP", 5.0);  // Proportional gain
+        this->declare_parameter("kP", 7.0);  // Proportional gain
         this->declare_parameter("kI", 0.15); // Integral gain
         this->declare_parameter("kD", 3.0);  // Derivative gain
 
