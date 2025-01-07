@@ -5,7 +5,7 @@ This repository contains the software developed by the College of DuPage team fo
 ## System Components
 
 **Computer**
-- ASRock 4X4 BOX-8840U
+- ASRock 4X4 BOX-8840U w/ 64GB RAM
 
 **Sensors**
 - RPLidar S3

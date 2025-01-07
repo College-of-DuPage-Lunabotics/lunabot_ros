@@ -1,7 +1,7 @@
 /**
  * @file excavation_server.cpp
  * @author Grayson Arendt
- * @date 12/19/2024
+ * @date 12/29/2024
  */
 
 #include <chrono>
@@ -174,7 +174,7 @@ class ExcavationServer : public rclcpp::Node
         {
             if (std::abs(yaw_error) > 0.05)
             {
-                twist_msg.angular.z = 0.3 * yaw_error / std::abs(yaw_error);
+                twist_msg.angular.z = 0.4 * yaw_error / std::abs(yaw_error);
                 twist_msg.linear.x = 0.0;
                 cmd_vel_publisher_->publish(twist_msg);
                 RCLCPP_INFO(this->get_logger(), "\033[1;34mALIGNING TO GOAL... YAW: %.2f\033[0m", current_yaw_);
@@ -192,7 +192,7 @@ class ExcavationServer : public rclcpp::Node
 
         double distance_to_goal = sqrt(pow(target_x - current_x_, 2) + pow(target_y - current_y_, 2));
 
-        if (distance_to_goal <= 0.3)
+        if (distance_to_goal <= 0.15)
         {
             twist_msg.linear.x = 0.0;
             twist_msg.angular.z = 0.0;

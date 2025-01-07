@@ -195,8 +195,8 @@
           </geometry>
         </collision>
         <velocity_decay>
-          <linear>0.39</linear>
-          <angular>0.9</angular>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
         </velocity_decay>
       </link>
     </model>
