@@ -17,17 +17,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        fetch-depth: 0
 
     - name: Setup workspace
       run: |
-        mkdir -p ~/lunabot_ws/src
-        ln -s $(pwd) ~/lunabot_ws/src/lunabot_ros
+        mkdir -p ~/lunabot_ws/src/lunabot_ros
+        cp -r . ~/lunabot_ws/src/lunabot_ros
         cd ~/lunabot_ws/src/lunabot_ros
         git submodule update --init --recursive
-        
     - name: Install dependencies
       run: |
         apt-get update
@@ -42,17 +38,11 @@ jobs:
           libunwind-dev \
           libgoogle-glog-dev \
           sparkcan
-
         source /opt/ros/humble/setup.bash
         cd ~/lunabot_ws
         rosdep init || true
         rosdep update
         rosdep install --from-paths src --ignore-src --rosdistro humble -r -y
-
-    - name: Clean build workspace
-      run: |
-        rm -rf ~/lunabot_ws/build ~/lunabot_ws/install ~/lunabot_ws/log
-
     - name: Build
       run: |
         source /opt/ros/humble/setup.bash
