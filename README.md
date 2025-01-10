@@ -150,7 +150,6 @@ sudo systemctl enable ssh
 ```bash
 sudo apt update
 sudo apt install openssh-client
-
 ```
 
 #### 3. Create SSH-key (client)
