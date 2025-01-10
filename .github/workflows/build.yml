@@ -20,9 +20,9 @@ jobs:
 
     - name: Setup workspace
       run: |
-        mkdir -p ~/lunabot_ws/src/Lunabotics-2025
-        cp -r . ~/lunabot_ws/src/Lunabotics-2025
-        cd ~/lunabot_ws/src/Lunabotics-2025
+        mkdir -p ~/lunabot_ws/src/lunabot_ros
+        cp -r . ~/lunabot_ws/src/lunabot_ros
+        cd ~/lunabot_ws/src/lunabot_ros
         git submodule update --init --recursive
 
     - name: Install dependencies
