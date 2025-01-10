@@ -37,7 +37,6 @@
     <gravity>0 0 -9.81</gravity>
 
     <model name='lunar_surface'>
-
       <static>1</static>
       <link name='link'>
         <visual name='lunar_surface'>
@@ -48,13 +47,6 @@
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://lunar_surface/materials/scripts</uri>
-              <uri>model://lunar_surface/materials/textures</uri>
-              <name>lunar_surface</name>
-            </script>
-          </material>
         </visual>
         <collision name='lunar_surface_collision'>
           <pose>0 0 -0.1 0 0 0</pose>

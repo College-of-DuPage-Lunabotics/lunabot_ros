@@ -45,17 +45,10 @@
           <pose>0 0 0 0 0 0</pose>
           <geometry>
             <mesh>
-              <uri>model://lunar_surface/lunar_surface.stl</uri>
+              <uri>model://lunar_surface/lunar_surface.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://lunar_surface/materials/scripts</uri>
-              <uri>model://lunar_surface/materials/textures</uri>
-              <name>lunar_surface</name>
-            </script>
-          </material>
         </visual>
         <collision name='lunar_surface_collision'>
           <pose>0 0 -0.1 0 0 0</pose>
@@ -114,17 +107,10 @@
         <visual name='rock_round'>
           <geometry>
             <mesh>
-              <uri>model://rock_round/rock_round.stl</uri>
+              <uri>model://rock_round/rock_round.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_round/materials/scripts</uri>
-              <uri>model://rock_round/materials/textures</uri>
-              <name>rock_round</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_round_collision'>
           <geometry>
@@ -144,17 +130,10 @@
         <visual name='rock_round_2'>
           <geometry>
             <mesh>
-              <uri>model://rock_round/rock_round.stl</uri>
+              <uri>model://rock_round/rock_round.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_round/materials/scripts</uri>
-              <uri>model://rock_round/materials/textures</uri>
-              <name>rock_round</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_round_2_collision'>
           <geometry>
@@ -174,17 +153,10 @@
         <visual name='rock_round_3'>
           <geometry>
             <mesh>
-              <uri>model://rock_round/rock_round.stl</uri>
+              <uri>model://rock_round/rock_round.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_round/materials/scripts</uri>
-              <uri>model://rock_round/materials/textures</uri>
-              <name>rock_round</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_round_3_collision'>
           <geometry>
@@ -217,17 +189,10 @@
         <visual name='rock_rough'>
           <geometry>
             <mesh>
-              <uri>model://rock_rough/rock_rough.stl</uri>
+              <uri>model://rock_rough/rock_rough.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_rough/materials/scripts</uri>
-              <uri>model://rock_rough/materials/textures</uri>
-              <name>rock_rough</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_rough_collision'>
           <geometry>
@@ -260,17 +225,10 @@
         <visual name='rock_rough_2'>
           <geometry>
             <mesh>
-              <uri>model://rock_rough/rock_rough.stl</uri>
+              <uri>model://rock_rough/rock_rough.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_rough/materials/scripts</uri>
-              <uri>model://rock_rough/materials/textures</uri>
-              <name>rock_rough</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_rough_2_collision'>
           <geometry>
@@ -299,17 +257,10 @@
         <visual name='rock_rough_3'>
           <geometry>
             <mesh>
-              <uri>model://rock_rough/rock_rough.stl</uri>
+              <uri>model://rock_rough/rock_rough.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://rock_rough/materials/scripts</uri>
-              <uri>model://rock_rough/materials/textures</uri>
-              <name>rock_rough</name>
-            </script>
-          </material>
         </visual>
         <collision name='rock_rough_3_collision'>
           <geometry>
