@@ -17,13 +17,26 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
 
     - name: Setup workspace
       run: |
-        mkdir -p ~/lunabot_ws/src/lunabot_ros
-        cp -r . ~/lunabot_ws/src/lunabot_ros
+        mkdir -p ~/lunabot_ws/src
+        mv $(pwd) ~/lunabot_ws/src/lunabot_ros
         cd ~/lunabot_ws/src/lunabot_ros
         git submodule update --init --recursive
+
+    - name: Debug Repository
+      run: |
+        echo "### Repository Name: $(basename $(pwd))"
+        echo "### Submodule Status:"
+        git submodule status || echo "No submodules found"
+        echo "### .gitmodules Content:"
+        cat .gitmodules || echo ".gitmodules not found"
+        echo "### .git/config Content:"
+        cat .git/config || echo ".git/config not found"
 
     - name: Install dependencies
       run: |
@@ -46,6 +59,10 @@ jobs:
         rosdep update
         rosdep install --from-paths src --ignore-src --rosdistro humble -r -y
 
+    - name: Clean build workspace
+      run: |
+        rm -rf ~/lunabot_ws/build ~/lunabot_ws/install ~/lunabot_ws/log
+
     - name: Build
       run: |
         source /opt/ros/humble/setup.bash
@@ -58,5 +75,3 @@ jobs:
             -DWITH_APRILTAG=ON \
             -DWITH_OPENGV=OFF \
           --parallel-workers 8
-
-
