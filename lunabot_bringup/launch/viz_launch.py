@@ -50,7 +50,7 @@ def generate_launch_description():
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
 
     world_file = os.path.join(
-        sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena2.world"
+        sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena3.world"
     )
 
     declare_robot_type = DeclareLaunchArgument(

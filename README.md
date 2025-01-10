@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![build](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml)
+
 # Project Overview
 
 This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04 for x86-64 architecture.
@@ -20,13 +22,6 @@ This repository contains the software developed by the College of DuPage team fo
 - Turnigy 14.8V 8000mAh LiPo Battery
 - Turnigy 14.8V 12000mAh LiPo Battery
 - ODrive USB-CAN Adapter
-
-## Build Status
-
-| ROS 2 Distro | Project Status |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Humble | [![build](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml) |
-
 
 ## Installation
 
@@ -117,6 +112,11 @@ ros2 launch lunabot_bringup viz_launch.py
 ros2 launch lunabot_bringup sim_launch.py
 ```
 
+##### Gazebo
+<p align="center">
+  <img src="demo_gazebo.png">
+</p>
+
 ##### RViz2
 <p align="center">
   <img src="demo_rviz.png">
@@ -150,7 +150,6 @@ sudo systemctl enable ssh
 ```bash
 sudo apt update
 sudo apt install openssh-client
-
 ```
 
 #### 3. Create SSH-key (client)
