@@ -121,8 +121,8 @@ class ControllerTeleop : public rclcpp::Node
     {
         auto clock = rclcpp::Clock();
 
-        share_button_ = get_button(joy_msg, {9, 8, 6});
-        menu_button_ = get_button(joy_msg, {10, 9, 7});
+        share_button_ = get_button(joy_msg, {9, 8, 9});
+        menu_button_ = get_button(joy_msg, {10, 9, 10});
         home_button_ = get_button(joy_msg, {11, 10, 8});
         a_button_ = get_button(joy_msg, {1, 0, 0});
         b_button_ = get_button(joy_msg, {0, 2, 1});
@@ -181,9 +181,9 @@ class ControllerTeleop : public rclcpp::Node
             double wheel_distance = 0.5;
 
             double velocity_left_cmd =
-                -0.1 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
+                -0.05 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
             double velocity_right_cmd =
-                -0.1 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
+                -0.05 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
 
             left_wheel_motor_.SetDutyCycle(std::clamp(velocity_left_cmd, -1.0, 1.0));
             right_wheel_motor_.SetDutyCycle(std::clamp(velocity_right_cmd, -1.0, 1.0));
