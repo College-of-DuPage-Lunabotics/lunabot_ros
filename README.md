@@ -112,6 +112,11 @@ ros2 launch lunabot_bringup viz_launch.py
 ros2 launch lunabot_bringup sim_launch.py
 ```
 
+##### Gazebo
+<p align="center">
+  <img src="demo_gazebo.png">
+</p>
+
 ##### RViz2
 <p align="center">
   <img src="demo_rviz.png">
