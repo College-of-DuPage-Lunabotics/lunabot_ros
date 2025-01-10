@@ -57,6 +57,6 @@ jobs:
             -DWITH_OPENCV=ON \
             -DWITH_APRILTAG=ON \
             -DWITH_OPENGV=OFF \
-          --parallel-workers 2
+          --parallel-workers 8
 
 
