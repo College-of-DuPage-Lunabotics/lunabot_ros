@@ -2,6 +2,15 @@
 
 This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real-world hardware.
 
+There are three worlds available for Gazebo simulation and they come in both high and low resolution versions. They have different rock and crater placements and some are easier to navigate through than others. Modify line 52 as shown below in `viz_launch.py` and rebuild this package if you'd like to change the world. You can find the worlds listed [here](../lunabot_sim/README.md).
+
+**viz_launch.py**
+```python
+world_file = os.path.join(
+        sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena3.world"
+)
+```
+
 ## Launch Files
 - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
 - **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
