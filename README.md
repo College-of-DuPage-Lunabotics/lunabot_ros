@@ -59,26 +59,15 @@ chmod +x install_dependencies.sh
 ./install_dependencies.sh
 ```
 
-#### (Optional) 4. Install Foxglove Studio
+#### 4. (Optional) Install Foxglove Studio
 
 If you would prefer to use Foxglove Studio instead of RViz2 to visualize the robot, you can install it with:
 ```bash
 sudo snap install foxglove-studio
 ```
 
-#### 5. Build the workspace
-
-Building may take some time due to RTAB-Map in `third_party_packages`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map.
-
-To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
-
-```bash
-cd ~/lunabot_ws
-colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed
-```
-
-#### 6. (Recommended) Set MAKEFLAG and Rebuild
-If your computer keeps crashing while trying to build, `colcon build` may be trying to do too many things at once. Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing. 
+#### 5. (Recommended) Set MAKEFLAG
+Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing. 
 
 This will be required for many computers, it took 64 GB of 5200MHz DDR5 RAM installed in a Lenovo LOQ 15ARP9 (AMD Ryzen 7 7435HS) to be able to build the packages without freezing while setting `"-j16"` and `--parallel-workers 16`. With this configuration, the entire workspace build took 8 minutes. The main packages that cause freezing are `rtabmap_util` and `rtabmap_sync`.
 
@@ -86,7 +75,16 @@ This will be required for many computers, it took 64 GB of 5200MHz DDR5 RAM inst
 export MAKEFLAGS="-j1" # Modify number as needed
 ```
 
-Next, rebuild using the same commands in step **5. Build the workspace**.
+#### 6. Build the workspace
+
+Building may take some time due to RTAB-Map in `third_party_packages`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map such as multi-camera support.
+
+To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
+
+```bash
+cd ~/lunabot_ws
+colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed
+```
 
 ## Simulating the Robot
 The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `viz_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory.
@@ -114,17 +112,23 @@ ros2 launch lunabot_bringup viz_launch.py
 ros2 launch lunabot_bringup sim_launch.py
 ```
 
-##### Gazebo
+#### Gazebo
 <p align="center">
   <img src="demo_gazebo.png">
 </p>
 
-##### RViz2
+#### RViz2
 <p align="center">
   <img src="demo_rviz.png">
 </p>
 
-##### Foxglove Studio 
+This video demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way.
+
+<p align="center">
+  <img src="demo_rviz.gif">
+</p>
+
+#### Foxglove Studio 
 <p align="center">
   <img src="demo_foxglove.png">
 </p>
