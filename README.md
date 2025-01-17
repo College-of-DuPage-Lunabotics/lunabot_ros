@@ -7,27 +7,27 @@ This repository contains the software developed by the College of DuPage team fo
 ## System Components
 
 **Computer**
-- ASRock 4X4 BOX-8840U w/ 64GB RAM
+- ASRock 4X4 BOX-8840U w/ 32GB 5200MHz DDR5 RAM
 
 **Sensors**
 - RPLidar S3
 - RPLidar S2L
-- Intel RealSense D455 Depth Camera
-- Intel RealSense D456 Depth Camera
+- Intel RealSense D455 Depth Camera w/ IR Filter
+- Intel RealSense D456 Depth Camera w/ IR Filter
 
 **Hardware**
 - REV Robotics NEO Vortex (x2)
 - REV Robotics Spark Max (x2)
 - REV Robotics Power Distribution Hub
-- Turnigy 14.8V 8000mAh LiPo Battery
-- Turnigy 14.8V 12000mAh LiPo Battery
+- Turnigy 5S 5000mAh LiPo Battery
+- Turnigy 4S 12000mAh LiPo Battery
 - ODrive USB-CAN Adapter
 
 ## Installation
 
-**Note: You will need to have already installed ROS 2 Humble before continuing with installation. The guide can be found [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html). Install both `ros-humble-desktop` and `ros-dev-tools`.**
+**You will need to have already installed ROS 2 Humble before continuing with installation. The guide can be found [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html). Install both `ros-humble-desktop` and `ros-dev-tools`.**
 
-#### (Optional) 1. Append lines to .bashrc
+#### 1. (Optional) Append lines to .bashrc
 
 .bashrc is a script that runs everytime a new terminal window is opened and has various configurations, environment variables, and commands for setup. There is a bug in the VSCode terminal that will cause a symbol lookup error, so you have to unset the path variable using `unset GTK_path`. If you haven't already added `source /opt/ros/humble/setup.bash` to your .bashrc file, it simply runs the setup script for ROS 2 Humble.
 
@@ -87,7 +87,9 @@ colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_
 ```
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. If you are using the parameter `viz_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory.
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. 
+
+If you are using the parameter `viz_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory.
 
 
 **A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).**
@@ -103,7 +105,7 @@ source install/setup.bash
 #### 2. Launch visualization
 
 ```bash
-ros2 launch lunabot_bringup viz_launch.py 
+ros2 launch lunabot_bringup viz_launch.py
 ```
 
 #### 3. Launch mapping and navigation
@@ -122,7 +124,7 @@ ros2 launch lunabot_bringup sim_launch.py
   <img src="demo_rviz.png">
 </p>
 
-This video demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way.
+This GIF demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way.
 
 <p align="center">
   <img src="demo_rviz.gif">
@@ -185,9 +187,9 @@ Using the username and IP address from the previous step, now you can connect to
 ```bash
 ssh asrock@192.168.10.1 # (General format: username@ip_address)
 ```
- It will ask you if you are sure you want to connect, type `yes`. Then, confirm by typing in the host's password. 
+ It will ask you if you are sure you want to connect, type `yes`. Then, confirm by typing in the host's password.
 
-### Configure Device Permissions 
+### Configure Device Permissions
 
 #### 1. Add user to dialout group then restart (host)
 
