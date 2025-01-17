@@ -195,12 +195,6 @@
           "colorField": "rgb",
           "colorMode": "rgb",
           "colorMap": "turbo"
-        },
-        "/cloud_ground": {
-          "visible": true,
-          "colorField": "rgb",
-          "colorMode": "rgb",
-          "colorMap": "turbo"
         }
       },
       "layers": {

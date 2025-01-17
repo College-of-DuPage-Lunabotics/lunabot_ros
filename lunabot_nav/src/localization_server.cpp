@@ -106,6 +106,7 @@ class LocalizationServer : public rclcpp::Node
             result->y = -lateral_distance_ + 1.0;
             result->success = true;
             goal_handle->succeed(result);
+            rclcpp::shutdown();
         }
     }
 

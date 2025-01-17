@@ -132,14 +132,14 @@
         <visual name='arena_wall_short'>
           <geometry>
             <box>
-              <size>0.1 5.17 1.5</size>
+              <size>0.1 5.26 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_short_collision'>
           <geometry>
             <box>
-              <size>0.1 5.17 1.5</size>
+              <size>0.1 5.26 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -161,14 +161,14 @@
         <visual name='arena_wall_short_2'>
           <geometry>
             <box>
-              <size>0.1 5.17 1.5</size>
+              <size>0.1 5.26 1.5</size>
             </box>
           </geometry>
         </visual>
         <collision name='arena_wall_short_2_collision'>
           <geometry>
             <box>
-              <size>0.1 5.17 1.5</size>
+              <size>0.1 5.26 1.5</size>
             </box>
           </geometry>
           <surface>
@@ -190,7 +190,7 @@
         <visual name='arena_glass_short'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.26 2.0</size>
             </box>
           </geometry>
           <material>
@@ -203,7 +203,7 @@
         <collision name='arena_glass_short_collision'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.26 2.0</size>
             </box>
           </geometry>
           <surface>
@@ -225,7 +225,7 @@
         <visual name='arena_glass_short_2'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.26 2.0</size>
             </box>
           </geometry>
           <material>
@@ -238,7 +238,7 @@
         <collision name='arena_glass_short_2_collision'>
           <geometry>
             <box>
-              <size>0.1 5 2.0</size>
+              <size>0.1 5.26 2.0</size>
             </box>
           </geometry>
           <surface>
@@ -406,7 +406,7 @@
     </model>
 
     <model name='rock_rough_2'>
-      <pose>2.65456 -2.72569 0.05 0 0 -0.62</pose>
+      <pose>2.65456 -1.72569 0.05 0 0 -0.62</pose>
       <self_collide>1</self_collide>
       <static>0</static>
       <link name='rock_rough_2_link'>
@@ -462,8 +462,8 @@
           </inertia>
         </inertial>
         <velocity_decay>
-          <linear>0.39</linear>
-          <angular>0.9</angular>
+          <linear>0.3</linear>
+          <angular>0.3</angular>
         </velocity_decay>
         <visual name='rock_round'>
           <geometry>
@@ -577,14 +577,14 @@
       </link>
     </model>
 
-    <model name='tag_36_11_00007'>
-      <pose>3.4 1.5 0.55 0 -1.58 0</pose>
+        <model name='tag_36_11_00007'>
+      <pose>3.4 1.8 0.4 0 -1.58 0</pose>
       <static>1</static>
-      <link name='tag_36_11_00007_link'>
+      <link name='link'>
         <visual name='tag_36_11_00007'>
           <geometry>
             <box>
-              <size>0.4 0.4 0.005</size>
+              <size>0.3 0.3 0.005</size>
             </box>
           </geometry>
           <material>
@@ -598,7 +598,35 @@
         <collision name='tag_36_11_00007_collision'>
           <geometry>
             <box>
-              <size>0.4 0.4 0.005</size>
+              <size>0.3 0.3 0.005</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name='tag_36_11_00011'>
+      <pose>2.5 2.5 0.4 1.58 0 0</pose>
+      <static>1</static>
+      <link name='link'>
+        <visual name='tag_36_11_00011'>
+          <geometry>
+            <box>
+              <size>0.3 0.3 0.005</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://apriltags/tag_36_11_00011/materials/scripts</uri>
+              <uri>model://apriltags/tag_36_11_00011/materials/textures</uri>
+              <name>tag_36_11_00011</name>
+            </script>
+          </material>
+        </visual>
+        <collision name='tag_36_11_00011_collision'>
+          <geometry>
+            <box>
+              <size>0.3 0.3 0.005</size>
             </box>
           </geometry>
         </collision>
