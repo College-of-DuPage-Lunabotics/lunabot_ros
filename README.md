@@ -122,7 +122,7 @@ ros2 launch lunabot_bringup sim_launch.py
   <img src="demo_rviz.png">
 </p>
 
-This video demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously correct itself to align with the goal and push rocks if they are in the way.
+This video demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way.
 
 <p align="center">
   <img src="demo_rviz.gif">
