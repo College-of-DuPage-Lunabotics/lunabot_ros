@@ -24,7 +24,6 @@ jobs:
         cp -r . ~/lunabot_ws/src/lunabot_ros
         cd ~/lunabot_ws/src/lunabot_ros
         git submodule update --init --recursive
-
     - name: Install dependencies
       run: |
         apt-get update
@@ -39,13 +38,11 @@ jobs:
           libunwind-dev \
           libgoogle-glog-dev \
           sparkcan
-
         source /opt/ros/humble/setup.bash
         cd ~/lunabot_ws
         rosdep init || true
         rosdep update
         rosdep install --from-paths src --ignore-src --rosdistro humble -r -y
-
     - name: Build
       run: |
         source /opt/ros/humble/setup.bash
@@ -57,6 +54,4 @@ jobs:
             -DWITH_OPENCV=ON \
             -DWITH_APRILTAG=ON \
             -DWITH_OPENGV=OFF \
-          --parallel-workers 2
-
-
+          --parallel-workers 8

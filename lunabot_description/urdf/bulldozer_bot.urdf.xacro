@@ -95,14 +95,14 @@
       <geometry>
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
       </geometry>
-      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
       </geometry>
-      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
