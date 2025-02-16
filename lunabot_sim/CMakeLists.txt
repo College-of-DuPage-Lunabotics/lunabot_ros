@@ -21,9 +21,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 # Install models and worlds
-install(
-  DIRECTORY models worlds
-  DESTINATION share/${PROJECT_NAME}/
-)
+install(DIRECTORY models worlds DESTINATION share/${PROJECT_NAME}/)
 
 ament_package()

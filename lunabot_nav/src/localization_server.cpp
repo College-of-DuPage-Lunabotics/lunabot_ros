@@ -7,16 +7,16 @@
 #include <chrono>
 #include <cmath>
 
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/aruco.hpp>
-#include <opencv2/opencv.hpp>
+#include "cv_bridge/cv_bridge.h"
+#include "opencv2/aruco.hpp"
+#include "opencv2/opencv.hpp"
 
-#include <geometry_msgs/msg/twist.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <rclcpp_action/rclcpp_action.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
+#include "geometry_msgs/msg/twist.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Quaternion.h"
 
 #include "lunabot_msgs/action/localization.hpp"
 
@@ -189,9 +189,9 @@ class LocalizationServer : public rclcpp::Node
             std::vector<std::vector<cv::Point2f>> marker_corners;
 
             cv::Mat camera_matrix = (cv::Mat1d(3, 3) << 383.4185742519996, 0, 309.4326377845713, 0, 385.0909007102088,
-                                    240.749949733094, 0, 0, 1);
+                                     240.749949733094, 0, 0, 1);
             cv::Mat distortion_coefficients = (cv::Mat1d(1, 5) << -0.06792929080519726, 0.08058277259698843,
-                                              -0.001690544521662593, -0.0008235437909836152, -0.04417756393089296);
+                                               -0.001690544521662593, -0.0008235437909836152, -0.04417756393089296);
             std::vector<cv::Vec3d> rvecs, tvecs;
 
             auto dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_APRILTAG_36h11);
@@ -204,8 +204,8 @@ class LocalizationServer : public rclcpp::Node
                 for (size_t i = 0; i < marker_ids.size(); ++i)
                 {
                     int tagId = marker_ids[i];
-                    tag_7_detected_ = (tagId == 7 ? true : tag_7_detected_);
-                    tag_11_detected_ = (tagId == 11 ? true : tag_11_detected_);
+                    tag_7_detected_ = (tagId == 7);
+                    tag_11_detected_ = (tagId == 11);
 
                     if (calculate_tag_ && tag_7_detected_)
                     {
@@ -272,17 +272,17 @@ class LocalizationServer : public rclcpp::Node
         tag_7_yaw_ = asin(rotation_matrix.at<double>(2, 0));
     }
 
+    geometry_msgs::msg::Twist twist;
+    rclcpp_action::Server<Localization>::SharedPtr action_server_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d455_overlay_publisher_, d456_overlay_publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d455_image_subscriber_, d456_image_subscriber_;
+    rclcpp::Time start_time_;
+    rclcpp::TimerBase::SharedPtr localization_timer_;
+
     bool d455_tag_7_detected_, d455_tag_11_detected_, d456_tag_7_detected_, d456_tag_11_detected_;
     bool turn_direction_set_, turn_clockwise_, timer_started_, success_;
     double lateral_distance_, depth_distance_, tag_7_yaw_;
-
-    rclcpp::Time start_time_;
-    rclcpp::TimerBase::SharedPtr localization_timer_;
-    geometry_msgs::msg::Twist twist;
-    rclcpp_action::Server<Localization>::SharedPtr action_server_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d455_image_subscriber_, d456_image_subscriber_;
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr d455_overlay_publisher_, d456_overlay_publisher_;
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 };
 
 /**

@@ -4,10 +4,10 @@
  * @date 9/18/2024
  */
 
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/imu.hpp>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Quaternion.h"
 
 /**
  * @class IMURotator
@@ -92,11 +92,11 @@ class IMURotator : public rclcpp::Node
         transformed_msg->orientation.w = quat_enu.w();
     }
 
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr d455_imu_publisher_;
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr d456_imu_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr d455_imu_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr d456_imu_subscriber_;
 
-    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr d455_imu_publisher_;
-    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr d456_imu_publisher_;
 };
 
 /**

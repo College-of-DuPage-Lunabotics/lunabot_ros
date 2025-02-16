@@ -30,18 +30,13 @@ find_package(sparkcan REQUIRED)
 add_executable(controller_teleop src/controller_teleop.cpp)
 
 # Set target dependencies
-ament_target_dependencies(controller_teleop rclcpp sensor_msgs geometry_msgs sparkcan)
+ament_target_dependencies(controller_teleop rclcpp sensor_msgs geometry_msgs
+                          sparkcan)
 
 # Install targets
-install(TARGETS
-  controller_teleop
-  DESTINATION lib/${PROJECT_NAME}
-)
+install(TARGETS controller_teleop DESTINATION lib/${PROJECT_NAME})
 
 # Install Python scripts
-install(PROGRAMS
-  src/keyboard_teleop.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+install(PROGRAMS src/keyboard_teleop.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

@@ -1,0 +1,5 @@
+<library path="straight_line_planner">
+  <class type="straight_line_planner::StraightLine" base_class_type="nav2_core::GlobalPlanner">
+    <description>This plugin creates a straight line path.</description>
+  </class>
+</library>
