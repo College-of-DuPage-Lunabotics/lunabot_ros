@@ -42,7 +42,6 @@ class NavigationClient : public rclcpp::Node
     }
 
   private:
-
     /**
      * @brief Runs the main execution sequence.
      */
@@ -119,7 +118,7 @@ class NavigationClient : public rclcpp::Node
         auto goal_msg = NavigateToPose::Goal();
         geometry_msgs::msg::Pose goal_pose;
 
-        goal_pose.position.x = initial_x_ + 3.75;
+        goal_pose.position.x = initial_x_ + 4.0;
         goal_pose.position.y = initial_y_ + 1.0;
         goal_pose.orientation.z = 0.707;
         goal_pose.orientation.w = 0.707;

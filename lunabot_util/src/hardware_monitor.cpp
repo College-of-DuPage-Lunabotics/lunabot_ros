@@ -4,9 +4,9 @@
  * @date 9/18/2024
  */
 
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/image.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 
 /**
  * @class HardwareMonitor
@@ -84,6 +84,7 @@ class HardwareMonitor : public rclcpp::Node
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d456_subscriber_, d455_subscriber_;
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar1_subscriber_, lidar2_subscriber_;
     rclcpp::TimerBase::SharedPtr d456_timer_, d455_timer_, lidar1_timer_, lidar2_timer_, all_sensors_timer_;
+    
     bool d456_valid_, d455_valid_, lidar1_valid_, lidar2_valid_;
 };
 

@@ -40,12 +40,7 @@ ament_target_dependencies(imu_rotator rclcpp sensor_msgs tf2)
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
 
 # Install targets
-install(TARGETS
-  blade_joint_controller
-  hardware_monitor
-  imu_rotator
-  topic_remapper
-  DESTINATION lib/${PROJECT_NAME}
-)
+install(TARGETS blade_joint_controller hardware_monitor imu_rotator
+                topic_remapper DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

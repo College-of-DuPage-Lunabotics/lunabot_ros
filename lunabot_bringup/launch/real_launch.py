@@ -317,7 +317,7 @@ def generate_launch_description():
         executable="controller_teleop",
         parameters=[
             {
-                "switch_mode": True,
+                "xbox_mode": True,
                 "outdoor_mode": False,
             }
         ],

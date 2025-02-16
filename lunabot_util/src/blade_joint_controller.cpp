@@ -6,9 +6,9 @@
 
 #include <algorithm>
 
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joy.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
 
 /**
  * @class BladeJointController
@@ -52,8 +52,8 @@ class BladeJointController : public rclcpp::Node
         joint_publisher_->publish(commands);
     }
 
-    rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr joint_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
 
     float pitch_angle_, max_pitch_angle_, min_pitch_angle_;
 };

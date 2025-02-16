@@ -128,7 +128,7 @@
         <technique sid="common">
           <lambert>
             <emission>
-              <color sid="emission">0 0 0 1</color>
+              <color sid="emission">0.2 0.2 0.2 1</color>
             </emission>
             <diffuse>
               <texture texture="window_frame_texture_jpg-sampler" texcoord="UVMap"/>

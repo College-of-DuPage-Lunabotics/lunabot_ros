@@ -20,9 +20,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 # Install params, rviz, and behavior trees
-install(
-  DIRECTORY params rviz behavior_trees
-  DESTINATION share/${PROJECT_NAME}/
-)
+install(DIRECTORY params rviz behavior_trees DESTINATION share/${PROJECT_NAME}/)
 
 ament_package()

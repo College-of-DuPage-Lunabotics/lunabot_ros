@@ -1,12 +1,18 @@
 <!--
   This Behavior Tree replans the global path only if the path becomes invalid and it also has
   recovery actions specific to planning / control as well as general system issues.
-  This will be continuous if a kinematically valid planner is selected.
+  This will be continuous if a kinematically valid planner is selected. It also allows for dynamic
+selection of different global and local path planners.
 -->
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence>
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="GridBased"
+          topic_name="planner_selector" />
+        <ControllerSelector selected_controller="{selected_controller}" default_controller="MPPI"
+          topic_name="controller_selector" />
+
         <RateController hz="0.2">
           <Fallback name="FallbackComputePathToPose">
             <ReactiveSequence name="CheckIfNewPathNeeded">
@@ -15,11 +21,12 @@
               </Inverter>
               <IsPathValid path="{path}" />
             </ReactiveSequence>
-            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased" />
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}" />
           </Fallback>
         </RateController>
-        <FollowPath path="{path}" controller_id="FollowPath" />
+        <FollowPath path="{path}" controller_id="{selected_controller}" />
       </PipelineSequence>
+
       <ReactiveFallback name="FallbackRecoveries">
         <GoalUpdated />
         <RoundRobin name="RecoveryActions">
