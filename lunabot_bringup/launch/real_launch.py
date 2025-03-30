@@ -2,7 +2,6 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
 from launch.conditions import LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
@@ -17,6 +16,7 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
+    depth_ai_dir = get_package_share_directory("depthai_ros_driver")
 
     nav2_params_file = os.path.join(
         config_dir, "params", "nav2", "nav2_real_bot_params.yaml"
@@ -62,12 +62,12 @@ def generate_launch_description():
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/d455/color/image_raw"),
-            ("depth/image", "/d455/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d455/color/camera_info"),
-            ("rgbd_image", "/d455/rgbd_image"),
+            ("rgb/image", "/oak_d/color/image_raw"),
+            ("depth/image", "/oak_d/depth/image_rect_raw"),
+            ("rgb/camera_info", "/oak_d/color/camera_info"),
+            ("rgbd_image", "/oak_d/rgbd_image"),
         ],
-        namespace="d455",
+        namespace="oak_d",
         arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -102,7 +102,7 @@ def generate_launch_description():
         ],
         remappings=[
             ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/d455/rgbd_image"),
+            ("rgbd_image1", "/oak_d/rgbd_image"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -236,20 +236,37 @@ def generate_launch_description():
         remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
-    d455_launch = IncludeLaunchDescription(
+    oak_d_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(depth_ai_dir, "launch", "camera.launch.py")
+        ),
+        launch_arguments={
+            'camera_name': 'oak_d',
+            'rs_compat': 'true',
+            'pointcloud.enable': 'true',
+        }.items(),
+        remappings=[
+            ('/oak_d/rgb/image_raw', '/oak_d/color/image_raw'),
+            ('/oak_d/depth/image_raw', '/oak_d/depth/image_rect_raw'),
+            ('/oak_d/rgb/camera_info', '/oak_d/color/camera_info'),
+            ('/oak_d/rgbd_image', '/oak_d/rgbd_image'),
+        ]
+    )
+
+    d435_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
         ),
         launch_arguments={
-            "camera_name": "d455",
+            "camera_name": "d435",
             "camera_namespace": "",
-            "device_type": "d455",
+            "device_type": "d435",
             "publish_tf": "true",
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x480x60",
-            "rgb_camera.color_profile": "640x480x60",
+            "depth_module.depth_profile": "640x480x30",
+            "rgb_camera.color_profile": "640x480x30",
         }.items(),
     )
 
@@ -270,7 +287,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    d455_imu_filter = Node(
+    oak_d_imu_filter = Node(
         package="imu_complementary_filter",
         executable="complementary_filter_node",
         name="complementary_filter_gain_node",
@@ -285,8 +302,8 @@ def generate_launch_description():
             {"gain_mag": 0.01},
         ],
         remappings=[
-            ("imu/data_raw", "/d455/imu/data_raw"),
-            ("imu/data", "/d455/imu/data"),
+            ("imu/data_raw", "/oak_d/imu/data_raw"),
+            ("imu/data", "/oak_d/imu/data"),
         ],
     )
 
@@ -322,7 +339,7 @@ def generate_launch_description():
             }
         ],
     )
-    
+
     map_to_odom_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -330,27 +347,18 @@ def generate_launch_description():
         arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
     )
 
-    canable_start_process = ExecuteProcess(
-        cmd=[
-            "bash",
-            "-c",
-            "sudo ~/lunabot_ws/src/Lunabotics-2025/scripts/canable_start.sh"
-        ],
-        output="screen",
-    )
-
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
-    ld.add_action(canable_start_process)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
     ld.add_action(s3_lidar_node)
     ld.add_action(s3_filter_node)
-    ld.add_action(d455_launch)
+    ld.add_action(oak_d_launch)
+    ld.add_action(d435_launch)
     ld.add_action(d456_launch)
     ld.add_action(imu_rotator_node)
-    ld.add_action(d455_imu_filter)
+    ld.add_action(oak_d_imu_filter)
     ld.add_action(d456_imu_filter)
     ld.add_action(controller_teleop_node)
     ld.add_action(map_to_odom_tf)

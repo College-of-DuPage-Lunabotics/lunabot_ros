@@ -71,7 +71,7 @@ controller_server:
     use_sim_time: true
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
+    min_y_velocity_threshold: 0.05
     min_theta_velocity_threshold: 0.001
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["goal_checker"]

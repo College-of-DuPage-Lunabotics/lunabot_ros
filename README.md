@@ -12,8 +12,9 @@ This repository contains the software developed by the College of DuPage team fo
 **Sensors**
 - RPLidar S3
 - RPLidar S2L
-- Intel RealSense D455 Depth Camera w/ IR Filter
+- Intel RealSense D435 Depth Camera
 - Intel RealSense D456 Depth Camera w/ IR Filter
+- Luxonis OAK-D Pro
 
 **Hardware**
 - REV Robotics NEO Vortex (x2)
@@ -31,12 +32,20 @@ This repository contains the software developed by the College of DuPage team fo
 
 .bashrc is a script that runs everytime a new terminal window is opened and has various configurations, environment variables, and commands for setup. There is a bug in the VSCode terminal that will cause a symbol lookup error, so you have to unset the path variable using `unset GTK_path`. If you haven't already added `source /opt/ros/humble/setup.bash` to your .bashrc file, it simply runs the setup script for ROS 2 Humble.
 
+Sometimes Gazebo will crash on startup with the following error:
+```bash
+ [gzserver-3] gzserver: /usr/include/boost/smart_ptr/shared_ptr.hpp:728: typename boost::detail::sp_member_access<T>::type boost::shared_ptr<T>::operator->() const [with T = gazebo::rendering::Scene; typename boost::detail::sp_member_access<T>::type = gazebo::rendering::Scene*]: Assertion px != 0' failed.
+```
+
+To avoid this, source the `setup.bash` for Gazebo. It can also be put in the .bashrc file.
+
 ```bash
 echo 'unset GTK_PATH' >> ~/.bashrc
 echo 'source /opt/ros/humble/setup.bash ' >> ~/.bashrc
+echo 'source /usr/share/gazebo/setup.bash '  >> ~/.bashrc
 ```
 
-This will permanently append these two lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc` or `gedit ~/.bashrc` if you prefer a text editor GUI instead.
+This will permanently append these lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc` or `gedit ~/.bashrc` if you prefer a text editor GUI instead.
 
 #### 2. Setup workspace and clone repository
 
@@ -67,7 +76,7 @@ sudo snap install foxglove-studio
 ```
 
 #### 5. (Recommended) Set MAKEFLAG
-Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing. 
+Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing.
 
 This will be required for many computers, it took 64 GB of 5200MHz DDR5 RAM installed in a Lenovo LOQ 15ARP9 (AMD Ryzen 7 7435HS) to be able to build the packages without freezing while setting `"-j16"` and `--parallel-workers 16`. With this configuration, the entire workspace build took 8 minutes. The main packages that cause freezing are `rtabmap_util` and `rtabmap_sync`.
 
@@ -124,10 +133,10 @@ ros2 launch lunabot_bringup sim_launch.py
   <img src="demo_rviz.png">
 </p>
 
-This GIF demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way.
+This GIF demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way. This is done through using a straight line path planner and the Regulated Pure Pursuit controller from Nav2.
 
 <p align="center">
-  <img src="demo_rviz.gif">
+  <img src="demo_excavation.gif">
 </p>
 
 #### Foxglove Studio 

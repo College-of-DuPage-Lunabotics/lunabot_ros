@@ -30,13 +30,6 @@ def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
-    s3_params_file = os.path.join(
-        config_dir, "params", "laser_filters", "s3_params.yaml"
-    )
-    s2l_params_file = os.path.join(
-        config_dir, "params", "laser_filters", "s2l_params.yaml"
-    )
-
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode",
         default_value="manual",
@@ -62,8 +55,19 @@ def generate_launch_description():
         config_dir, "params", "rtabmap", "rtabmap_params.yaml"
     )
 
+    s3_params_file = os.path.join(
+        config_dir, "params", "laser_filters", "s3_params.yaml"
+    )
+    s2l_params_file = os.path.join(
+        config_dir, "params", "laser_filters", "s2l_params.yaml"
+    )
+
     ukf_params_file = os.path.join(
         config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
+
+    apriltag_params_file = os.path.join(
+        config_dir, "params", "apriltag", "tag_params.yaml"
     )
 
     topic_remapper_node = Node(package="lunabot_util", executable="topic_remapper")
@@ -95,12 +99,12 @@ def generate_launch_description():
             {"use_sim_time": True, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/d455/color/image_raw"),
-            ("depth/image", "/d455/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d455/color/camera_info"),
+            ("rgb/image", "/oak_d/color/image_raw"),
+            ("depth/image", "/oak_d/depth/image_rect_raw"),
+            ("rgb/camera_info", "/oak_d/color/camera_info"),
             ("rgbd_image", "rgbd_image"),
         ],
-        namespace="d455",
+        namespace="oak_d",
         arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -135,7 +139,7 @@ def generate_launch_description():
         ],
         remappings=[
             ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/d455/rgbd_image"),
+            ("rgbd_image1", "/oak_d/rgbd_image"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -293,6 +297,12 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
     )
 
+    apriltag_node = Node(
+            package='apriltag_ros', executable='apriltag_node', output='screen',
+            parameters=[apriltag_params_file],
+            remappings=[('/image_rect', '/oak_d/color/image_raw'),
+                        ('/camera_info', '/oak_d/color/camera_info')])
+
     map_to_odom_tf = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -309,6 +319,7 @@ def generate_launch_description():
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
+    ld.add_action(apriltag_node)
     ld.add_action(map_to_odom_tf)
 
     ld.add_action(

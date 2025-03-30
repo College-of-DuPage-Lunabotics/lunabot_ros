@@ -8,19 +8,24 @@
     <color rgba="0.81 0.81 0.81 1.0" />
   </material>
 
-  <material name="lidar_black">
+  <material name="black">
     <color rgba="0.22 0.22 0.22 1.0" />
   </material>
 
   <xacro:if value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0.015" />
-    <xacro:property name="camera_sim_joint_offset" value="0" />
+    <xacro:property name="d456_sim_link_offset" value="0.015" />
+    <xacro:property name="d456_sim_joint_offset" value="0" />
+
+    <xacro:property name="oak_d_sim_link_offset" value="0.015" />
+    <xacro:property name="oak_d_sim_joint_offset" value="0" />
+
+    <xacro:property name="d435_sim_link_offset" value="0.015" />
+    <xacro:property name="d435_sim_joint_offset" value="0" />
   </xacro:if>
   <xacro:unless value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0.15" />
-    <xacro:property name="camera_sim_joint_offset" value="0.15" />
+    <xacro:property name="d456_sim_link_offset" value="0.15" />
+    <xacro:property name="d456_sim_joint_offset" value="0.15" />
   </xacro:unless>
-
 
   <!-- ================================= -->
   <!--            BODY LINKS             -->
@@ -90,41 +95,59 @@
   <!--           SENSOR LINKS            -->
   <!-- ================================= -->
 
-  <link name="d455_link">
+  <link name="oak_d_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
+        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
-      <material name="camera_grey" />
+      <origin xyz="0 ${oak_d_sim_link_offset} 0" rpy="0 0 0" />
+      <material name="black" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
+        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${oak_d_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
-  <link name="d455_optical_link"></link>
+  <link name="oak_d_optical_link"></link>
 
   <link name="d456_link">
     <visual>
       <geometry>
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${d456_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${d456_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
   <link name="d456_optical_link"></link>
+
+    <link name="d435_link">
+    <visual>
+      <geometry>
+        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d435_camera.stl" />
+      </geometry>
+      <origin xyz="0 ${d435_sim_link_offset} 0" rpy="0 0 0" />
+      <material name="camera_grey" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d435_camera.stl" />
+      </geometry>
+      <origin xyz="0 ${d435_sim_link_offset} 0" rpy="0 0 0" />
+    </collision>
+  </link>
+
+  <link name="d435_optical_link"></link>
 
   <link name="s3_lidar_link">
     <visual>
@@ -132,7 +155,7 @@
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.0155 0" rpy="0 0 -1.5708" />
-      <material name="lidar_black" />
+      <material name="black" />
     </visual>
     <collision>
       <geometry>
@@ -148,7 +171,7 @@
         <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s2l_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.015 0" rpy="0 3.14 -1.5708" />
-      <material name="lidar_black" />
+      <material name="black" />
     </visual>
     <collision>
       <geometry>
@@ -246,27 +269,39 @@
   <!--           SENSOR JOINTS           -->
   <!-- ================================= -->
 
-  <joint name="base_d455_joint" type="fixed">
+  <joint name="base_oak_d_joint" type="fixed">
     <parent link="base_link" />
-    <child link="d455_link" />
-    <origin xyz="-0.125 -${camera_sim_joint_offset} 0.5762" rpy="0 0 3.14" />
+    <child link="oak_d_link" />
+    <origin xyz="-0.128 0 0.5762" rpy="0 0 3.14" />
   </joint>
 
-  <joint name="d455_optical_joint" type="fixed">
-    <parent link="d455_link" />
-    <child link="d455_optical_link" />
+  <joint name="oak_d_optical_joint" type="fixed">
+    <parent link="oak_d_link" />
+    <child link="oak_d_optical_link" />
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
-    <origin xyz="-0.0555 ${camera_sim_joint_offset} 0.5762" rpy="0 0.523599 0" />
+    <origin xyz="-0.0555 ${d456_sim_joint_offset} 0.5762" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="d456_optical_joint" type="fixed">
     <parent link="d456_link" />
     <child link="d456_optical_link" />
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+  </joint>
+
+    <joint name="base_d435_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="d435_link" />
+    <origin xyz="-0.128 0 0.50" rpy="0 0.523599 3.14" />
+  </joint>
+
+  <joint name="d435_optical_joint" type="fixed">
+    <parent link="d435_link" />
+    <child link="d435_optical_link" />
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
@@ -389,13 +424,13 @@
       </surface>
     </gazebo>
 
-    <gazebo reference="d455_link">
-      <sensor type="depth" name="d455">
+    <gazebo reference="oak_d_link">
+      <sensor type="depth" name="oak_d">
         <pose>0 0 0 0 0 0</pose>
         <update_rate>60.0</update_rate>
         <visualize>true</visualize>
         <camera>
-          <horizontal_fov>1.540</horizontal_fov>
+          <horizontal_fov>1.434</horizontal_fov>
           <image>
             <width>640</width>
             <height>360</height>
@@ -413,19 +448,19 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="d455_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="oak_d_controller" filename="libgazebo_ros_camera.so">
           <ros>
-            <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
-            <remapping>/d455/points:=/d455/color/points</remapping>
-            <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
-            <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
+            <remapping>/oak_d/image_raw:=/oak_d/color/image_raw</remapping>
+            <remapping>/oak_d/points:=/oak_d/color/points</remapping>
+            <remapping>/oak_d/camera_info:=/oak_d/color/camera_info</remapping>
+            <remapping>/oak_d/depth/image_raw:=/oak_d/depth/image_rect_raw</remapping>
           </ros>
-          <frame_name>d455_optical_link</frame_name>
+          <frame_name>oak_d_optical_link</frame_name>
           <publish_tf>false</publish_tf>
           <publish_point_cloud>true</publish_point_cloud>
         </plugin>
       </sensor>
-      <material>Gazebo/Grey</material>
+      <material>Gazebo/Black</material>
     </gazebo>
 
     <gazebo reference="d456_link">
@@ -434,7 +469,7 @@
         <update_rate>60.0</update_rate>
         <visualize>true</visualize>
         <camera>
-          <horizontal_fov>1.540</horizontal_fov>
+          <horizontal_fov>1.434</horizontal_fov>
           <image>
             <width>640</width>
             <height>360</height>
@@ -460,6 +495,45 @@
             <remapping>/d456/depth/image_raw:=/d456/depth/image_rect_raw</remapping>
           </ros>
           <frame_name>d456_optical_link</frame_name>
+          <publish_tf>false</publish_tf>
+          <publish_point_cloud>true</publish_point_cloud>
+        </plugin>
+      </sensor>
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
+    <gazebo reference="d435_link">
+      <sensor type="depth" name="d435">
+        <pose>0 0 0 0 0 0</pose>
+        <update_rate>60.0</update_rate>
+        <visualize>true</visualize>
+        <camera>
+          <horizontal_fov>1.540</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>360</height>
+            <format>R8G8B8</format>
+          </image>
+          <distortion>
+            <k1>-0.06792929080519726</k1>
+            <k2>0.08058277259698843</k2>
+            <k3>-0.04417756393089296</k3>
+            <p1>-0.001690544521662593</p1>
+            <p2>-0.0008235437909836152</p2>
+          </distortion>
+          <clip>
+            <near>0.05</near>
+            <far>10.0</far>
+          </clip>
+        </camera>
+        <plugin name="d435_controller" filename="libgazebo_ros_camera.so">
+          <ros>
+            <remapping>/d435/image_raw:=/d435/color/image_raw</remapping>
+            <remapping>/d435/points:=/d435/color/points</remapping>
+            <remapping>/d435/camera_info:=/d435/color/camera_info</remapping>
+            <remapping>/d435/depth/image_raw:=/d435/depth/image_rect_raw</remapping>
+          </ros>
+          <frame_name>d435_optical_link</frame_name>
           <publish_tf>false</publish_tf>
           <publish_point_cloud>true</publish_point_cloud>
         </plugin>
