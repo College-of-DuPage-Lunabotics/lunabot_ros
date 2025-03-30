@@ -42,9 +42,13 @@ public:
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
       this, "excavation_action",
-      std::bind(&ExcavationServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-      std::bind(&ExcavationServer::handle_cancel, this, std::placeholders::_1),
-      std::bind(&ExcavationServer::handle_accepted, this, std::placeholders::_1));
+      [this](const auto &, const auto &) {return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;},
+      [this](const auto &) {return rclcpp_action::CancelResponse::ACCEPT;},
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() {
+            execute(goal_handle);
+          }}.detach();
+      });
 
     auto selector_qos =
       rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(
@@ -60,42 +64,6 @@ public:
   }
 
 private:
-  /**
-   * @brief Handles goal requests from clients.
-   * @param uuid The unique identifier of the goal.
-   * @param goal The goal message.
-   * @return The response to the goal request.
-   */
-  rclcpp_action::GoalResponse handle_goal(
-    const rclcpp_action::GoalUUID & uuid,
-    std::shared_ptr<const Excavation::Goal> goal)
-  {
-    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-  }
-
-  /**
-   * @brief Handles cancel requests from clients.
-   * @param goal_handle The handle to the goal being canceled.
-   * @return The response to the cancel request.
-   */
-  rclcpp_action::CancelResponse handle_cancel(
-    const std::shared_ptr<GoalHandleExcavation> goal_handle)
-  {
-    return rclcpp_action::CancelResponse::ACCEPT;
-  }
-
-  /**
-   * @brief Handles accepted goals.
-   * @param goal_handle The handle to the accepted goal.
-   */
-  void handle_accepted(const std::shared_ptr<GoalHandleExcavation> goal_handle)
-  {
-    rclcpp::executors::SingleThreadedExecutor executor;
-    auto node = std::make_shared<ExcavationServer>();
-    executor.add_node(node);
-    std::thread([this, goal_handle]() {this->execute(goal_handle);}).detach();
-  }
-
   /**
    * @brief Executes the excavation process.
    * @param goal_handle The handle to the goal being executed.

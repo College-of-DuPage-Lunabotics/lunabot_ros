@@ -4,25 +4,32 @@
  * @date 03/29/2025
  */
 
-#include <chrono>
-#include <cmath>
-#include <memory>
+ #include <chrono>
+ #include <cmath>
+ #include <memory>
 
-#include "geometry_msgs/msg/twist.hpp"
-#include "lunabot_msgs/action/localization.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "tf2/utils.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
+ #include "geometry_msgs/msg/twist.hpp"
+ #include "lunabot_msgs/action/localization.hpp"
+ #include "rclcpp/rclcpp.hpp"
+ #include "rclcpp_action/rclcpp_action.hpp"
+ #include "tf2/utils.h"
+ #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+ #include "tf2_ros/buffer.h"
+ #include "tf2_ros/transform_listener.h"
 
+/**
+  * @class LocalizationServer
+  * @brief Handles localization by aligning the robot with tag 7 using transform lookups and publishes velocity commands.
+  */
 class LocalizationServer : public rclcpp::Node
 {
 public:
   using Localization = lunabot_msgs::action::Localization;
   using GoalHandleLocalization = rclcpp_action::ServerGoalHandle<Localization>;
 
+  /**
+   * @brief Constructor for LocalizationServer.
+   */
   LocalizationServer()
   : Node("localization_server"), tf_buffer_(get_clock()), tf_listener_(tf_buffer_), success_(false),
     turn_direction_set_(false)
@@ -40,11 +47,14 @@ public:
       });
 
     localization_timer_ = create_wall_timer(std::chrono::milliseconds(100), [this]() {localize();});
-
     start_time_ = now();
   }
 
 private:
+  /**
+    * @brief Executes the excavation process.
+    * @param goal_handle The handle to the goal being executed.
+    */
   void execute(const std::shared_ptr<GoalHandleLocalization> goal_handle)
   {
     auto result = std::make_shared<Localization::Result>();
@@ -54,14 +64,20 @@ private:
     }
 
     if (success_) {
-      result->x = depth_distance_ + 0.1;
-      result->y = lateral_distance_ + 1.0; // Tag is 1m away from corner
+      result->x = depth_distance_ + 0.1; // Center of robot is offset slightly
+      result->y = lateral_distance_ + 1.0; // Tag is located 1m away from corner
       result->success = true;
       goal_handle->succeed(result);
       rclcpp::shutdown();
     }
   }
 
+  /**
+   * @brief Core localization logic that aligns the robot with tag 7.
+   * Both cameras (OAK-D and D456) will try to detect tags 7 and 11.
+   * The direction is determined by which tag is visible to the D456 camera.
+   * The goal is to align the OAK-D camera with tag 7 so that the robot faces east.
+   */
   void localize()
   {
     geometry_msgs::msg::Twist twist;
@@ -74,7 +90,9 @@ private:
       try {
         tag7_to_oak_d = tf_buffer_.lookupTransform("oak_d_link", "tag36h11:7", tf2::TimePointZero);
       } catch (tf2::TransformException & ex) {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "TAG 7 NOT VISIBLE BY OAK-D: %s", ex.what());
+        RCLCPP_WARN_THROTTLE(
+          get_logger(),
+          *get_clock(), 2000, "TAG 7 NOT VISIBLE BY OAK-D: %s", ex.what());
         return;
       }
 
@@ -85,7 +103,6 @@ private:
         } catch (tf2::TransformException &) {
           turn_clockwise_ = true;
         }
-
         turn_direction_set_ = true;
       }
 
@@ -133,6 +150,10 @@ private:
   double lateral_distance_, depth_distance_;
 };
 
+/**
+ * @brief Main function.
+ * Initializes and runs the LocalizationServer node.
+ */
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
