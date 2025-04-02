@@ -11,12 +11,10 @@ from launch.actions import (
     GroupAction,
 )
 
-
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
-    depth_ai_dir = get_package_share_directory("depthai_ros_driver")
 
     nav2_params_file = os.path.join(
         config_dir, "params", "nav2", "nav2_real_bot_params.yaml"
@@ -34,6 +32,11 @@ def generate_launch_description():
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
+
+    declare_oak_d_rs_mode = DeclareLaunchArgument("rs_compat", default_value="true")
+    declare_oak_d_pointcloud = DeclareLaunchArgument("pointcloud.enable", default_value="true")
+    declare_oak_d_namespace = DeclareLaunchArgument("namespace", default_value="oak_d")
+    declare_oak_d_parent_frame = DeclareLaunchArgument("parent_frame", default_value="oak_d_link")
 
     rgbd_sync1_node = Node(
         package="rtabmap_sync",
@@ -236,21 +239,26 @@ def generate_launch_description():
         remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
-    oak_d_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(depth_ai_dir, "launch", "camera.launch.py")
-        ),
-        launch_arguments={
-            'camera_name': 'oak_d',
-            'rs_compat': 'true',
-            'pointcloud.enable': 'true',
-        }.items(),
+    oak_d_node = Node(
+        package="depthai_ros_driver",
+        executable="camera_node",
+        name="oak_d",
+        parameters=[
+            {
+                "i_rs_compat": True,
+                "i_enable_pointcloud": True,
+                "depth_module.depth_profile": "640,480,30",
+                "rgb_camera.color_profile": "640,480,30",
+                "depth_module.infra_profile": "640,480,30",
+            },
+        ],
         remappings=[
-            ('/oak_d/rgb/image_raw', '/oak_d/color/image_raw'),
-            ('/oak_d/depth/image_raw', '/oak_d/depth/image_rect_raw'),
-            ('/oak_d/rgb/camera_info', '/oak_d/color/camera_info'),
-            ('/oak_d/rgbd_image', '/oak_d/rgbd_image'),
-        ]
+            ("oak_d/imu/data", "oak_d/imu/data_raw"),
+            ("oak_d/rgb/image_raw", "oak_d/color/image_raw"),
+            ("oak_d/rgb/camera_info", "oak_d/color/camera_info"),
+            ("oak_d/stereo/image_raw", "oak_d/depth/image_rect_raw"),
+        ],
+        output="screen",
     )
 
     d435_launch = IncludeLaunchDescription(
@@ -350,13 +358,17 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
-    ld.add_action(rgbd_sync1_node)
-    ld.add_action(rgbd_sync2_node)
+    ld.add_action(declare_oak_d_rs_mode)
+    ld.add_action(declare_oak_d_pointcloud)
+    ld.add_action(declare_oak_d_namespace)
+    ld.add_action(declare_oak_d_parent_frame)
+    ld.add_action(oak_d_node)
     ld.add_action(s3_lidar_node)
     ld.add_action(s3_filter_node)
-    ld.add_action(oak_d_launch)
     ld.add_action(d435_launch)
     ld.add_action(d456_launch)
+    ld.add_action(rgbd_sync1_node)
+    ld.add_action(rgbd_sync2_node)
     ld.add_action(imu_rotator_node)
     ld.add_action(oak_d_imu_filter)
     ld.add_action(d456_imu_filter)

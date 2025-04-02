@@ -13,6 +13,7 @@ install_ros_dependencies() {
 install_sensor_dependencies() {
     echo -e "\n------------------------ Install Sensor Dependencies ------------------------ \n"
     sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-*
+    sudo wget -qO- https://raw.githubusercontent.com/luxonis/depthai-ros/main/install_dependencies.sh | sudo bash
 }
 
 install_git_dependencies() {

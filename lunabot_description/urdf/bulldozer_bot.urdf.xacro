@@ -25,6 +25,12 @@
   <xacro:unless value="$(arg use_sim)">
     <xacro:property name="d456_sim_link_offset" value="0.15" />
     <xacro:property name="d456_sim_joint_offset" value="0.15" />
+
+    <xacro:property name="oak_d_sim_link_offset" value="0" />
+    <xacro:property name="oak_d_sim_joint_offset" value="0" />
+
+    <xacro:property name="d435_sim_link_offset" value="0" />
+    <xacro:property name="d435_sim_joint_offset" value="0" />
   </xacro:unless>
 
   <!-- ================================= -->
