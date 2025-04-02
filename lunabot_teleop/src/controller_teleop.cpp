@@ -87,7 +87,7 @@ private:
         (d_pad_vertical_ == 1.0) ? -0.3 : (d_pad_vertical_ == -1.0) ? 0.3 : 0.0;
     } else {
       lift_actuator_speed_ =
-        (steam_left_trigger_ == -1.0) ? -0.5 : (steam_right_trigger_ == -1.0) ? 0.5 : 0.0;
+        (steam_left_trigger_ == 1.0) ? -0.5 : (steam_right_trigger_ == 1.0) ? 0.5 : 0.0;
     }
 
     RCLCPP_INFO(get_logger(), "lift actuator speed: %.2f", lift_actuator_speed_);
@@ -156,8 +156,8 @@ private:
       left_trigger_ = joy_msg->axes[2];
       right_trigger_ = joy_msg->axes[5];
 
-      steam_left_trigger_ = joy_msg->axes[9];
-      steam_right_trigger_ = joy_msg->axes[8];
+      steam_left_trigger_ = joy_msg->buttons[9];
+      steam_right_trigger_ = joy_msg->buttons[10];
 
       if (robot_disabled_) {
         RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
