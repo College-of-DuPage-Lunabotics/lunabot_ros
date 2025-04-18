@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /D435 Image1
+        - /D455 Image1
         - /D456 Image1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 243
@@ -88,12 +88,12 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        d435_link:
+        d455_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        d435_optical_link:
+        d455_optical_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -446,21 +446,21 @@ Visualization Manager:
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: D435 Image
+      Name: Blade View
       Normalize Range: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /d435/color/image_raw
+        Value: /d455/color/image_raw
       Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: D456 Image
+      Name: Back View
       Normalize Range: true
       Topic:
         Depth: 5
@@ -528,7 +528,7 @@ Visualization Manager:
       Yaw: 0.7853981852531433
     Saved: ~
 Window Geometry:
-  D435 Image:
+  d455 Image:
     collapsed: false
   D456 Image:
     collapsed: false

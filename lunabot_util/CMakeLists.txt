@@ -26,21 +26,29 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Define executables
 add_executable(blade_joint_controller src/blade_joint_controller.cpp)
 add_executable(hardware_monitor src/hardware_monitor.cpp)
 add_executable(imu_rotator src/imu_rotator.cpp)
 add_executable(topic_remapper src/topic_remapper.cpp)
+add_executable(actuator_position src/actuator_position.cpp)
 
 # Set target dependencies
 ament_target_dependencies(blade_joint_controller rclcpp sensor_msgs)
 ament_target_dependencies(hardware_monitor rclcpp sensor_msgs)
 ament_target_dependencies(imu_rotator rclcpp sensor_msgs tf2)
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
+ament_target_dependencies(actuator_position rclcpp std_msgs)
 
 # Install targets
-install(TARGETS blade_joint_controller hardware_monitor imu_rotator
-                topic_remapper DESTINATION lib/${PROJECT_NAME})
+install(TARGETS
+  blade_joint_controller
+  hardware_monitor
+  imu_rotator
+  topic_remapper
+  actuator_position
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

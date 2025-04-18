@@ -70,6 +70,7 @@ public:
       });
   }
 
+private:
   /**
    * @brief Resets the timer and sets the validity flag to true.
    * @param timer The timer to reset.
@@ -97,7 +98,6 @@ public:
     valid_flag = false;
   }
 
-private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr d456_subscriber_, d455_subscriber_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar1_subscriber_,
     lidar2_subscriber_;

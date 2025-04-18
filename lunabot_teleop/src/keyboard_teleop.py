@@ -9,8 +9,7 @@ import rclpy
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64MultiArray
 
-
-msg = """
+HELP_MSG = """
 ---------------------------
 Drive around with WASD:
         w
@@ -34,135 +33,127 @@ Right Arrow: Clockwise
 CTRL-C to quit
 """
 
-moveBindings = {
+MOVE_BINDINGS = {
     "w": (1, 0, 0, 0),
     "s": (-1, 0, 0, 0),
     "a": (0, 0, 0, 1),
     "d": (0, 0, 0, -1),
 }
 
-speedBindings = {
+SPEED_BINDINGS = {
     "q": (1.1, 1.0),
     "e": (1.0, 1.1),
     "z": (0.9, 1.0),
     "c": (1.0, 0.9),
 }
 
-bladeBindings = {
+BLADE_BINDINGS = {
     "\x1b[A": -0.025,
     "\x1b[B": 0.025,
     "\x1b[D": -0.025,
     "\x1b[C": 0.025,
 }
 
-def getKey(settings):
+
+def save_terminal_settings():
+    return termios.tcgetattr(sys.stdin)
+
+
+def restore_terminal_settings(old_settings):
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+
+def get_key(old_settings):
     tty.setraw(sys.stdin.fileno())
     key = sys.stdin.read(1)
     if key == "\x1b":
         key += sys.stdin.read(2)
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     return key
 
 
-def saveTerminalSettings():
-    return termios.tcgetattr(sys.stdin)
-
-
-def restoreTerminalSettings(old_settings):
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-
-
-def vels(speed, turn):
-    return "Current:\tlinear %s\tangular %s " % (speed, turn)
+def format_velocity(linear_speed, angular_speed):
+    return f"Current:\tlinear {linear_speed}\tangular {angular_speed}"
 
 
 def main():
-    settings = saveTerminalSettings()
-
+    old_settings = save_terminal_settings()
     rclpy.init()
 
     node = rclpy.create_node("keyboard_teleop")
+    cmd_vel_pub = node.create_publisher(Twist, "/cmd_vel", 10)
+    blade_pub = node.create_publisher(Float64MultiArray, "/position_controller/commands", 10)
 
-    pub = node.create_publisher(Twist, "/cmd_vel", 10)
-    blade_pub = node.create_publisher(
-        Float64MultiArray, "/position_controller/commands", 10
-    )
-
-    spinner = threading.Thread(target=rclpy.spin, args=(node,))
-    spinner.start()
+    spin_thread = threading.Thread(target=rclpy.spin, args=(node,))
+    spin_thread.start()
 
     speed = 0.35
     turn = 0.25
     max_speed = 0.75
     max_turn = 0.75
-    blade_position = 0.0
-    blade_arm_position = 0.0
-    max_blade_position = 0.75
-    min_blade_position = -0.75
-    max_blade_arm_position = 1.0
-    min_blade_arm_position = -1.0
+    blade_pos = 0.0
+    blade_arm_pos = 0.0
+    max_blade_pos = 0.75
+    min_blade_pos = -0.75
+    max_blade_arm_pos = 1.0
+    min_blade_arm_pos = -1.0
     x = 0.0
-    th = 0.0
-    status = 0.0
+    theta = 0.0
+    status = 0
 
     try:
-        print(msg)
-        print(vels(speed, turn))
-        while True:
-            key = getKey(settings)
+        print(HELP_MSG)
+        print(format_velocity(speed, turn))
 
-            if key in moveBindings:
-                x = moveBindings[key][0]
-                th = moveBindings[key][3]
+        while True:
+            key = get_key(old_settings)
+
+            if key in MOVE_BINDINGS:
+                x = MOVE_BINDINGS[key][0]
+                theta = MOVE_BINDINGS[key][3]
                 twist = Twist()
                 twist.linear.x = x * speed
-                twist.angular.z = th * turn
-                pub.publish(twist)
-            elif key in speedBindings:
-                speed = speed * speedBindings[key][0]
-                turn = turn * speedBindings[key][1]
+                twist.angular.z = theta * turn
+                cmd_vel_pub.publish(twist)
+
+            elif key in SPEED_BINDINGS:
+                speed *= SPEED_BINDINGS[key][0]
+                turn *= SPEED_BINDINGS[key][1]
                 speed = min(max_speed, max(0.0, speed))
                 turn = min(max_turn, max(0.0, turn))
-                print(vels(speed, turn))
+                print(format_velocity(speed, turn))
                 if status == 14:
-                    print(msg)
+                    print(HELP_MSG)
                 status = (status + 1) % 15
-            elif key in bladeBindings:
-                if key in ["\x1b[A", "\x1b[B"]:
-                    blade_arm_position = max(
-                        min(
-                            blade_arm_position + bladeBindings[key],
-                            max_blade_arm_position,
-                        ),
-                        min_blade_arm_position,
+
+            elif key in BLADE_BINDINGS:
+                if key in ("\x1b[A", "\x1b[B"):
+                    blade_arm_pos = max(
+                        min(blade_arm_pos + BLADE_BINDINGS[key], max_blade_arm_pos),
+                        min_blade_arm_pos,
                     )
-                elif key in ["\x1b[D", "\x1b[C"]:
-                    blade_position = max(
-                        min(blade_position + bladeBindings[key], max_blade_position),
-                        min_blade_position,
+                else:  # left/right arrows
+                    blade_pos = max(
+                        min(blade_pos + BLADE_BINDINGS[key], max_blade_pos), min_blade_pos
                     )
-                blade_msg = Float64MultiArray()
-                blade_msg.data = [blade_position, blade_arm_position]
+                blade_msg = Float64MultiArray(data=[blade_pos, blade_arm_pos])
                 blade_pub.publish(blade_msg)
-                continue
+
             else:
                 x = 0.0
-                th = 0.0
+                theta = 0.0
                 if key == "\x03":
                     break
-
-    except Exception as e:
-        print(e)
 
     finally:
         twist = Twist()
         twist.linear.x = 0.0
         twist.angular.z = 0.0
-        pub.publish(twist)
+        cmd_vel_pub.publish(twist)
 
-        restoreTerminalSettings(settings)
+        restore_terminal_settings(old_settings)
         rclpy.shutdown()
-        spinner.join()
+        spin_thread.join()
 
 
 if __name__ == "__main__":

@@ -13,24 +13,12 @@
   </material>
 
   <xacro:if value="$(arg use_sim)">
-    <xacro:property name="d456_sim_link_offset" value="0.015" />
-    <xacro:property name="d456_sim_joint_offset" value="0" />
-
-    <xacro:property name="oak_d_sim_link_offset" value="0.015" />
-    <xacro:property name="oak_d_sim_joint_offset" value="0" />
-
-    <xacro:property name="d435_sim_link_offset" value="0.015" />
-    <xacro:property name="d435_sim_joint_offset" value="0" />
+    <xacro:property name="camera_sim_link_offset" value="0.015" />
+    <xacro:property name="camera_sim_joint_offset" value="0" />
   </xacro:if>
   <xacro:unless value="$(arg use_sim)">
-    <xacro:property name="d456_sim_link_offset" value="0.15" />
-    <xacro:property name="d456_sim_joint_offset" value="0.15" />
-
-    <xacro:property name="oak_d_sim_link_offset" value="0" />
-    <xacro:property name="oak_d_sim_joint_offset" value="0" />
-
-    <xacro:property name="d435_sim_link_offset" value="0" />
-    <xacro:property name="d435_sim_joint_offset" value="0" />
+    <xacro:property name="camera_sim_link_offset" value="0.15" />
+    <xacro:property name="camera_sim_joint_offset" value="0.15" />
   </xacro:unless>
 
   <!-- ================================= -->
@@ -40,13 +28,15 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_body.dae" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_body.dae" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 1.5708" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_body.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 1.5708" />
     </collision>
@@ -60,13 +50,15 @@
   <link name="blade_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade.dae" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade.dae" />
       </geometry>
       <origin xyz="0 0 0" rpy="1.5708 0 1.5708" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade.stl" />
       </geometry>
       <origin xyz="0 0 0" rpy="1.5708 0 1.5708" />
     </collision>
@@ -80,13 +72,15 @@
   <link name="blade_arm_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade_arm.dae" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade_arm.dae" />
       </geometry>
       <origin xyz="0.127 0 0" rpy="-1.5708 0 1.5708" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade_arm.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_blade_arm.stl" />
       </geometry>
       <origin xyz="0.127 0 0" rpy="-1.5708 0 1.5708" />
     </collision>
@@ -104,16 +98,18 @@
   <link name="oak_d_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
       </geometry>
-      <origin xyz="0 ${oak_d_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
       <material name="black" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_oak_d_camera.stl" />
       </geometry>
-      <origin xyz="0 ${oak_d_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
     </collision>
   </link>
 
@@ -122,50 +118,56 @@
   <link name="d456_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${d456_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${d456_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
   <link name="d456_optical_link"></link>
 
-    <link name="d435_link">
+  <link name="d455_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d435_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
       </geometry>
-      <origin xyz="0 ${d435_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d435_camera.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_d455_camera.stl" />
       </geometry>
-      <origin xyz="0 ${d435_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
-  <link name="d435_optical_link"></link>
+  <link name="d455_optical_link"></link>
 
   <link name="s3_lidar_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.0155 0" rpy="0 0 -1.5708" />
       <material name="black" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.0155 0" rpy="0 0 -1.5708" />
     </collision>
@@ -174,14 +176,16 @@
   <link name="s2l_lidar_link">
     <visual>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s2l_lidar.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s2l_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.015 0" rpy="0 3.14 -1.5708" />
       <material name="black" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s2l_lidar.stl" />
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s2l_lidar.stl" />
       </geometry>
       <origin xyz="0 -0.015 0" rpy="0 0 -1.5708" />
     </collision>
@@ -278,7 +282,7 @@
   <joint name="base_oak_d_joint" type="fixed">
     <parent link="base_link" />
     <child link="oak_d_link" />
-    <origin xyz="-0.128 0 0.5762" rpy="0 0 3.14" />
+    <origin xyz="-0.128 0 0.50" rpy="0 0 3.14" />
   </joint>
 
   <joint name="oak_d_optical_joint" type="fixed">
@@ -287,27 +291,27 @@
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
+  <joint name="base_d455_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="d455_link" />
+    <origin xyz="-0.128 -${camera_sim_joint_offset} 0.5762" rpy="0 0.785398 3.14" />
+  </joint>
+
+  <joint name="d455_optical_joint" type="fixed">
+    <parent link="d455_link" />
+    <child link="d455_optical_link" />
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+  </joint>
+
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
-    <origin xyz="-0.0555 ${d456_sim_joint_offset} 0.5762" rpy="0 0.523599 0" />
+    <origin xyz="-0.0555 ${camera_sim_joint_offset} 0.5762" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="d456_optical_joint" type="fixed">
     <parent link="d456_link" />
     <child link="d456_optical_link" />
-    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
-  </joint>
-
-    <joint name="base_d435_joint" type="fixed">
-    <parent link="base_link" />
-    <child link="d435_link" />
-    <origin xyz="-0.128 0 0.50" rpy="0 0.523599 3.14" />
-  </joint>
-
-  <joint name="d435_optical_joint" type="fixed">
-    <parent link="d435_link" />
-    <child link="d435_optical_link" />
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
@@ -508,8 +512,8 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="d435_link">
-      <sensor type="depth" name="d435">
+    <gazebo reference="d455_link">
+      <sensor type="depth" name="d455">
         <pose>0 0 0 0 0 0</pose>
         <update_rate>60.0</update_rate>
         <visualize>true</visualize>
@@ -532,14 +536,14 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="d435_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="d455_controller" filename="libgazebo_ros_camera.so">
           <ros>
-            <remapping>/d435/image_raw:=/d435/color/image_raw</remapping>
-            <remapping>/d435/points:=/d435/color/points</remapping>
-            <remapping>/d435/camera_info:=/d435/color/camera_info</remapping>
-            <remapping>/d435/depth/image_raw:=/d435/depth/image_rect_raw</remapping>
+            <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
+            <remapping>/d455/points:=/d455/color/points</remapping>
+            <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
+            <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
           </ros>
-          <frame_name>d435_optical_link</frame_name>
+          <frame_name>d455_optical_link</frame_name>
           <publish_tf>false</publish_tf>
           <publish_point_cloud>true</publish_point_cloud>
         </plugin>

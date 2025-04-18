@@ -65,12 +65,12 @@ def generate_launch_description():
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/oak_d/color/image_raw"),
-            ("depth/image", "/oak_d/depth/image_rect_raw"),
-            ("rgb/camera_info", "/oak_d/color/camera_info"),
-            ("rgbd_image", "/oak_d/rgbd_image"),
+            ("rgb/image", "/d455/color/image_raw"),
+            ("depth/image", "/d455/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d455/color/camera_info"),
+            ("rgbd_image", "/d455/rgbd_image"),
         ],
-        namespace="oak_d",
+        namespace="d455",
         arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -99,13 +99,13 @@ def generate_launch_description():
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": True,
                 "wait_imu_to_init": True,
-                "imu_topic": "/d456/imu/data",
+                "imu_topic": "/oak_d/imu/data",
             },
             rtabmap_params_file,
         ],
         remappings=[
             ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/oak_d/rgbd_image"),
+            ("rgbd_image1", "/d455/rgbd_image"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -261,20 +261,20 @@ def generate_launch_description():
         output="screen",
     )
 
-    d435_launch = IncludeLaunchDescription(
+    d455_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
         ),
         launch_arguments={
-            "camera_name": "d435",
+            "camera_name": "d455",
             "camera_namespace": "",
-            "device_type": "d435",
+            "device_type": "d455",
             "publish_tf": "true",
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x480x30",
-            "rgb_camera.color_profile": "640x480x30",
+            "depth_module.depth_profile": "640x480x60",
+            "rgb_camera.color_profile": "640x480x60",
         }.items(),
     )
 
@@ -365,7 +365,7 @@ def generate_launch_description():
     ld.add_action(oak_d_node)
     ld.add_action(s3_lidar_node)
     ld.add_action(s3_filter_node)
-    ld.add_action(d435_launch)
+    ld.add_action(d455_launch)
     ld.add_action(d456_launch)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
