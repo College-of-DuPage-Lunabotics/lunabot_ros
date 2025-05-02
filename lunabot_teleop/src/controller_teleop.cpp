@@ -78,7 +78,9 @@ private:
   }
 
   /**
-   * @brief Retrieve a button index based on controller type.
+   * @brief Retrieve a button index based on controller type.16]
+[INFO] [controller_teleop-11]: process started with pid [79918]
+
    * @param msg The joystick message.
    * @param map The mapping of buttons for different controllers.
    * @return The button state.
@@ -189,11 +191,14 @@ private:
     if (manual_enabled_) {return;}
 
     // Calculate left and right wheel speeds based on linear and angular velocities
-    double wheel_radius = 0.0762;
-    double wheel_base = 0.3048;
+    double wheel_radius = 0.095;
+    double wheel_base = 0.53;
 
     double left_cmd = -0.05 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
     double right_cmd = -0.05 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+
+    RCLCPP_INFO(
+      get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
     // Apply smoothing to the commands and drive the motors
     drive(left_cmd, right_cmd);
