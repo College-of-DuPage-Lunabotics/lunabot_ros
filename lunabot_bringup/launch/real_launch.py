@@ -339,13 +339,7 @@ def generate_launch_description():
 
     controller_teleop_node = Node(
         package="lunabot_teleop",
-        executable="controller_teleop",
-        parameters=[
-            {
-                "xbox_mode": True,
-                "outdoor_mode": False,
-            }
-        ],
+        executable="controller_teleop"
     )
 
     map_to_odom_tf = Node(

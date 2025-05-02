@@ -112,8 +112,15 @@ private:
    */
   void drive(double left_speed, double right_speed)
   {
+    if (abs(left_speed) <= 0.1 && abs(right_speed) <= 0.1) {
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      return;
+    }
+
     left_wheel_motor_.SetDutyCycle(
       smooth_speed(left_speed, prev_left_speed_));
+
     right_wheel_motor_.SetDutyCycle(
       smooth_speed(right_speed, prev_right_speed_));
   }
@@ -143,6 +150,8 @@ private:
     if (menu_button_) {manual_enabled_ = false;}
     if (home_button_) {robot_disabled_ = true;}
     if (!manual_enabled_ || robot_disabled_) {return;}
+
+    lift_actuator_motor_.Heartbeat();
 
     double drive_speed_multiplier = (x_button_) ? 1.0 : 0.7;
     double blade_speed_multiplier = (y_button_) ? 1.0 : 0.6;
@@ -187,6 +196,7 @@ private:
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
     if (manual_enabled_) {return;}
+    lift_actuator_motor_.Heartbeat();
 
     // Calculate left and right wheel speeds based on linear and angular velocities
     double wheel_radius = 0.0762;
