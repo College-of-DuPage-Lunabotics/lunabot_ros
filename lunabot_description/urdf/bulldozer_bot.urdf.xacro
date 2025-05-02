@@ -282,7 +282,7 @@
   <joint name="base_oak_d_joint" type="fixed">
     <parent link="base_link" />
     <child link="oak_d_link" />
-    <origin xyz="-0.128 0 0.50" rpy="0 0 3.14" />
+    <origin xyz="-0.128 0 0.5762" rpy="0 0.785398 3.14" />
   </joint>
 
   <joint name="oak_d_optical_joint" type="fixed">
@@ -294,7 +294,7 @@
   <joint name="base_d455_joint" type="fixed">
     <parent link="base_link" />
     <child link="d455_link" />
-    <origin xyz="-0.128 -${camera_sim_joint_offset} 0.5762" rpy="0 0.785398 3.14" />
+    <origin xyz="-0.128 -${camera_sim_joint_offset} 0.5" rpy="0 0 3.14" />
   </joint>
 
   <joint name="d455_optical_joint" type="fixed">
