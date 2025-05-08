@@ -297,11 +297,17 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
     )
 
-    apriltag_node = Node(
-            package='apriltag_ros', executable='apriltag_node', output='screen',
-            parameters=[apriltag_params_file],
-            remappings=[('/image_rect', '/oak_d/color/image_raw'),
-                        ('/camera_info', '/oak_d/color/camera_info')])
+    apriltag_d455_node = Node(
+        package='apriltag_ros', executable='apriltag_node', output='screen',
+        parameters=[apriltag_params_file],
+        remappings=[('/image_rect', '/d455/color/image_raw'),
+                    ('/camera_info', '/d455/color/camera_info')])
+
+    apriltag_d456_node = Node(
+        package='apriltag_ros', executable='apriltag_node', output='screen',
+        parameters=[apriltag_params_file],
+        remappings=[('/image_rect', '/d456/color/image_raw'),
+                    ('/camera_info', '/d456/color/camera_info')])
 
     map_to_odom_tf = Node(
         package="tf2_ros",
@@ -319,7 +325,8 @@ def generate_launch_description():
     ld.add_action(topic_remapper_node)
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
-    ld.add_action(apriltag_node)
+    ld.add_action(apriltag_d455_node)
+    ld.add_action(apriltag_d456_node)
     ld.add_action(map_to_odom_tf)
 
     ld.add_action(

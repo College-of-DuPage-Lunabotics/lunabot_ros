@@ -40,7 +40,7 @@ ament_target_dependencies(blade_joint_controller rclcpp sensor_msgs)
 ament_target_dependencies(hardware_monitor rclcpp sensor_msgs)
 ament_target_dependencies(imu_rotator rclcpp sensor_msgs tf2)
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
-ament_target_dependencies(actuator_position rclcpp std_msgs)
+ament_target_dependencies(actuator_position rclcpp std_msgs sensor_msgs)
 
 # Install targets
 install(TARGETS

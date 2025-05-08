@@ -1,111 +1,139 @@
 /**
- * @file actuator_position_node.cpp
+ * @file actuator_position.cpp
  * @author Grayson Arendt
- * @date 2025‑04‑17
+ * @date 5/16/2025
  */
 
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/float64.hpp>
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
-#include <linux/sockios.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <unistd.h>
 #include <cstring>
+#include <cmath>
+#include <chrono>
 
-/**
- * @class ActuatorPosition
- * @brief SocketCAN interface for Firgelli Automations linear actuator hall sensor.
- *
- * Frame layout (little‑endian, 1 Mbps, ID 0x200):
- *   bytes 0‑3: int32 position [µm] (+ = extend, – = retract)
- *   bytes 4‑7: int32 velocity [µm/s] (unused here, reserved for future use)
- */
 class ActuatorPosition : public rclcpp::Node
 {
 public:
   ActuatorPosition()
   : Node("actuator_position_node")
   {
-    position_publisher_ =
-      create_publisher<std_msgs::msg::Float64>("/actuator_position", 10);
+    position_pub_ = create_publisher<std_msgs::msg::Float64>("/encoder_pos", 10);
+    imu_pub_ = create_publisher<sensor_msgs::msg::Imu>("/teensy/imu/data", 10);
 
     declare_parameter("can_interface", "can0");
-    get_parameter("can_interface", can_interface_);
+    get_parameter("can_interface", can_iface_);
 
-    if (!open_can_socket()) {
-      RCLCPP_FATAL(get_logger(), "Failed to open %s", can_interface_.c_str());
+    if (!open_can()) {
+      RCLCPP_FATAL(get_logger(), "Failed to open %s", can_iface_.c_str());
       rclcpp::shutdown();
       return;
     }
 
     timer_ = create_wall_timer(
-      std::chrono::milliseconds(1),
-      std::bind(&ActuatorPosition::read_can_frame, this));
+      std::chrono::milliseconds(1), std::bind(&ActuatorPosition::poll_can, this));
   }
 
   ~ActuatorPosition() override
   {
-    if (can_socket_ >= 0) {close(can_socket_);}
+    if (can_sock_ >= 0) {::close(can_sock_);}
   }
 
 private:
-  /**
-   * @brief Open a socket to the CAN interface.
-   * @return true if successful, false otherwise.
-   */
-  bool open_can_socket()
+  bool open_can()
   {
-    can_socket_ = socket(PF_CAN, SOCK_RAW, CAN_RAW);
-    if (can_socket_ < 0) {return false;}
+    can_sock_ = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
+    if (can_sock_ < 0) {return false;}
 
     ifreq ifr{};
-    std::strncpy(ifr.ifr_name, can_interface_.c_str(), IFNAMSIZ - 1);
-    if (ioctl(can_socket_, SIOCGIFINDEX, &ifr) < 0) {return false;}
+    std::strncpy(ifr.ifr_name, can_iface_.c_str(), IFNAMSIZ - 1);
+    if (::ioctl(can_sock_, SIOCGIFINDEX, &ifr) < 0) {return false;}
 
     sockaddr_can addr{};
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
-    if (bind(can_socket_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
+    if (::bind(can_sock_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
       return false;
     }
 
-    canid_t filter_id = 0x200;
-    can_filter filter{filter_id, CAN_SFF_MASK};
-    setsockopt(can_socket_, SOL_CAN_RAW, CAN_RAW_FILTER, &filter, sizeof(filter));
+    can_filter flt[2];
+    flt[0] = {0x200, CAN_SFF_MASK}; // encoder
+    flt[1] = {0x201, CAN_SFF_MASK}; // IMU quaternion
+    ::setsockopt(can_sock_, SOL_CAN_RAW, CAN_RAW_FILTER, &flt, sizeof(flt));
     return true;
   }
 
-  /**
-   * @brief Read the CAN frame and publish the position.
-   */
-  void read_can_frame()
+  void poll_can()
   {
     can_frame f{};
-    const ssize_t n = read(can_socket_, &f, sizeof(f));
-    if (n != sizeof(f) || f.can_id != 0x200 || f.can_dlc != 8) {return;}
+    if (::read(can_sock_, &f, sizeof(f)) != sizeof(f)) {return;}
 
-    int32_t pos_um{};
-    std::memcpy(&pos_um, &f.data[0], 4);
-
-    std_msgs::msg::Float64 msg;
-    msg.data = static_cast<double>(pos_um) / 1000.0; // μm → mm (retain sign)
-    position_publisher_->publish(msg);
+    if (f.can_id == 0x200 && f.can_dlc == 4) {
+      handle_encoder(f);
+    } else if (f.can_id == 0x201 && f.can_dlc == 8) {handle_quat(f);}
   }
 
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr position_publisher_;
+  void handle_encoder(const can_frame & f)
+  {
+    int32_t pos_um;
+    std::memcpy(&pos_um, f.data, 4);
+
+    if (!offset_set_) {offset_ = pos_um; offset_set_ = true;}
+    pos_um -= offset_;
+
+    std_msgs::msg::Float64 m;
+    m.data = static_cast<double>(pos_um) / 1000.0;
+    position_pub_->publish(m);
+  }
+
+  void handle_quat(const can_frame &f)
+  {
+    int16_t q16[4]; // w, x, y, z from Teensy
+    std::memcpy(q16, f.data, 8);
+  
+    /* scale to double */
+    double w_s = q16[0] / 10000.0;
+    double x_s = q16[1] / 10000.0;
+    double y_s = q16[2] / 10000.0;
+    double z_s = q16[3] / 10000.0;
+
+    sensor_msgs::msg::Imu imu_msg;
+    imu_msg.header.stamp = now();
+    imu_msg.header.frame_id = "imu_link";
+  
+    imu_msg.orientation.w = w_s;
+    imu_msg.orientation.x = x_s;
+    imu_msg.orientation.y = y_s;
+    imu_msg.orientation.z = z_s;
+  
+    const double var = 0.02 * 0.02; // ≈ 1 deg²
+    imu_msg.orientation_covariance[0] =
+    imu_msg.orientation_covariance[4] =
+    imu_msg.orientation_covariance[8] = var;
+  
+    imu_msg.angular_velocity_covariance[0]    = -1.0;
+    imu_msg.linear_acceleration_covariance[0] = -1.0;
+  
+    imu_pub_->publish(imu_msg);
+  }  
+
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr position_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
-  std::string can_interface_;
-  int can_socket_{-1};
+
+  std::string can_iface_;
+  int can_sock_ = -1;
+
+  int32_t offset_ = 0;
+  bool offset_set_ = false;
 };
 
-/**
- * @brief Main function.
- * Initializes and spins the ActuatorPosition node.
- */
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);

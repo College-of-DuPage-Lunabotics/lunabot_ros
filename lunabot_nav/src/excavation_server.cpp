@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <memory>
+#include <thread>
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
@@ -17,15 +18,13 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rmw/qos_profiles.h"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/float64.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 
 #include "lunabot_msgs/action/excavation.hpp"
+#include "SparkMax.hpp"
 
-/**
- * @class ExcavationServer
- * @brief Handles excavation requests and manages the excavation process.
- */
 class ExcavationServer : public rclcpp::Node
 {
 public:
@@ -34,11 +33,8 @@ public:
   using NavigateToPose = nav2_msgs::action::NavigateToPose;
   using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
-  /**
-   * @brief Constructor for the ExcavationServer class.
-   */
   ExcavationServer()
-  : Node("excavation_server"), goal_active_(false)
+  : Node("excavation_server"), goal_active_(false), lift_motor_("can0", 3)
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
       this, "excavation_action",
@@ -49,6 +45,10 @@ public:
             execute(goal_handle);
           }}.detach();
       });
+
+    encoder_subscriber_ = create_subscription<std_msgs::msg::Float64>(
+      "/encoder_pos", 10,
+      std::bind(&ExcavationServer::encoder_callback, this, std::placeholders::_1));
 
     auto selector_qos =
       rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(
@@ -64,16 +64,32 @@ public:
   }
 
 private:
-  /**
-   * @brief Executes the excavation process.
-   * @param goal_handle The handle to the goal being executed.
-   */
+  void encoder_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
+  }
+
   void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
     auto result = std::make_shared<Excavation::Result>();
     bool excavation_success = false;
 
     try {
+      // Step 1: Lower the lift actuator until the encoder position reaches 300
+      RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING LIFT ACTUATOR...\033[0m");
+      lift_motor_.Heartbeat();
+      lift_motor_.SetDutyCycle(0.5);
+
+      while (rclcpp::ok() && current_encoder_position_ < 300) {
+        rclcpp::spin_some(this->get_node_base_interface());
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      }
+
+      lift_motor_.Heartbeat();
+      lift_motor_.SetDutyCycle(0.0);
+      RCLCPP_INFO(this->get_logger(), "\033[1;32mLIFT ACTUATOR LOWERED TO 300.\033[0m");
+
+      // Step 2: Set navigation parameters and send goal
       auto planner_msg = std_msgs::msg::String();
       planner_msg.data = "StraightLine";
       planner_publisher_->publish(planner_msg);
@@ -155,14 +171,13 @@ private:
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_subscriber_;
 
+  SparkMax lift_motor_;
+  double current_encoder_position_ = 0.0;
   bool goal_active_;
 };
 
-/**
- * @brief Main function.
- * Initializes and runs the ExcavationServer node.
- */
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);

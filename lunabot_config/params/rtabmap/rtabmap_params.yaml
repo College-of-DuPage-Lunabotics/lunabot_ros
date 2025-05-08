@@ -1,12 +1,12 @@
 rtabmap:
   ros__parameters:
     Grid/CellSize: "0.02"
-    Grid/MaxGroundAngle: "20"
+    Grid/MaxGroundAngle: "30"
     Grid/MinClusterSize: "30"
     Grid/Sensor: "2"
     Grid/RangeMin: "0.5"
     Grid/RangeMax: "15.0"
-    Grid/MaxObstacleHeight: "0.6"
+    Grid/MaxObstacleHeight: "1.0"
     Grid/RayTracing: "true"
     Grid/Scan2dUnknownSpaceFilled: "true"
     Reg/Force3DoF: "false"
@@ -57,7 +57,7 @@ rtabmap:
     Icp/OutlierRatio: "0.6"
     Icp/CorrespondenceRatio: "0.2"
     Optimizer/Strategy: "2"
-    Odom/Strategy: "1"
+    Odom/Strategy: "2"
     Odom/FilteringStrategy: "1"
     Odom/KalmanProcessNoise: "0.01"
     Odom/KalmanMeasurementNoise: "0.1"

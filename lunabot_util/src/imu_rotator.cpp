@@ -69,13 +69,13 @@ private:
     const sensor_msgs::msg::Imu::SharedPtr msg,
     std::shared_ptr<sensor_msgs::msg::Imu> & transformed_msg)
   {
-    transformed_msg->linear_acceleration.x = msg->linear_acceleration.y;
-    transformed_msg->linear_acceleration.y = msg->linear_acceleration.x;
-    transformed_msg->linear_acceleration.z = -msg->linear_acceleration.z;
+    transformed_msg->linear_acceleration.x = msg->linear_acceleration.z;
+    transformed_msg->linear_acceleration.y = -msg->linear_acceleration.x;
+    transformed_msg->linear_acceleration.z = -msg->linear_acceleration.y;
 
-    transformed_msg->angular_velocity.x = msg->angular_velocity.y;
-    transformed_msg->angular_velocity.y = msg->angular_velocity.x;
-    transformed_msg->angular_velocity.z = -msg->angular_velocity.z;
+    transformed_msg->angular_velocity.x = msg->angular_velocity.z;
+    transformed_msg->angular_velocity.y = -msg->angular_velocity.x;
+    transformed_msg->angular_velocity.z = -msg->angular_velocity.y;
 
     tf2::Quaternion quat_ned(msg->orientation.x, msg->orientation.y, msg->orientation.z,
       msg->orientation.w);
