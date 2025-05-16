@@ -103,8 +103,10 @@ private:
       auto goal_msg = NavigateToPose::Goal();
       geometry_msgs::msg::Pose goal_pose;
 
-      goal_pose.position.x = 4.3;
-      goal_pose.position.y = -0.4;
+      // 4.3, -0.4 for KSC
+      // 6.1, 0.5 for UCF
+      goal_pose.position.x = 5.84;
+      goal_pose.position.y = -2.12;
       goal_pose.orientation.z = 0.707;
       goal_pose.orientation.w = 0.707;
 

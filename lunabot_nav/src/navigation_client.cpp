@@ -31,7 +31,7 @@ public:
    * @brief Constructor for the NavigationClient class.
    */
   NavigationClient()
-  : Node("navigation_client"), start_localization_(true), start_navigation_(false),
+  : Node("navigation_client"), start_localization_(false), start_navigation_(true),
     start_excavation_(false)
   {
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
@@ -113,8 +113,10 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    goal_pose.position.x = initial_x_ + 4.0;
-    goal_pose.position.y = initial_y_ + 1.0;
+    // + 4.0 m in x and 1.0 m in y from the initial pose for KSC
+    // + 2.6 m in y and 0.5 m in x from the initial pose for UCF
+    goal_pose.position.x = 5.7;
+    goal_pose.position.y = -0.5;
     goal_pose.orientation.z = 0.707;
     goal_pose.orientation.w = 0.707;
 

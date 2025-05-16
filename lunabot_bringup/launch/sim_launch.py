@@ -99,12 +99,12 @@ def generate_launch_description():
             {"use_sim_time": True, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/oak_d/color/image_raw"),
-            ("depth/image", "/oak_d/depth/image_rect_raw"),
-            ("rgb/camera_info", "/oak_d/color/camera_info"),
+            ("rgb/image", "/d455/color/image_raw"),
+            ("depth/image", "/d455/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d455/color/camera_info"),
             ("rgbd_image", "rgbd_image"),
         ],
-        namespace="oak_d",
+        namespace="d455",
         arguments=["--ros-args", "--log-level", "error"],
     )
 
@@ -133,13 +133,13 @@ def generate_launch_description():
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": True,
                 "wait_imu_to_init": True,
-                "imu_topic": "/d456/imu/data",
+                "imu_topic": "/teensy/imu/data",
             },
             rtabmap_params_file,
         ],
         remappings=[
             ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/oak_d/rgbd_image"),
+            ("rgbd_image1", "/d455/rgbd_image"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -300,8 +300,8 @@ def generate_launch_description():
     apriltag_node = Node(
             package='apriltag_ros', executable='apriltag_node', output='screen',
             parameters=[apriltag_params_file],
-            remappings=[('/image_rect', '/oak_d/color/image_raw'),
-                        ('/camera_info', '/oak_d/color/camera_info')])
+            remappings=[('/image_rect', '/d455/color/image_raw'),
+                        ('/camera_info', '/d455/color/camera_info')])
 
     map_to_odom_tf = Node(
         package="tf2_ros",
@@ -362,12 +362,12 @@ def generate_launch_description():
                     period=3.0,
                     actions=[
                         excavation_server_node,
-                        localization_server_node,
+                        #localization_server_node,
                         navigation_client_node,
                     ],
                 ),
                 TimerAction(
-                    period=30.0,
+                    period=5.0,
                     actions=[
                         icp_odometry_node,
                         rf2o_odometry_node,
@@ -378,7 +378,7 @@ def generate_launch_description():
                     ],
                 ),
                 TimerAction(
-                    period=40.0,
+                    period=10.0,
                     actions=[
                         nav2_launch,
                     ],

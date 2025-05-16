@@ -16,6 +16,15 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
 
+    apriltag_params_file = os.path.join(
+        config_dir, "params", "apriltag", "tag_params.yaml"
+    )
+    bt_nav_to_pose = os.path.join(
+        config_dir, "behavior_trees", "nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml"
+    )
+    bt_nav_through_poses = os.path.join(
+        config_dir, "behavior_trees", "nav_through_poses_w_replanning_and_recovery.xml"
+    )
     nav2_params_file = os.path.join(
         config_dir, "params", "nav2", "nav2_real_bot_params.yaml"
     )
@@ -147,7 +156,7 @@ def generate_launch_description():
             ("scan", "/scan"),
             ("odom", "/icp_odom"),
         ],
-        arguments=["--ros-args", "--log-level", "error"],
+        arguments=["--ros-args", "--log-level", "warn"],
     )
 
     rf2o_odometry_node = Node(
@@ -203,16 +212,54 @@ def generate_launch_description():
         output="screen",
     )
 
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")
-        ),
-        launch_arguments={
-            "use_sim_time": "false",
-            "params_file": nav2_params_file,
-        }.items(),
+    controller_server_node = Node(
+        package="nav2_controller",
+        executable="controller_server",
+        name="controller_server",
+        output="screen",
+        parameters=[nav2_params_file],
     )
 
+    planner_server_node = Node(
+        package="nav2_planner",
+        executable="planner_server",
+        name="planner_server",
+        output="screen",
+        parameters=[nav2_params_file],
+    )
+
+    behavior_server_node = Node(
+        package="nav2_behaviors",
+        executable="behavior_server",
+        name="behavior_server",
+        output="screen",
+        parameters=[nav2_params_file],
+    )
+
+    bt_navigator_node = Node(
+        package="nav2_bt_navigator",
+        executable="bt_navigator",
+        name="bt_navigator",
+        output="screen",
+        parameters=[
+            nav2_params_file,
+            {"default_nav_to_pose_bt_xml": bt_nav_to_pose, "default_nav_through_poses_bt_xml": bt_nav_through_poses},
+        ],
+    )
+
+    lifecycle_manager_node = Node(
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="lifecycle_manager_navigation",
+        output="screen",
+        parameters=[{"autostart": True}, {"node_names": [
+            "controller_server",
+            "planner_server",
+            "behavior_server",
+            "bt_navigator",
+        ]}, {"node_timeout": 10.0}],
+    )
+    
     s3_lidar_node = Node(
         package="rplidar_ros",
         executable="rplidar_node",
@@ -250,6 +297,11 @@ def generate_launch_description():
                 "depth_module.depth_profile": "640,480,30",
                 "rgb_camera.color_profile": "640,480,30",
                 "depth_module.infra_profile": "640,480,30",
+                "i_tf_imu_from_descr": True,
+                "i_enable_imu": True,
+                "i_imu_mode": "COPY",
+                "imu.i_acc_freq": 100,
+                "imu.i_gyro_freq": 100,
             },
         ],
         remappings=[
@@ -258,7 +310,7 @@ def generate_launch_description():
             ("oak_d/rgb/camera_info", "oak_d/color/camera_info"),
             ("oak_d/stereo/image_raw", "oak_d/depth/image_rect_raw"),
         ],
-        output="screen",
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
     d455_launch = IncludeLaunchDescription(
@@ -315,6 +367,26 @@ def generate_launch_description():
         ],
     )
 
+    d455_imu_filter = Node(
+        package="imu_complementary_filter",
+        executable="complementary_filter_node",
+        name="complementary_filter_gain_node",
+        output="screen",
+        parameters=[
+            {"publish_tf": False},
+            {"fixed_frame": "odom"},
+            {"do_bias_estimation": True},
+            {"do_adaptive_gain": True},
+            {"use_mag": False},
+            {"gain_acc": 0.01},
+            {"gain_mag": 0.01},
+        ],
+        remappings=[
+            ("imu/data_raw", "/d455/imu/data_raw"),
+            ("imu/data", "/d455/imu/data"),
+        ],
+    )
+
     d456_imu_filter = Node(
         package="imu_complementary_filter",
         executable="complementary_filter_node",
@@ -336,10 +408,13 @@ def generate_launch_description():
     )
 
     imu_rotator_node = Node(package="lunabot_util", executable="imu_rotator")
+    actuator_node = Node(package="lunabot_util", executable="actuator_position")
 
     controller_teleop_node = Node(
         package="lunabot_teleop",
-        executable="controller_teleop"
+        executable="controller_teleop",
+        name="controller_teleop",
+        arguments=["--ros-args", "--log-level", "info"],
     )
 
     map_to_odom_tf = Node(
@@ -348,6 +423,18 @@ def generate_launch_description():
         name="map_to_odom_tf",
         arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
     )
+
+    apriltag_d455_node = Node(
+        package='apriltag_ros', executable='apriltag_node', output='screen',
+        parameters=[apriltag_params_file],
+        remappings=[('/image_rect', '/d455/color/image_raw'),
+                    ('/camera_info', '/d455/color/camera_info')])
+
+    apriltag_d456_node = Node(
+        package='apriltag_ros', executable='apriltag_node', output='screen',
+        parameters=[apriltag_params_file],
+        remappings=[('/image_rect', '/d456/color/image_raw'),
+                    ('/camera_info', '/d456/color/camera_info')])
 
     ld = LaunchDescription()
 
@@ -364,10 +451,14 @@ def generate_launch_description():
     ld.add_action(rgbd_sync1_node)
     ld.add_action(rgbd_sync2_node)
     ld.add_action(imu_rotator_node)
+    ld.add_action(actuator_node)
     ld.add_action(oak_d_imu_filter)
+    ld.add_action(d455_imu_filter)
     ld.add_action(d456_imu_filter)
-    ld.add_action(controller_teleop_node)
+    ld.add_action(apriltag_d455_node)
+    ld.add_action(apriltag_d456_node)
     ld.add_action(map_to_odom_tf)
+    ld.add_action(controller_teleop_node)
 
     ld.add_action(
         GroupAction(
@@ -389,7 +480,11 @@ def generate_launch_description():
                 TimerAction(
                     period=15.0,
                     actions=[
-                        nav2_launch,
+                        controller_server_node,
+                        planner_server_node,
+                        behavior_server_node,
+                        bt_navigator_node,
+                        lifecycle_manager_node,
                     ],
                 ),
             ],
@@ -401,15 +496,15 @@ def generate_launch_description():
         GroupAction(
             actions=[
                 TimerAction(
-                    period=5.0,
+                    period=3.0,
                     actions=[
                         excavation_server_node,
-                        localization_server_node,
+                        #localization_server_node,
                         navigation_client_node,
                     ],
                 ),
                 TimerAction(
-                    period=50.0,
+                    period=5.0,
                     actions=[
                         icp_odometry_node,
                         rf2o_odometry_node,
@@ -418,9 +513,13 @@ def generate_launch_description():
                     ],
                 ),
                 TimerAction(
-                    period=60.0,
+                    period=7.0,
                     actions=[
-                        nav2_launch,
+                        controller_server_node,
+                        planner_server_node,
+                        behavior_server_node,
+                        bt_navigator_node,
+                        lifecycle_manager_node,
                     ],
                 ),
             ],

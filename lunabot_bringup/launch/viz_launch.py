@@ -129,7 +129,7 @@ def generate_launch_description():
             "-x",
             "2.5",
             "-y",
-            "1.6",
+            "-1.6",
             "-Y",
             LaunchConfiguration("robot_heading"),
             "-z",

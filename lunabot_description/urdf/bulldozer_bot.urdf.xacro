@@ -330,7 +330,7 @@
   <joint name="imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="imu_link" />
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="3.14159 0 -1.57" />
   </joint>
 
   <!-- ================================= -->
@@ -632,7 +632,7 @@
         <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
           <ros>
             <namespace></namespace>
-            <remapping>~/out:=/d456/imu/data</remapping>
+            <remapping>~/out:=/teensy/imu/data</remapping>
           </ros>
           <bodyName>base_link</bodyName>
           <gaussianNoise>0.0</gaussianNoise>
