@@ -38,6 +38,8 @@ public:
     joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10,
       std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
+
+    RCLCPP_INFO(get_logger(), "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
   }
 
 private:
@@ -78,8 +80,7 @@ private:
   }
 
   /**
-   * @brief Retrieve a button index based on controller type.16]
-[INFO] [controller_teleop-11]: process started with pid [79918]
+   * @brief Retrieve a button index based on controller type.
 
    * @param msg The joystick message.
    * @param map The mapping of buttons for different controllers.
@@ -133,6 +134,8 @@ private:
    */
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
+    auto clock = rclcpp::Clock();
+
     share_button_ = get_button(msg, {9, 8, 9, 2});
     menu_button_ = get_button(msg, {10, 9, 10, 13});
     home_button_ = get_button(msg, {11, 10, 8, 11});
@@ -141,55 +144,49 @@ private:
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    left_trigger_axis_ = msg->axes[2];
-    right_trigger_axis_ = msg->axes[5];
+    right_joystick_y_ = -msg->axes[3];
 
     d_pad_vertical_ = get_axis(msg, {5, 7, 7});
-    steam_left_trigger_ = steam_mode_ ? msg->buttons[9] : 0;
-    steam_right_trigger_ = steam_mode_ ? msg->buttons[10] : 0;
+  
+    if (share_button_) {
+      manual_enabled_ = true;
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), clock, 1000, "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+    }
 
-    if (share_button_) {manual_enabled_ = true;}
-    if (menu_button_) {manual_enabled_ = false;}
-    if (home_button_) {robot_disabled_ = true;}
+    if (menu_button_) {
+      manual_enabled_ = false;
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), clock, 1000, "\033[1;33mAUTONOMOUS CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+    }
+
+    if (home_button_) {
+      robot_disabled_ = true;
+      RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
+    }
+
     if (!manual_enabled_ || robot_disabled_) {return;}
 
     lift_actuator_motor_.Heartbeat();
 
     double drive_speed_multiplier = (x_button_) ? 1.0 : 0.7;
-    double blade_speed_multiplier = (y_button_) ? 1.0 : 0.6;
 
-    double left_speed, right_speed;
-    if (switch_mode_ || steam_mode_) {
-      left_speed = left_joystick_y_ - left_joystick_x_;
-      right_speed = left_joystick_y_ + left_joystick_x_;
-    } else {
-      double rt = (1.0 - right_trigger_axis_) / 2.0;
-      double lt = (1.0 - left_trigger_axis_) / 2.0;
-      if (rt != 0.0) {
-        left_speed = rt - left_joystick_x_;
-        right_speed = rt + left_joystick_x_;
-      } else if (lt != 0.0) {
-        left_speed = -(lt - left_joystick_x_);
-        right_speed = -(lt + left_joystick_x_);
-      } else {
-        left_speed = -left_joystick_x_;
-        right_speed = left_joystick_x_;
-      }
-    }
+    double left_speed = left_joystick_y_ - left_joystick_x_;
+    double right_speed = left_joystick_y_ + left_joystick_x_;
 
     // Apply smoothing to the commands and drive the motors
     drive(left_speed * drive_speed_multiplier, right_speed * drive_speed_multiplier);
 
-    // Lift/lower blade using D‑pad or triggers
-    double lift_speed;
-    if (!steam_mode_) {
-      lift_speed = (d_pad_vertical_ == 1.0) ? -1.0 :
-        (d_pad_vertical_ == -1.0) ? 1.0 : 0.0;
-    } else {
-      lift_speed = steam_left_trigger_ ? -1.0 :
-        (steam_right_trigger_ ? 1.0 : 0.0);
+    // Lift/lower blade usnig right joystick
+    double lift_speed = right_joystick_y_;
+    lift_speed = clamp(lift_speed);
+
+    if (abs(lift_speed) > 0.4) {
+      lift_actuator_motor_.SetDutyCycle(lift_speed);
+      }
+    else {
+      lift_actuator_motor_.SetDutyCycle(0.0);
     }
-    lift_actuator_motor_.SetDutyCycle(clamp(blade_speed_multiplier * lift_speed));
   }
 
   /**
@@ -204,8 +201,8 @@ private:
     double wheel_radius = 0.095;
     double wheel_base = 0.53;
 
-    double left_cmd = -0.05 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd = -0.05 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
     RCLCPP_INFO(
       get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
@@ -219,13 +216,12 @@ private:
 
   SparkMax left_wheel_motor_, right_wheel_motor_, lift_actuator_motor_;
 
-  bool manual_enabled_ = true, robot_disabled_ = false;
+  bool manual_enabled_ = false, robot_disabled_ = false;
   bool steam_mode_, xbox_mode_, ps4_mode_, switch_mode_;
   bool share_button_, menu_button_, home_button_, x_button_, y_button_;
-  double steam_left_trigger_, steam_right_trigger_;
+
   double d_pad_vertical_;
-  double left_joystick_x_, left_joystick_y_;
-  double left_trigger_axis_, right_trigger_axis_;
+  double left_joystick_x_, left_joystick_y_, right_joystick_y_;
   double prev_left_speed_ = 0.0, prev_right_speed_ = 0.0;
   double smoothing_alpha_;
 };

@@ -35,6 +35,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(sparkcan REQUIRED)
 
 set(DEPENDENCIES
     geometry_msgs
@@ -48,7 +49,8 @@ set(DEPENDENCIES
     rclcpp
     rclcpp_action
     sensor_msgs
-    tf2_ros)
+    tf2_ros
+    sparkcan)
 
 # Define executables
 add_executable(excavation_server src/excavation_server.cpp)
