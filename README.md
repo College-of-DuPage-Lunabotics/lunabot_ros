@@ -79,8 +79,9 @@ To avoid building the entire workspace all over again after the initial build if
 
 ```bash
 cd ~/lunabot_ws
-colcon build --symlink-install
+colcon build --symlink-install --packages-skip unitree_lidar_ros
 ```
+We skip the `unitree_lidar_ros` package as it is meant for ROS1, not ROS2.
 
 ## Simulating the Robot
 The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization.
