@@ -8,6 +8,8 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>rtabmap</depend>
+  <depend>rtabmap_ros</depend>
   <depend>robot_state_publisher</depend>
   <depend>joint_state_publisher</depend>
   <depend>navigation2</depend>

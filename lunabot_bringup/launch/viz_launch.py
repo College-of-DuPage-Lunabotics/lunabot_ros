@@ -38,20 +38,59 @@ def set_robot_description(context, *args, **kwargs):
     urdf_file = os.path.join(config_dir, "urdf", f"{robot_type}_bot.urdf.xacro")
     return [
         SetLaunchConfiguration(
-            "robot_description", Command(["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")])
+            "robot_description",
+            Command(
+                ["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")]
+            ),
         )
     ]
 
 
-def generate_launch_description():
+def set_spawn_coordinates(context, *args, **kwargs):
+    world_type = context.launch_configurations.get("arena_type")
+
+    world_coords = {
+        "ucf": {"x": "1.0", "y": "-3.0", "z": "0.35"},
+        "artemis": {
+            "x": "2.5",
+            "y": "-1.6",
+            "z": "0.35",
+        },
+    }
+
+    coords = world_coords.get(
+        world_type, world_coords["artemis"]
+    )
+
+    return [
+        SetLaunchConfiguration("spawn_x", coords["x"]),
+        SetLaunchConfiguration("spawn_y", coords["y"]),
+        SetLaunchConfiguration("spawn_z", coords["z"]),
+    ]
+
+
+def set_world_file(context, *args, **kwargs):
     sim_dir = get_package_share_directory("lunabot_sim")
+    world_type = context.launch_configurations.get("arena_type")
+
+    world_files = {
+        "ucf": os.path.join(
+            sim_dir, "worlds", "high_resolution", "ucf", "ucf_arena.world"
+        ),
+        "artemis": os.path.join(
+            sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena3.world"
+        ),
+    }
+
+    world_file = world_files.get(world_type, world_files["ucf"])
+
+    return [SetLaunchConfiguration("world_file", world_file)]
+
+
+def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-
-    world_file = os.path.join(
-        sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena3.world"
-    )
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
@@ -87,6 +126,13 @@ def generate_launch_description():
         description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode.",
     )
 
+    declare_arena_type = DeclareLaunchArgument(
+        "arena_type",
+        default_value="ucf",
+        choices=["ucf", "artemis"],
+        description="Choose the arena: 'ucf' for UCF arena or 'artemis' for Artemis arena.",
+    )
+
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
@@ -114,7 +160,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "gui": LaunchConfiguration("sim_gui"),
-            "world": world_file,
+            "world": LaunchConfiguration("world_file"),
         }.items(),
     )
 
@@ -127,13 +173,13 @@ def generate_launch_description():
             "-entity",
             LaunchConfiguration("robot_type"),
             "-x",
-            "2.5",
+            LaunchConfiguration("spawn_x"),
             "-y",
-            "-1.6",
+            LaunchConfiguration("spawn_y"),
             "-Y",
             LaunchConfiguration("robot_heading"),
             "-z",
-            "0.35",
+            LaunchConfiguration("spawn_z"),
         ],
         output="screen",
     )
@@ -144,9 +190,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {
-                "robot_description": LaunchConfiguration(
-                    "robot_description"
-                ),
+                "robot_description": LaunchConfiguration("robot_description"),
                 "use_sim_time": LaunchConfiguration("use_sim"),
             }
         ],
@@ -202,9 +246,12 @@ def generate_launch_description():
     ld.add_action(declare_robot_heading)
     ld.add_action(declare_viz_type)
     ld.add_action(declare_sim_gui)
+    ld.add_action(declare_arena_type)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_robot_description))
+    ld.add_action(OpaqueFunction(function=set_world_file))
+    ld.add_action(OpaqueFunction(function=set_spawn_coordinates))
 
     ld.add_action(rviz_launch)
     ld.add_action(foxglove_bridge_launch)

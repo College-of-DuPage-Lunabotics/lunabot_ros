@@ -60,6 +60,12 @@ world_file = os.path.join(
     - `random`: Assigns a random orientation.
   - Example: `robot_heading:=random`
 
+- `arena_type` : Selects the arena world file.
+  -  Options:
+     -  `ucf`: Selects the UCF arena world file.
+     -  `artemis`: Selects the Artemis arena world file.
+  - Example: `arena_type:=artemis`
+
 - `use_sim`: Specifies whether to launch Gazebo or not.
   - Options:
     - `true`: Launches simulated robot in Gazebo. **(Default)**

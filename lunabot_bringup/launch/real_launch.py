@@ -13,7 +13,6 @@ from launch.actions import (
 
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
-    nav2_bringup_dir = get_package_share_directory("nav2_bringup")
     realsense_dir = get_package_share_directory("realsense2_camera")
 
     apriltag_params_file = os.path.join(
@@ -42,65 +41,23 @@ def generate_launch_description():
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
 
-    declare_oak_d_rs_mode = DeclareLaunchArgument("rs_compat", default_value="true")
-    declare_oak_d_pointcloud = DeclareLaunchArgument("pointcloud.enable", default_value="true")
-    declare_oak_d_namespace = DeclareLaunchArgument("namespace", default_value="oak_d")
-    declare_oak_d_parent_frame = DeclareLaunchArgument("parent_frame", default_value="oak_d_link")
-
-    rgbd_sync1_node = Node(
-        package="rtabmap_sync",
-        executable="rgbd_sync",
-        name="rgbd_sync1",
-        output="screen",
-        parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
-        ],
-        remappings=[
-            ("rgb/image", "/d456/color/image_raw"),
-            ("depth/image", "/d456/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456/color/camera_info"),
-            ("rgbd_image", "/d456/rgbd_image"),
-        ],
-        namespace="d456",
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    rgbd_sync2_node = Node(
-        package="rtabmap_sync",
-        executable="rgbd_sync",
-        name="rgbd_sync2",
-        output="screen",
-        parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
-        ],
-        remappings=[
-            ("rgb/image", "/d455/color/image_raw"),
-            ("depth/image", "/d455/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d455/color/camera_info"),
-            ("rgbd_image", "/d455/rgbd_image"),
-        ],
-        namespace="d455",
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
         name="rtabmap",
-        output="screen",
+        output="log",
         parameters=[
             {
-                "use_sim_time": False,
-                "rgbd_cameras": 2,
-                "subscribe_depth": False,
-                "subscribe_rgbd": True,
-                "subscribe_rgb": False,
+                "use_sim_time": True,
+                "subscribe_depth": True,
+                "subscribe_rgbd": False,
+                "subscribe_rgb": True,
                 "subscribe_odom_info": False,
                 "odom_sensor_sync": True,
                 "frame_id": "base_link",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
-                "publish_tf": False,
+                "publish_tf": True,
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
@@ -108,13 +65,13 @@ def generate_launch_description():
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": True,
                 "wait_imu_to_init": True,
-                "imu_topic": "/oak_d/imu/data",
             },
             rtabmap_params_file,
         ],
         remappings=[
-            ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/d455/rgbd_image"),
+            ("rgb/image", "/d456/color/image_raw"),
+            ("depth/image", "/d456/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d456/color/camera_info"),
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -259,7 +216,7 @@ def generate_launch_description():
             "bt_navigator",
         ]}, {"node_timeout": 10.0}],
     )
-    
+
     s3_lidar_node = Node(
         package="rplidar_ros",
         executable="rplidar_node",
@@ -286,50 +243,6 @@ def generate_launch_description():
         remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
-    oak_d_node = Node(
-        package="depthai_ros_driver",
-        executable="camera_node",
-        name="oak_d",
-        parameters=[
-            {
-                "i_rs_compat": True,
-                "i_enable_pointcloud": True,
-                "depth_module.depth_profile": "640,480,30",
-                "rgb_camera.color_profile": "640,480,30",
-                "depth_module.infra_profile": "640,480,30",
-                "i_tf_imu_from_descr": True,
-                "i_enable_imu": True,
-                "i_imu_mode": "COPY",
-                "imu.i_acc_freq": 100,
-                "imu.i_gyro_freq": 100,
-            },
-        ],
-        remappings=[
-            ("oak_d/imu/data", "oak_d/imu/data_raw"),
-            ("oak_d/rgb/image_raw", "oak_d/color/image_raw"),
-            ("oak_d/rgb/camera_info", "oak_d/color/camera_info"),
-            ("oak_d/stereo/image_raw", "oak_d/depth/image_rect_raw"),
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    d455_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(realsense_dir, "launch", "rs_launch.py")
-        ),
-        launch_arguments={
-            "camera_name": "d455",
-            "camera_namespace": "",
-            "device_type": "d455",
-            "publish_tf": "true",
-            "enable_gyro": "true",
-            "enable_accel": "true",
-            "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x480x60",
-            "rgb_camera.color_profile": "640x480x60",
-        }.items(),
-    )
-
     d456_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
@@ -345,46 +258,6 @@ def generate_launch_description():
             "depth_module.depth_profile": "640x480x60",
             "rgb_camera.color_profile": "640x480x60",
         }.items(),
-    )
-
-    oak_d_imu_filter = Node(
-        package="imu_complementary_filter",
-        executable="complementary_filter_node",
-        name="complementary_filter_gain_node",
-        output="screen",
-        parameters=[
-            {"publish_tf": False},
-            {"fixed_frame": "odom"},
-            {"do_bias_estimation": True},
-            {"do_adaptive_gain": True},
-            {"use_mag": False},
-            {"gain_acc": 0.01},
-            {"gain_mag": 0.01},
-        ],
-        remappings=[
-            ("imu/data_raw", "/oak_d/imu/data_raw"),
-            ("imu/data", "/oak_d/imu/data"),
-        ],
-    )
-
-    d455_imu_filter = Node(
-        package="imu_complementary_filter",
-        executable="complementary_filter_node",
-        name="complementary_filter_gain_node",
-        output="screen",
-        parameters=[
-            {"publish_tf": False},
-            {"fixed_frame": "odom"},
-            {"do_bias_estimation": True},
-            {"do_adaptive_gain": True},
-            {"use_mag": False},
-            {"gain_acc": 0.01},
-            {"gain_mag": 0.01},
-        ],
-        remappings=[
-            ("imu/data_raw", "/d455/imu/data_raw"),
-            ("imu/data", "/d455/imu/data"),
-        ],
     )
 
     d456_imu_filter = Node(
@@ -407,9 +280,6 @@ def generate_launch_description():
         ],
     )
 
-    imu_rotator_node = Node(package="lunabot_util", executable="imu_rotator")
-    actuator_node = Node(package="lunabot_util", executable="actuator_position")
-
     controller_teleop_node = Node(
         package="lunabot_teleop",
         executable="controller_teleop",
@@ -424,12 +294,6 @@ def generate_launch_description():
         arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
     )
 
-    apriltag_d455_node = Node(
-        package='apriltag_ros', executable='apriltag_node', output='screen',
-        parameters=[apriltag_params_file],
-        remappings=[('/image_rect', '/d455/color/image_raw'),
-                    ('/camera_info', '/d455/color/camera_info')])
-
     apriltag_d456_node = Node(
         package='apriltag_ros', executable='apriltag_node', output='screen',
         parameters=[apriltag_params_file],
@@ -439,23 +303,10 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
-    ld.add_action(declare_oak_d_rs_mode)
-    ld.add_action(declare_oak_d_pointcloud)
-    ld.add_action(declare_oak_d_namespace)
-    ld.add_action(declare_oak_d_parent_frame)
-    ld.add_action(oak_d_node)
     ld.add_action(s3_lidar_node)
     ld.add_action(s3_filter_node)
-    ld.add_action(d455_launch)
     ld.add_action(d456_launch)
-    ld.add_action(rgbd_sync1_node)
-    ld.add_action(rgbd_sync2_node)
-    ld.add_action(imu_rotator_node)
-    ld.add_action(actuator_node)
-    ld.add_action(oak_d_imu_filter)
-    ld.add_action(d455_imu_filter)
     ld.add_action(d456_imu_filter)
-    ld.add_action(apriltag_d455_node)
     ld.add_action(apriltag_d456_node)
     ld.add_action(map_to_odom_tf)
     ld.add_action(controller_teleop_node)

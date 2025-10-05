@@ -69,27 +69,55 @@ private:
     current_encoder_position_ = msg->data;
   }
 
-  void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
-  {
-    auto result = std::make_shared<Excavation::Result>();
-    bool excavation_success = false;
 
-    try {
-      // Step 1: Lower the lift actuator until the encoder position reaches 300
-      RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING LIFT ACTUATOR...\033[0m");
-      lift_motor_.Heartbeat();
-      lift_motor_.SetDutyCycle(0.5);
+void lower_blade() {
+      RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING BLADE FOR 4.0 SECONDS...\033[0m");
 
-      while (rclcpp::ok() && current_encoder_position_ < 300) {
-        rclcpp::spin_some(this->get_node_base_interface());
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      auto start = std::chrono::high_resolution_clock::now();
+      while (std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now() -
+          start)
+        .count() < 4.0)
+      {
+        lift_motor_.Heartbeat();
+        lift_motor_.SetDutyCycle(1.0);
       }
 
       lift_motor_.Heartbeat();
       lift_motor_.SetDutyCycle(0.0);
-      RCLCPP_INFO(this->get_logger(), "\033[1;32mLIFT ACTUATOR LOWERED TO 300.\033[0m");
+      
+      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LOWERED.\033[0m");
+}
 
-      // Step 2: Set navigation parameters and send goal
+void lift_blade() {
+
+      RCLCPP_INFO(this->get_logger(), "\033[1;LIFTING BLADE FOR 5.5 SECONDS...\033[0m");
+
+      auto start = std::chrono::high_resolution_clock::now();
+      while (std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now() -
+          start)
+        .count() < 5.5)
+      {
+        lift_motor_.Heartbeat();
+        lift_motor_.SetDutyCycle(-1.0);
+      }
+
+      lift_motor_.Heartbeat();
+      lift_motor_.SetDutyCycle(0.0);
+      
+      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LIFTED.\033[0m");
+}
+void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
+  {
+    auto result = std::make_shared<Excavation::Result>();
+    bool excavation_success = false;
+
+    lift_blade();
+    lower_blade();
+
+    try {
+
       auto planner_msg = std_msgs::msg::String();
       planner_msg.data = "StraightLine";
       planner_publisher_->publish(planner_msg);
@@ -119,10 +147,10 @@ private:
       auto goal_msg = NavigateToPose::Goal();
       geometry_msgs::msg::Pose goal_pose;
 
-      // 4.3, -0.4 for KSC
+      // 4.3, -0.2 for KSC
       // 6.1, 0.5 for UCF
-      goal_pose.position.x = 5.84;
-      goal_pose.position.y = -2.12;
+      goal_pose.position.x = 4.3;
+      goal_pose.position.y = -0.2;
       goal_pose.orientation.z = 0.707;
       goal_pose.orientation.w = 0.707;
 
@@ -137,8 +165,10 @@ private:
       send_goal_options.result_callback = [&](const GoalHandleNavigate::WrappedResult & result) {
           if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
             excavation_success = true;
+            lift_blade();
           } else {
             excavation_success = false;
+            lift_blade();
           }
           nav_completed.set_value(true);
         };

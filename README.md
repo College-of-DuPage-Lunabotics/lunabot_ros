@@ -11,10 +11,8 @@ This repository contains the software developed by the College of DuPage team fo
 
 **Sensors**
 - RPLidar S3
-- RPLidar S2L
-- Intel RealSense D435 Depth Camera
+- Unitree 4D LiDAR L1
 - Intel RealSense D456 Depth Camera w/ IR Filter
-- Luxonis OAK-D Pro
 
 **Hardware**
 - REV Robotics NEO Vortex (x2)
@@ -75,28 +73,17 @@ If you would prefer to use Foxglove Studio instead of RViz2 to visualize the rob
 sudo snap install foxglove-studio
 ```
 
-#### 5. (Recommended) Set MAKEFLAG
-Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing.
-
-This will be required for many computers, it took 64 GB of 5200MHz DDR5 RAM installed in a Lenovo LOQ 15ARP9 (AMD Ryzen 7 7435HS) to be able to build the packages without freezing while setting `"-j16"` and `--parallel-workers 16`. With this configuration, the entire workspace build took 8 minutes. The main packages that cause freezing are `rtabmap_util` and `rtabmap_sync`.
-
-```bash
-export MAKEFLAGS="-j1" # Modify number as needed
-```
-
-#### 6. Build the workspace
-
-Building may take some time due to RTAB-Map in `third_party_packages`. Various flags such as `-DRTABMAP_SYNC_MULTI_RGBD=ON` need to be set to enable extra features for RTAB-Map such as multi-camera support.
+#### 5. Build the workspace
 
 To avoid building the entire workspace all over again after the initial build if you make changes, use `colcon build --packages-select name_of_package` and choose the package that you made changes to for rebuilding. You can list multiple packages after the `--packages-select` flag. You only need to rebuild the workspace if you modify a file for a compiled language such as `C++` or add new files, the flag `--symlink-install` will automatically reflect the changes in `Python, URDF, Xacro, and YAML` files.
 
 ```bash
 cd ~/lunabot_ws
-colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF --parallel-workers 1 # Modify number as needed
+colcon build --symlink-install
 ```
 
 ## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization. 
+The launch files have various parameters that can be set, such as changing the robot model, autonomy level, and choosing between RViz2 and Foxglove Studio for visualization.
 
 If you are using the parameter `viz_type:=foxglove`, refer to the [Foxglove guide](https://docs.foxglove.dev/docs/connecting-to-data/frameworks/ros2/#foxglove-websocket) for connecting in the app. You can import the same layout I used by choosing `Import from file...` under the `LAYOUT` menu and selecting `foxglove_layout.json` from this directory.
 
@@ -139,7 +126,7 @@ This GIF demonstrates the excavation functionality of the rover, which is activa
   <img src="demo_excavation.gif">
 </p>
 
-#### Foxglove Studio 
+#### Foxglove Studio
 <p align="center">
   <img src="demo_foxglove.png">
 </p>
@@ -183,7 +170,7 @@ whoami
 This will return the username of the host, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `asrock` for `asrock@asrock-main`.
 
 Next, get the IP address:
-```bash
+```bash -->
 hostname -I
 ```
 
