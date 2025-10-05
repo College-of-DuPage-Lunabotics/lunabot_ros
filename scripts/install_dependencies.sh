@@ -17,7 +17,7 @@ install_sensor_dependencies() {
 
 install_git_dependencies() {
     echo -e "\n------------------------ Install Git Dependencies and Pull LFS------------------------ \n"
-    cd "${WORKSPACE_DIR}/src/Lunabotics-2025"
+    cd "${WORKSPACE_DIR}/src/lunabot_ros"
     sudo apt install git-lfs -y
     git lfs pull
 }
