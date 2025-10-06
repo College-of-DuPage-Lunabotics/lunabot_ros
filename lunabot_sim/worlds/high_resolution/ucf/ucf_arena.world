@@ -2,7 +2,7 @@
   <world name='default'>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>0.027089 7.85182 17.6636 -0 1.05379 -1.72752</pose>
+        <pose>0.027089 7.85182 17.6636 0 1.05379 -1.72752</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
@@ -41,7 +41,7 @@
       <static>1</static>
       <link name='link'>
         <visual name='lunar_surface'>
-          <pose>0 0 -0.7 0 -0 0</pose>
+          <pose>0 0 -0.7 0 0 0</pose>
           <geometry>
             <mesh>
               <uri>model://lunar_surface/lunar_surface3.dae</uri>
@@ -50,7 +50,7 @@
           </geometry>
         </visual>
         <collision name='lunar_surface_collision'>
-          <pose>0 0 -0.2 0 -0 0</pose>
+          <pose>0 0 -0.3 0 0 0</pose>
           <geometry>
             <box>
               <size>8.14 9.14 0.1</size>
@@ -80,7 +80,7 @@
     </model>
 
     <model name='arena_rods'>
-      <pose>0 0 1.248 0 -0 0</pose>
+      <pose>0 0 1.248 0 0 0</pose>
       <static>1</static>
       <link name='link'>
         <visual name='arena_rods'>
@@ -176,7 +176,7 @@
     </model>
 
     <model name='arena_walls'>
-      <pose>0 0 1.248 0 -0 0</pose>
+      <pose>0 0 1.248 0 0 0</pose>
       <static>1</static>
       <link name='link'>
         <visual name='arena_walls'>
@@ -218,7 +218,7 @@
     </model>
 
     <model name='arena_windows'>
-      <pose>0 0 1.248 0 -0 0</pose>
+      <pose>0 0 1.248 0 0 0</pose>
       <static>1</static>
       <link name='link'>
         <visual name='arena_windows'>
@@ -266,7 +266,7 @@
     </model>
 
     <model name='rock_round_1'>
-      <pose>-3.38496 -0.017282 -0.1 0 -0 0.846674</pose>
+      <pose>-3.38496 -0.017282 -0.13 0 0 0.846674</pose>
       <static>1</static>
       <link name='link'>
         <visual name='rock_round'>
@@ -305,9 +305,9 @@
     </model>
 
     <model name='rock_rough_1'>
-      <pose>-2.13309 1.26296 -0.124552 0.002665 -0.015178 -2.17369</pose>
+      <pose>-2.13309 1.26296 -0.13 0.002665 -0.015178 -2.17369</pose>
       <self_collide>1</self_collide>
-      <static>0</static>
+      <static>1</static>
       <link name='link'>
         <inertial>
           <mass>5</mass>
@@ -319,7 +319,7 @@
             <ixz>0</ixz>
             <iyz>0</iyz>
           </inertia>
-          <pose>0 0 0 0 -0 0</pose>
+          <pose>0 0 0 0 0 0</pose>
         </inertial>
         <visual name='rock_rough_1'>
           <geometry>
@@ -364,9 +364,9 @@
     </model>
 
     <model name='rock_rough_2'>
-      <pose>-1.19102 -0.009563 -0.124552 0.002665 -0.015178 -2.17369</pose>
+      <pose>-1.19102 -0.009563 -0.13 0.002665 -0.015178 -2.17369</pose>
       <self_collide>1</self_collide>
-      <static>0</static>
+      <static>1</static>
       <link name='link'>
         <inertial>
           <mass>5</mass>
@@ -378,7 +378,7 @@
             <ixz>0</ixz>
             <iyz>0</iyz>
           </inertia>
-          <pose>0 0 0 0 -0 0</pose>
+          <pose>0 0 0 0 0 0</pose>
         </inertial>
         <visual name='rock_rough_2'>
           <geometry>
@@ -423,7 +423,7 @@
     </model>
 
     <model name='rock_round_2'>
-      <pose>-3.54076 -3.02333 -0.1 0 -0 0.846674</pose>
+      <pose>-3.54076 -3.02333 -0.13 0 0 0.846674</pose>
       <static>1</static>
       <link name='link'>
         <visual name='rock_round'>
@@ -462,7 +462,7 @@
     </model>
 
     <model name='rock_round_3'>
-      <pose>3.45882 -3.05383 -0.1 0 -0 0.846674</pose>
+      <pose>3.45882 -3.05383 -0.13 0 0 0.846674</pose>
       <static>1</static>
       <link name='link'>
         <visual name='rock_round_3'>
@@ -501,9 +501,9 @@
     </model>
 
     <model name='rock_rough_4'>
-      <pose>3.71773 0.333957 -0.124552 0.002665 -0.015178 -2.17369</pose>
+      <pose>3.71773 0.333957 -0.13 0.002665 -0.015178 -2.17369</pose>
       <self_collide>1</self_collide>
-      <static>0</static>
+      <static>1</static>
       <link name='link'>
         <inertial>
           <mass>5</mass>
@@ -515,7 +515,7 @@
             <ixz>0</ixz>
             <iyz>0</iyz>
           </inertia>
-          <pose>0 0 0 0 -0 0</pose>
+          <pose>0 0 0 0 0 0</pose>
         </inertial>
         <visual name='rock_rough_4'>
           <geometry>
@@ -560,9 +560,9 @@
     </model>
 
     <model name='rock_rough_5'>
-      <pose>1.61448 2.48544 -0.124552 0.002665 -0.015178 -2.17369</pose>
+      <pose>1.61448 2.48544 -0.13 0.002665 -0.015178 -2.17369</pose>
       <self_collide>1</self_collide>
-      <static>0</static>
+      <static>1</static>
       <link name='link'>
         <inertial>
           <mass>5</mass>
@@ -574,7 +574,7 @@
             <ixz>0</ixz>
             <iyz>0</iyz>
           </inertia>
-          <pose>0 0 0 0 -0 0</pose>
+          <pose>0 0 0 0 0 0</pose>
         </inertial>
         <visual name='rock_rough_5'>
           <geometry>
@@ -619,9 +619,9 @@
     </model>
 
     <model name='rock_rough_6'>
-      <pose>0.912668 1.16155 -0.124552 0.002665 -0.015178 -2.17369</pose>
+      <pose>0.912668 1.16155 -0.13 0.002665 -0.015178 -2.17369</pose>
       <self_collide>1</self_collide>
-      <static>0</static>
+      <static>1</static>
       <link name='link'>
         <inertial>
           <mass>5</mass>
@@ -633,7 +633,7 @@
             <ixz>0</ixz>
             <iyz>0</iyz>
           </inertia>
-          <pose>0 0 0 0 -0 0</pose>
+          <pose>0 0 0 0 0 0</pose>
         </inertial>
         <visual name='rock_rough_6'>
           <geometry>
