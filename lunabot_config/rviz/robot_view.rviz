@@ -79,24 +79,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        oak_d_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        oak_d_optical_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        d455_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d455_optical_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         d456_link:
           Alpha: 1
           Show Axes: false
@@ -159,10 +141,6 @@ Visualization Manager:
           Value: true
         blade_link:
           Value: true
-        oak_d_link:
-          Value: true
-        oak_d_optical_link:
-          Value: true
         d456_link:
           Value: true
         d456_optical_link:
@@ -196,8 +174,6 @@ Visualization Manager:
             base_link:
               blade_arm_link:
                 blade_link: {}
-              oak_d_link:
-                oak_d_optical_link: {}
               d456_link:
                 d456_optical_link: {}
               front_left_wheel_link: {}
@@ -441,20 +417,6 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: Local Planner
-    - Class: rviz_default_plugins/Image
-      Enabled: true
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: Blade View
-      Normalize Range: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /oak_d/color/image_raw
-      Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
       Max Value: 1
