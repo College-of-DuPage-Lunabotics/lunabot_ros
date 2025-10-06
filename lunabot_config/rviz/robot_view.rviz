@@ -79,15 +79,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        d455_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        d455_optical_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         d456_link:
           Alpha: 1
           Show Axes: false
@@ -150,10 +141,6 @@ Visualization Manager:
           Value: true
         blade_link:
           Value: true
-        d455_link:
-          Value: true
-        d455_optical_link:
-          Value: true
         d456_link:
           Value: true
         d456_optical_link:
@@ -186,28 +173,16 @@ Visualization Manager:
           odom:
             base_link:
               blade_arm_link:
-                blade_link:
-                  {}
-              d455_link:
-                d455_optical_link:
-                  {}
+                blade_link: {}
               d456_link:
-                d456_optical_link:
-                  {}
-              front_left_wheel_link:
-                {}
-              front_right_wheel_link:
-                {}
-              imu_link:
-                {}
-              rear_left_wheel_link:
-                {}
-              rear_right_wheel_link:
-                {}
-              s2l_lidar_link:
-                {}
-              s3_lidar_link:
-                {}
+                d456_optical_link: {}
+              front_left_wheel_link: {}
+              front_right_wheel_link: {}
+              imu_link: {}
+              rear_left_wheel_link: {}
+              rear_right_wheel_link: {}
+              s2l_lidar_link: {}
+              s3_lidar_link: {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -419,8 +394,7 @@ Visualization Manager:
         - Class: rviz_default_plugins/MarkerArray
           Enabled: false
           Name: Trajectories
-          Namespaces:
-            {}
+          Namespaces: {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -448,21 +422,7 @@ Visualization Manager:
       Max Value: 1
       Median window: 5
       Min Value: 0
-      Name: D455 Image
-      Normalize Range: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /d455/color/image_raw
-      Value: true
-    - Class: rviz_default_plugins/Image
-      Enabled: true
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: D456 Image
+      Name: Back View
       Normalize Range: true
       Topic:
         Depth: 5
@@ -530,7 +490,7 @@ Visualization Manager:
       Yaw: 0.7853981852531433
     Saved: ~
 Window Geometry:
-  D455 Image:
+  d455 Image:
     collapsed: false
   D456 Image:
     collapsed: false

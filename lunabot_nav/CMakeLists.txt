@@ -21,7 +21,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # Find dependencies
-find_package(cv_bridge REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(lunabot_msgs REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -29,15 +28,16 @@ find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(nav2_util REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(OpenCV 4.5 REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(sparkcan REQUIRED)
 
 set(DEPENDENCIES
-    cv_bridge
     geometry_msgs
     lunabot_msgs
     nav2_core
@@ -45,12 +45,12 @@ set(DEPENDENCIES
     nav2_msgs
     nav2_util
     nav_msgs
-    OpenCV
     pluginlib
     rclcpp
     rclcpp_action
     sensor_msgs
-    tf2_ros)
+    tf2_ros
+    sparkcan)
 
 # Define executables
 add_executable(excavation_server src/excavation_server.cpp)
@@ -64,9 +64,6 @@ ament_target_dependencies(excavation_server ${DEPENDENCIES})
 ament_target_dependencies(localization_server ${DEPENDENCIES})
 ament_target_dependencies(navigation_client ${DEPENDENCIES})
 ament_target_dependencies(straight_line_planner ${DEPENDENCIES})
-
-# Link OpenCV libraries to localization_server
-target_link_libraries(localization_server ${OpenCV_LIBS})
 
 # Install targets
 install(TARGETS excavation_server localization_server navigation_client

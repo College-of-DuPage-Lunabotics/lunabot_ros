@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <memory>
+#include <thread>
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
@@ -17,192 +18,202 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rmw/qos_profiles.h"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/float64.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 
 #include "lunabot_msgs/action/excavation.hpp"
+#include "SparkMax.hpp"
 
-/**
- * @class ExcavationServer
- * @brief Handles excavation requests and manages the excavation process.
- */
 class ExcavationServer : public rclcpp::Node
 {
-  public:
-    using Excavation = lunabot_msgs::action::Excavation;
-    using GoalHandleExcavation = rclcpp_action::ServerGoalHandle<Excavation>;
-    using NavigateToPose = nav2_msgs::action::NavigateToPose;
-    using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
+public:
+  using Excavation = lunabot_msgs::action::Excavation;
+  using GoalHandleExcavation = rclcpp_action::ServerGoalHandle<Excavation>;
+  using NavigateToPose = nav2_msgs::action::NavigateToPose;
+  using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
-    /**
-     * @brief Constructor for the ExcavationServer class.
-     */
-    ExcavationServer() : Node("excavation_server"), goal_active_(false)
-    {
-        action_server_ = rclcpp_action::create_server<Excavation>(
-            this, "excavation_action",
-            std::bind(&ExcavationServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&ExcavationServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&ExcavationServer::handle_accepted, this, std::placeholders::_1));
+  ExcavationServer()
+  : Node("excavation_server"), goal_active_(false), lift_motor_("can0", 3)
+  {
+    action_server_ = rclcpp_action::create_server<Excavation>(
+      this, "excavation_action",
+      [this](const auto &, const auto &) {return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;},
+      [this](const auto &) {return rclcpp_action::CancelResponse::ACCEPT;},
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() {
+            execute(goal_handle);
+          }}.detach();
+      });
 
-        auto selector_qos =
-            rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
+    encoder_subscriber_ = create_subscription<std_msgs::msg::Float64>(
+      "/encoder_pos", 10,
+      std::bind(&ExcavationServer::encoder_callback, this, std::placeholders::_1));
 
-        navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
-        planner_publisher_ = this->create_publisher<std_msgs::msg::String>("/planner_selector", selector_qos);
-        controller_publisher_ = this->create_publisher<std_msgs::msg::String>("/controller_selector", selector_qos);
-    }
+    auto selector_qos =
+      rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(
+      RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
 
-  private:
-    /**
-     * @brief Handles goal requests from clients.
-     * @param uuid The unique identifier of the goal.
-     * @param goal The goal message.
-     * @return The response to the goal request.
-     */
-    rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid,
-                                            std::shared_ptr<const Excavation::Goal> goal)
-    {
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-    }
+    navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
+    planner_publisher_ = this->create_publisher<std_msgs::msg::String>(
+      "/planner_selector",
+      selector_qos);
+    controller_publisher_ = this->create_publisher<std_msgs::msg::String>(
+      "/controller_selector",
+      selector_qos);
+  }
 
-    /**
-     * @brief Handles cancel requests from clients.
-     * @param goal_handle The handle to the goal being canceled.
-     * @return The response to the cancel request.
-     */
-    rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleExcavation> goal_handle)
-    {
-        return rclcpp_action::CancelResponse::ACCEPT;
-    }
+private:
+  void encoder_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
+  }
 
-    /**
-     * @brief Handles accepted goals.
-     * @param goal_handle The handle to the accepted goal.
-     */
-    void handle_accepted(const std::shared_ptr<GoalHandleExcavation> goal_handle)
-    {
-        rclcpp::executors::SingleThreadedExecutor executor;
-        auto node = std::make_shared<ExcavationServer>();
-        executor.add_node(node);
-        std::thread([this, goal_handle]() { this->execute(goal_handle); }).detach();
-    }
 
-    /**
-     * @brief Executes the excavation process.
-     * @param goal_handle The handle to the goal being executed.
-     */
-    void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
-    {
-        auto result = std::make_shared<Excavation::Result>();
-        bool excavation_success = false;
+void lower_blade() {
+      RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING BLADE FOR 4.0 SECONDS...\033[0m");
 
-        try
-        {
-            auto planner_msg = std_msgs::msg::String();
-            planner_msg.data = "StraightLine";
-            planner_publisher_->publish(planner_msg);
+      auto start = std::chrono::high_resolution_clock::now();
+      while (std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now() -
+          start)
+        .count() < 4.0)
+      {
+        lift_motor_.Heartbeat();
+        lift_motor_.SetDutyCycle(1.0);
+      }
 
-            auto controller_msg = std_msgs::msg::String();
-            controller_msg.data = "PurePursuit";
-            controller_publisher_->publish(controller_msg);
+      lift_motor_.Heartbeat();
+      lift_motor_.SetDutyCycle(0.0);
+      
+      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LOWERED.\033[0m");
+}
 
-            auto param_node = std::make_shared<rclcpp::Node>("param_helper");
-            auto controller_params_client =
-                std::make_shared<rclcpp::AsyncParametersClient>(param_node, "/controller_server");
+void lift_blade() {
 
-            rclcpp::executors::SingleThreadedExecutor executor;
-            executor.add_node(param_node);
+      RCLCPP_INFO(this->get_logger(), "\033[1;LIFTING BLADE FOR 5.5 SECONDS...\033[0m");
 
-            auto results = controller_params_client->set_parameters_atomically(
-                {rclcpp::Parameter("goal_checker.xy_goal_tolerance", 0.2),
-                 rclcpp::Parameter("goal_checker.yaw_goal_tolerance", 0.2)});
+      auto start = std::chrono::high_resolution_clock::now();
+      while (std::chrono::duration_cast<std::chrono::seconds>(
+          std::chrono::high_resolution_clock::now() -
+          start)
+        .count() < 5.5)
+      {
+        lift_motor_.Heartbeat();
+        lift_motor_.SetDutyCycle(-1.0);
+      }
 
-            if (executor.spin_until_future_complete(results) != rclcpp::FutureReturnCode::SUCCESS)
-            {
-                throw std::runtime_error("\033[1;31mFAILED TO SET TOLERANCE PARAMETERS\033[0m");
-            }
+      lift_motor_.Heartbeat();
+      lift_motor_.SetDutyCycle(0.0);
+      
+      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LIFTED.\033[0m");
+}
+void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
+  {
+    auto result = std::make_shared<Excavation::Result>();
+    bool excavation_success = false;
 
-            RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE...\033[0m");
+    lift_blade();
+    lower_blade();
 
-            auto goal_msg = NavigateToPose::Goal();
-            geometry_msgs::msg::Pose goal_pose;
+    try {
 
-            goal_pose.position.x = 4.3;
-            goal_pose.position.y = -0.4;
-            goal_pose.orientation.z = 0.707;
-            goal_pose.orientation.w = 0.707;
+      auto planner_msg = std_msgs::msg::String();
+      planner_msg.data = "StraightLine";
+      planner_publisher_->publish(planner_msg);
 
-            goal_msg.pose.pose = goal_pose;
-            goal_msg.pose.header.stamp = this->now();
-            goal_msg.pose.header.frame_id = "map";
+      auto controller_msg = std_msgs::msg::String();
+      controller_msg.data = "PurePursuit";
+      controller_publisher_->publish(controller_msg);
 
-            auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
-            std::promise<bool> nav_completed;
-            std::future<bool> nav_future = nav_completed.get_future();
+      auto param_node = std::make_shared<rclcpp::Node>("param_helper");
+      auto controller_params_client =
+        std::make_shared<rclcpp::AsyncParametersClient>(param_node, "/controller_server");
 
-            send_goal_options.result_callback = [&](const GoalHandleNavigate::WrappedResult &result) {
-                if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-                {
-                    excavation_success = true;
-                }
-                else
-                {
-                    excavation_success = false;
-                }
-                nav_completed.set_value(true);
-            };
+      rclcpp::executors::SingleThreadedExecutor executor;
+      executor.add_node(param_node);
 
-            auto excavation_goal = navigation_client_->async_send_goal(goal_msg, send_goal_options);
+      auto results = controller_params_client->set_parameters_atomically(
+        {rclcpp::Parameter("goal_checker.xy_goal_tolerance", 0.2),
+          rclcpp::Parameter("goal_checker.yaw_goal_tolerance", 0.2)});
 
-            if (excavation_goal.wait_for(std::chrono::seconds(2)) != std::future_status::ready)
-            {
-                throw std::runtime_error("\033[1;31mFAILED TO SEND CONSTRUCTION GOAL\033[0m");
-            }
-            auto goal_handle = excavation_goal.get();
-            if (!goal_handle)
-            {
-                throw std::runtime_error("\033[1;31mCONSTRUCTION GOAL REJECTED BY SERVER\033[0m");
-            }
+      if (executor.spin_until_future_complete(results) != rclcpp::FutureReturnCode::SUCCESS) {
+        throw std::runtime_error("\033[1;31mFAILED TO SET TOLERANCE PARAMETERS\033[0m");
+      }
 
-            if (nav_future.wait_for(std::chrono::seconds(360)) != std::future_status::ready)
-            {
-                throw std::runtime_error("\033[1;31mEXCAVATION TIMED OUT\033[0m");
-            }
-        }
-        catch (const std::exception &e)
-        {
-            RCLCPP_ERROR(this->get_logger(), "\033[1;31mEXCAVATION FAILED: %s\033[0m", e.what());
+      RCLCPP_INFO(
+        this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE...\033[0m");
+
+      auto goal_msg = NavigateToPose::Goal();
+      geometry_msgs::msg::Pose goal_pose;
+
+      // 4.3, -0.2 for KSC
+      // 6.1, 0.5 for UCF
+      goal_pose.position.x = 4.3;
+      goal_pose.position.y = -0.2;
+      goal_pose.orientation.z = 0.707;
+      goal_pose.orientation.w = 0.707;
+
+      goal_msg.pose.pose = goal_pose;
+      goal_msg.pose.header.stamp = this->now();
+      goal_msg.pose.header.frame_id = "map";
+
+      auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
+      std::promise<bool> nav_completed;
+      std::future<bool> nav_future = nav_completed.get_future();
+
+      send_goal_options.result_callback = [&](const GoalHandleNavigate::WrappedResult & result) {
+          if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+            excavation_success = true;
+            lift_blade();
+          } else {
             excavation_success = false;
-        }
+            lift_blade();
+          }
+          nav_completed.set_value(true);
+        };
 
-        result->success = excavation_success;
-        if (excavation_success)
-        {
-            goal_handle->succeed(result);
-        }
-        else
-        {
-            goal_handle->abort(result);
-        }
+      auto excavation_goal = navigation_client_->async_send_goal(goal_msg, send_goal_options);
+
+      if (excavation_goal.wait_for(std::chrono::seconds(2)) != std::future_status::ready) {
+        throw std::runtime_error("\033[1;31mFAILED TO SEND CONSTRUCTION GOAL\033[0m");
+      }
+      auto goal_handle = excavation_goal.get();
+      if (!goal_handle) {
+        throw std::runtime_error("\033[1;31mCONSTRUCTION GOAL REJECTED BY SERVER\033[0m");
+      }
+
+      if (nav_future.wait_for(std::chrono::seconds(360)) != std::future_status::ready) {
+        throw std::runtime_error("\033[1;31mEXCAVATION TIMED OUT\033[0m");
+      }
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(this->get_logger(), "\033[1;31mEXCAVATION FAILED: %s\033[0m", e.what());
+      excavation_success = false;
     }
 
-    rclcpp_action::Server<Excavation>::SharedPtr action_server_;
-    rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
+    result->success = excavation_success;
+    if (excavation_success) {
+      goal_handle->succeed(result);
+    } else {
+      goal_handle->abort(result);
+    }
+  }
 
-    bool goal_active_;
+  rclcpp_action::Server<Excavation>::SharedPtr action_server_;
+  rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_subscriber_;
+
+  SparkMax lift_motor_;
+  double current_encoder_position_ = 0.0;
+  bool goal_active_;
 };
 
-/**
- * @brief Main function.
- * Initializes and runs the ExcavationServer node.
- */
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ExcavationServer>());
-    rclcpp::shutdown();
-    return 0;
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<ExcavationServer>());
+  rclcpp::shutdown();
+  return 0;
 }

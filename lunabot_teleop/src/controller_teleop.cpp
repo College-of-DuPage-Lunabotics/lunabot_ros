@@ -1,10 +1,11 @@
 /**
  * @file controller_teleop.cpp
  * @author Grayson Arendt
- * @date 9/18/2024
+ * @date 4/17/2025
  */
 
 #include <algorithm>
+#include <array>
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
@@ -14,226 +15,226 @@
 
 /**
  * @class ControllerTeleop
- * @brief Controls the robot physically via manual and autonomous commands using various controllers.
+ * @brief Handles joystick/navigation commands, applies smoothing, and drives motors.
  */
 class ControllerTeleop : public rclcpp::Node
 {
-  public:
-    ControllerTeleop()
-        : Node("motor_controller"), manual_enabled_(true), robot_disabled_(false), left_wheel_motor_("can0", 1),
-          right_wheel_motor_("can0", 2), lift_actuator_motor_("can0", 3), tilt_actuator_left_motor_("can0", 4),
-          tilt_actuator_right_motor_("can0", 5)
-    {
-        velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
-            "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
-        joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
-            "joy", 10, std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
+public:
+  /**
+   * @brief Constructor for ControllerTeleop.
+   */
+  ControllerTeleop()
+  : Node("controller_teleop"),
+    left_wheel_motor_("can0", 1),
+    right_wheel_motor_("can0", 2),
+    lift_actuator_motor_("can0", 3)
+  {
+    declare_and_get_parameters();
 
-        declare_and_get_parameters();
-        apply_controller_mode();
+    velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
+      "cmd_vel", 10,
+      std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
 
-        RCLCPP_INFO(get_logger(), "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+    joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
+      "joy", 10,
+      std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
+
+    RCLCPP_INFO(get_logger(), "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+  }
+
+private:
+  /**
+   * @brief Declare parameters and store them in variables.
+   */
+  void declare_and_get_parameters()
+  {
+    declare_parameter("smoothing_alpha", 0.2);
+    declare_parameter("steam_mode", true);
+    declare_parameter("xbox_mode", false);
+    declare_parameter("ps4_mode", false);
+    declare_parameter("switch_mode", false);
+
+    get_parameter("smoothing_alpha", smoothing_alpha_);
+    get_parameter("steam_mode", steam_mode_);
+    get_parameter("xbox_mode", xbox_mode_);
+    get_parameter("ps4_mode", ps4_mode_);
+    get_parameter("switch_mode", switch_mode_);
+  }
+
+  /**
+   * @brief Clamp helper for motor duty‑cycle.
+   */
+  static double clamp(double v) {return std::clamp(v, -1.0, 1.0);}
+
+  /**
+   * @brief Low‑pass filter for wheel speed commands.
+   * @param curr Current (unsmoothed) command.
+   * @param prev Previous filtered value (updated).
+   * @return Smoothed and clamped command.
+   */
+  double smooth_speed(double curr, double & prev)
+  {
+    curr = smoothing_alpha_ * curr + (1.0 - smoothing_alpha_) * prev;
+    prev = curr;
+    return clamp(curr);
+  }
+
+  /**
+   * @brief Retrieve a button index based on controller type.
+
+   * @param msg The joystick message.
+   * @param map The mapping of buttons for different controllers.
+   * @return The button state.
+   */
+  int get_button(
+    const sensor_msgs::msg::Joy::SharedPtr & msg,
+    const std::array<int, 4> & map) const
+  {
+    size_t idx = steam_mode_ ? 3 : xbox_mode_ ? 2 : ps4_mode_ ? 1 : 0;
+    return msg->buttons[map[idx]];
+  }
+
+  /**
+   * @brief Retrieve an axis index based on controller type.
+   * @param msg The joystick message.
+   * @param map The mapping of axes for different controllers.
+   * @return The axis value.
+   */
+  double get_axis(
+    const sensor_msgs::msg::Joy::SharedPtr & msg,
+    const std::array<int, 3> & map) const
+  {
+    size_t idx = xbox_mode_ ? 2 : ps4_mode_ ? 1 : 0;
+    return msg->axes[map[idx]];
+  }
+
+  /**
+   * @brief Drive the robot with the given left and right speeds.
+   * @param left_speed Left wheel speed.
+   * @param right_speed Right wheel speed.
+   */
+  void drive(double left_speed, double right_speed)
+  {
+    if (abs(left_speed) <= 0.1 && abs(right_speed) <= 0.1) {
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      return;
     }
 
-  private:
-    /**
-     * @brief Declares and retrieves controller mode parameters.
-     */
-    void declare_and_get_parameters()
-    {
-        declare_parameter("xbox_mode", true);
-        declare_parameter("ps4_mode", false);
-        declare_parameter("switch_mode", false);
-        declare_parameter("outdoor_mode", false);
+    left_wheel_motor_.SetDutyCycle(
+      smooth_speed(left_speed, prev_left_speed_));
 
-        get_parameter("xbox_mode", xbox_mode_);
-        get_parameter("ps4_mode", ps4_mode_);
-        get_parameter("switch_mode", switch_mode_);
-        get_parameter("outdoor_mode", outdoor_mode_);
+    right_wheel_motor_.SetDutyCycle(
+      smooth_speed(right_speed, prev_right_speed_));
+  }
+
+  /**
+   * @brief Process joystick messages in manual mode.
+   * @param msg The joystick message.
+   */
+  void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
+  {
+    auto clock = rclcpp::Clock();
+
+    share_button_ = get_button(msg, {9, 8, 9, 2});
+    menu_button_ = get_button(msg, {10, 9, 10, 13});
+    home_button_ = get_button(msg, {11, 10, 8, 11});
+    x_button_ = get_button(msg, {2, 3, 2, 5});
+    y_button_ = get_button(msg, {3, 2, 3, 6});
+
+    left_joystick_x_ = msg->axes[0];
+    left_joystick_y_ = msg->axes[1];
+    right_joystick_y_ = -msg->axes[3];
+
+    d_pad_vertical_ = get_axis(msg, {5, 7, 7});
+  
+    if (share_button_) {
+      manual_enabled_ = true;
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), clock, 1000, "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
     }
 
-    /**
-     * @brief Applies the correct controller mode based on parameters.
-     */
-    void apply_controller_mode()
-    {
-        if (xbox_mode_)
-            RCLCPP_INFO(get_logger(), "XBOX MODE");
-        else if (ps4_mode_)
-            RCLCPP_INFO(get_logger(), "PS4 MODE");
-        else if (switch_mode_)
-            RCLCPP_INFO(get_logger(), "SWITCH MODE");
-        else
-            RCLCPP_ERROR(get_logger(), "\033[1;31mNO CONTROLLER SELECTED, CHECK LAUNCH PARAMETERS\033[0m");
+    if (menu_button_) {
+      manual_enabled_ = false;
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), clock, 1000, "\033[1;33mAUTONOMOUS CONTROL:\033[0m \033[1;32mENABLED\033[0m");
     }
 
-    /**
-     * @brief Controls the robot based on joystick input.
-     */
-    void control_robot()
-    {
-        if (home_button_)
-            robot_disabled_ = true;
-
-        lift_actuator_speed_ = (d_pad_vertical_ == 1.0) ? -0.3 : (d_pad_vertical_ == -1.0) ? 0.3 : 0.0;
-        tilt_actuator_speed_ = (right_joystick_y_ > 0.1) ? -0.3 : (right_joystick_y_ < -0.1) ? 0.3 : 0.0;
-
-        speed_multiplier_ = (x_button_ && y_button_) ? 0.3 : (x_button_ ? 0.1 : 0.6);
-
-        if (switch_mode_)
-        {
-            left_speed_ = left_joystick_y_ - left_joystick_x_;
-            right_speed_ = left_joystick_y_ + left_joystick_x_;
-        }
-        else
-        {
-            right_trigger_ = (1.0 - right_trigger_) / 2.0;
-            left_trigger_ = (1.0 - left_trigger_) / 2.0;
-
-            if (right_trigger_ != 0.0)
-            {
-                left_speed_ = right_trigger_ - left_joystick_x_;
-                right_speed_ = right_trigger_ + left_joystick_x_;
-            }
-            else if (left_trigger_ != 0.0)
-            {
-                left_speed_ = -(left_trigger_ - left_joystick_x_);
-                right_speed_ = -(left_trigger_ + left_joystick_x_);
-            }
-            else
-            {
-                left_speed_ = -left_joystick_x_;
-                right_speed_ = left_joystick_x_;
-            }
-        }
-
-        left_wheel_motor_.SetDutyCycle(std::clamp(left_speed_ * speed_multiplier_, -1.0, 1.0));
-        right_wheel_motor_.SetDutyCycle(std::clamp(right_speed_ * speed_multiplier_, -1.0, 1.0));
-        lift_actuator_motor_.SetDutyCycle(std::clamp(lift_actuator_speed_, -1.0, 1.0));
-        tilt_actuator_left_motor_.SetDutyCycle(std::clamp(tilt_actuator_speed_, -1.0, 1.0));
-        tilt_actuator_right_motor_.SetDutyCycle(std::clamp(tilt_actuator_speed_, -1.0, 1.0));
+    if (home_button_) {
+      robot_disabled_ = true;
+      RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
     }
 
-    /**
-     * @brief Joystick input processing.
-     */
-    void joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
-    {
-        auto clock = rclcpp::Clock();
+    if (!manual_enabled_ || robot_disabled_) {return;}
 
-        share_button_ = get_button(joy_msg, {9, 8, 9});
-        menu_button_ = get_button(joy_msg, {10, 9, 10});
-        home_button_ = get_button(joy_msg, {11, 10, 8});
-        a_button_ = get_button(joy_msg, {1, 0, 0});
-        b_button_ = get_button(joy_msg, {0, 2, 1});
-        x_button_ = get_button(joy_msg, {2, 3, 2});
-        y_button_ = get_button(joy_msg, {3, 2, 3});
-        left_bumper_ = get_button(joy_msg, {4, 4, 4});
-        right_bumper_ = get_button(joy_msg, {5, 5, 5});
+    lift_actuator_motor_.Heartbeat();
 
-        d_pad_horizontal_ = get_axis(joy_msg, {4, 6, 6});
-        d_pad_vertical_ = get_axis(joy_msg, {5, 7, 7});
+    double drive_speed_multiplier = (x_button_) ? 1.0 : 0.7;
 
-        if (share_button_)
-        {
-            manual_enabled_ = true;
-            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
-        }
+    double left_speed = left_joystick_y_ - left_joystick_x_;
+    double right_speed = left_joystick_y_ + left_joystick_x_;
 
-        if (menu_button_)
-        {
-            manual_enabled_ = false;
-            RCLCPP_INFO_THROTTLE(get_logger(), clock, 1000, "\033[1;33mAUTONOMOUS CONTROL:\033[0m \033[1;32mENABLED\033[0m");
-        }
+    // Apply smoothing to the commands and drive the motors
+    drive(left_speed * drive_speed_multiplier, right_speed * drive_speed_multiplier);
 
-        if (manual_enabled_)
-        {
-            left_joystick_x_ = joy_msg->axes[0];
-            left_joystick_y_ = joy_msg->axes[1];
-            right_joystick_y_ = joy_msg->axes[4];
-            left_trigger_ = joy_msg->axes[2];
-            right_trigger_ = joy_msg->axes[5];
+    // Lift/lower blade usnig right joystick
+    double lift_speed = right_joystick_y_;
+    lift_speed = clamp(lift_speed);
 
-            if (robot_disabled_)
-            {
-                RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
-            }
-            else
-            {
-                SparkMax::Heartbeat();
-            }
-
-            control_robot();
-        }
+    if (abs(lift_speed) > 0.4) {
+      lift_actuator_motor_.SetDutyCycle(lift_speed);
+      }
+    else {
+      lift_actuator_motor_.SetDutyCycle(0.0);
     }
+  }
 
-    /**
-     * @brief Velocity message callback for navigation control.
-     */
-    void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr velocity_msg)
-    {
-        if (!manual_enabled_)
-        {
-            SparkMax::Heartbeat();
-            double linear_velocity = velocity_msg->linear.x;
-            double angular_velocity = velocity_msg->angular.z;
-            double wheel_radius = outdoor_mode_ ? 0.2 : 0.127;
-            double wheel_distance = 0.5;
+  /**
+   * @brief Process /cmd_vel in autonomous mode.
+   */
+  void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+  {
+    if (manual_enabled_) {return;}
+    lift_actuator_motor_.Heartbeat();
 
-            double velocity_left_cmd =
-                -0.05 * (linear_velocity + angular_velocity * wheel_distance / 2.0) / wheel_radius;
-            double velocity_right_cmd =
-                -0.05 * (linear_velocity - angular_velocity * wheel_distance / 2.0) / wheel_radius;
+    // Calculate left and right wheel speeds based on linear and angular velocities
+    double wheel_radius = 0.095;
+    double wheel_base = 0.53;
 
-            left_wheel_motor_.SetDutyCycle(std::clamp(velocity_left_cmd, -1.0, 1.0));
-            right_wheel_motor_.SetDutyCycle(std::clamp(velocity_right_cmd, -1.0, 1.0));
-        }
-    }
+    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
-    /**
-     * @brief Helper to retrieve button value based on controller mode.
-     */
-    int get_button(const sensor_msgs::msg::Joy::SharedPtr &joy_msg, const std::initializer_list<int> &mappings)
-    {
-        size_t index = xbox_mode_ ? 2 : ps4_mode_ ? 1 : 0;
-        return joy_msg->buttons[*(mappings.begin() + index)];
-    }
+    RCLCPP_INFO(
+      get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
-    /**
-     * @brief Helper to retrieve axis value based on controller mode.
-     */
-    double get_axis(const sensor_msgs::msg::Joy::SharedPtr &joy_msg, const std::initializer_list<int> &mappings)
-    {
-        size_t index = xbox_mode_ ? 2 : ps4_mode_ ? 1 : 0;
-        return joy_msg->axes[*(mappings.begin() + index)];
-    }
+    // Apply smoothing to the commands and drive the motors
+    drive(left_cmd, right_cmd);
+  }
 
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
-    rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
 
-    bool manual_enabled_, robot_disabled_;
-    bool xbox_mode_, ps4_mode_, switch_mode_, outdoor_mode_;
-    double speed_multiplier_, left_speed_, right_speed_, lift_actuator_speed_, tilt_actuator_speed_;
-    bool home_button_, share_button_, menu_button_, a_button_, b_button_, x_button_, y_button_;
-    double left_trigger_, right_trigger_, left_bumper_, right_bumper_, d_pad_vertical_, d_pad_horizontal_;
-    double left_joystick_x_, left_joystick_y_, right_joystick_y_;
+  SparkMax left_wheel_motor_, right_wheel_motor_, lift_actuator_motor_;
 
-    SparkMax left_wheel_motor_;
-    SparkMax right_wheel_motor_;
-    SparkMax lift_actuator_motor_;
-    SparkMax tilt_actuator_left_motor_;
-    SparkMax tilt_actuator_right_motor_;
+  bool manual_enabled_ = false, robot_disabled_ = false;
+  bool steam_mode_, xbox_mode_, ps4_mode_, switch_mode_;
+  bool share_button_, menu_button_, home_button_, x_button_, y_button_;
+
+  double d_pad_vertical_;
+  double left_joystick_x_, left_joystick_y_, right_joystick_y_;
+  double prev_left_speed_ = 0.0, prev_right_speed_ = 0.0;
+  double smoothing_alpha_;
 };
 
 /**
  * @brief Main function
  * Initializes and spins the ControllerTeleop node.
  */
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<ControllerTeleop>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<ControllerTeleop>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
 }

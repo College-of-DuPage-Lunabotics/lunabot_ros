@@ -6,8 +6,6 @@ bt_navigator:
     odom_topic: /odom
     bt_loop_duration: 20
     default_server_timeout: 100
-    default_nav_to_pose_bt_xml: "$(find-pkg-share lunabot_config)/behavior_trees/nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml"
-    default_nav_through_poses_bt_xml: "$(find-pkg-share lunabot_config)/behavior_trees/nav_through_poses_w_replanning_and_recovery.xml"
 
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
@@ -71,7 +69,7 @@ controller_server:
     use_sim_time: true
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
+    min_y_velocity_threshold: 0.05
     min_theta_velocity_threshold: 0.001
     progress_checker_plugins: ["progress_checker"]
     goal_checker_plugins: ["goal_checker"]
