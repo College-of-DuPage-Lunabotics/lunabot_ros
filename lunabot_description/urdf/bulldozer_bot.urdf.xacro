@@ -115,25 +115,23 @@
 
   <link name="d456_optical_link"></link>
 
-  <link name="s3_lidar_link">
+  <link name="mid360_lidar_link">
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_mid360_lidar.stl" />
       </geometry>
-      <origin xyz="0 -0.0155 0" rpy="0 0 -1.5708" />
-      <material name="black" />
+      <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_s3_lidar.stl" />
+          filename="file:///$(find lunabot_description)/meshes/bulldozer_bot/bulldozer_bot_mid360_lidar.stl" />
       </geometry>
-      <origin xyz="0 -0.0155 0" rpy="0 0 -1.5708" />
     </collision>
   </link>
 
-  <link name="imu_link"></link>
+  <link name="mid360_imu_link"></link>
 
   <!-- ================================= -->
   <!--            WHEEL LINKS            -->
@@ -233,15 +231,15 @@
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
-  <joint name="base_s3_lidar_joint" type="fixed">
+  <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
-    <child link="s3_lidar_link" />
+    <child link="mid360_lidar_link" />
     <origin xyz="-0.09025 0 0.6" rpy="0 0 0" />
   </joint>
 
-  <joint name="imu_joint" type="fixed">
-    <parent link="base_link" />
-    <child link="imu_link" />
+  <joint name="mid360_imu_joint" type="fixed">
+    <parent link="mid360_lidar_link" />
+    <child link="mid360_imu_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
@@ -385,43 +383,49 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="s3_lidar_link">
-      <sensor type="ray" name="s3_lidar_link">
+    <gazebo reference="mid360_lidar_link">
+      <sensor type="ray" name="mid360_lidar_link">
+        <always_on>true</always_on>
         <pose>0 0 0 0 0 0</pose>
-        <visualize>false</visualize>
-        <update_rate>20.0</update_rate>
-        <ray>
-          <scan>
-            <horizontal>
-              <samples>1080</samples>
-              <resolution>0.5</resolution>
-              <min_angle>-3.14</min_angle>
-              <max_angle>3.14</max_angle>
-            </horizontal>
-          </scan>
-          <range>
-            <min>0.1</min>
-            <max>10.0</max>
-          </range>
-          <noise>
-            <type>gaussian</type>
-            <mean>0.0</mean>
-            <stddev>0.01</stddev>
-          </noise>
-        </ray>
-        <plugin name="s3_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
-          <frame_name>s3_lidar_link</frame_name>
-          <ros>
-            <remapping>~/out:=/scan_raw</remapping>
-          </ros>
-          <output_type>sensor_msgs/LaserScan</output_type>
-          <publish_tf>false</publish_tf>
+        <visualize>true</visualize>
+        <update_rate>10</update_rate>
+        <plugin name="mid360_plugin" filename="libros2_livox.so">
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>100</samples>
+                <resolution>1</resolution>
+                <min_angle>0</min_angle>
+                <max_angle>6.2831852</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-0.126</min_angle>
+                <max_angle>0.964</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>200.0</max>
+              <resolution>0.002</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+          <visualize>false</visualize>
+          <samples>30000</samples>
+          <downsample>1</downsample>
+          <csv_file_name>$(find ros2_livox_simulation)/scan_mode/mid360.csv</csv_file_name>
+          <topic>livox</topic>
         </plugin>
       </sensor>
-      <material>Gazebo/Black</material>
     </gazebo>
 
-    <gazebo reference="imu_link">
+    <gazebo reference="mid360_imu_link">
       <gravity>false</gravity>
       <sensor name="imu_sensor" type="imu">
         <always_on>true</always_on>
@@ -430,13 +434,13 @@
         <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
           <ros>
             <namespace></namespace>
-            <remapping>~/out:=/imu/data</remapping>
+            <remapping>~/out:=/livox/imu</remapping>
           </ros>
           <bodyName>base_link</bodyName>
           <gaussianNoise>0.0</gaussianNoise>
           <xyzOffset>0 0 0</xyzOffset>
           <rpyOffset>0 0 0</rpyOffset>
-          <frameName>imu_link</frameName>
+          <frameName>mid360_imu_link</frameName>
           <publish_tf>false</publish_tf>
           <initialOrientationAsReference>false</initialOrientationAsReference>
         </plugin>

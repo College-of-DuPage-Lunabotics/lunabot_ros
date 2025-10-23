@@ -10,8 +10,7 @@ This repository contains the software developed by the College of DuPage team fo
 - ASRock 4X4 BOX-8840U w/ 32GB 5200MHz DDR5 RAM
 
 **Sensors**
-- RPLidar S3
-- Unitree 4D LiDAR L1
+- Livox Mid-360
 - Intel RealSense D456 Depth Camera w/ IR Filter
 
 **Hardware**
@@ -52,9 +51,7 @@ mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
 git clone https://github.com/College-of-DuPage-Lunabotics/lunabot_ros.git
 cd lunabot_ros
-git submodule update --init --recursive --remote
 ```
-**If you have previously cloned this repository and do not see anything in the folders located in `third_party_packages` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `lunabot_ros` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 

@@ -15,7 +15,7 @@ ukf_filter_node:
     odom_frame: odom
     base_link_frame: base_link
     world_frame: odom
-    odom0: icp_odom
+    odom0: kiss/odometry
     odom0_config:
       [
         true,
@@ -39,31 +39,7 @@ ukf_filter_node:
     odom0_relative: true
     odom0_pose_rejection_threshold: 5.0
     odom0_twist_rejection_threshold: 1.5
-    odom1: rf2o_odom
-    odom1_config:
-      [
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-      ]
-    odom1_queue_size: 5
-    odom1_differential: true
-    odom1_relative: false
-    odom1_pose_rejection_threshold: 5.0
-    odom1_twist_rejection_threshold: 1.5
-    imu0: imu/data
+    imu0: livox/imu
     imu0_config:
       [
         false,

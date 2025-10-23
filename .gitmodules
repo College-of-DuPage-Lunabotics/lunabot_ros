@@ -1,9 +1,0 @@
-[submodule "third_party_packages/rf2o_laser_odometry"]
-	path = third_party_packages/rf2o_laser_odometry
-	url = https://github.com/MAPIRlab/rf2o_laser_odometry.git
-[submodule "third_party_packages/point_lio_ros2"]
-	path = third_party_packages/point_lio_ros2
-	url = https://github.com/dfloreaa/point_lio_ros2.git
-[submodule "third_party_packages/unilidar_sdk"]
-	path = third_party_packages/unilidar_sdk
-	url = https://github.com/unitreerobotics/unilidar_sdk.git

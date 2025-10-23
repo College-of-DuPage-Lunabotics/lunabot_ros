@@ -53,7 +53,7 @@ def set_spawn_coordinates(context, *args, **kwargs):
         "ucf": {"x": "1.0", "y": "-3.0", "z": "0.35"},
         "artemis": {
             "x": "2.5",
-            "y": "-1.6",
+            "y": "1.6",
             "z": "0.35",
         },
     }
@@ -94,9 +94,9 @@ def generate_launch_description():
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
-        default_value="bulldozer",
-        choices=["bulldozer", "trencher"],
-        description="Defines the robot configuration to use: 'bulldozer', or 'trencher', each with unique characteristics and capabilities.",
+        default_value="test",
+        choices=["test", "bulldozer", "trencher"],
+        description="Defines the robot configuration to use: 'test', 'bulldozer', or 'trencher', each with unique characteristics and capabilities.",
     )
 
     declare_use_sim = DeclareLaunchArgument(
@@ -128,7 +128,7 @@ def generate_launch_description():
 
     declare_arena_type = DeclareLaunchArgument(
         "arena_type",
-        default_value="ucf",
+        default_value="artemis",
         choices=["ucf", "artemis"],
         description="Choose the arena: 'ucf' for UCF arena or 'artemis' for Artemis arena.",
     )
@@ -214,13 +214,13 @@ def generate_launch_description():
             "--controller-manager",
             "/controller_manager",
         ],
-        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
+        condition=LaunchConfigurationEquals("robot_type", "bulldozer"),
     )
 
     blade_joint_controller_node = Node(
         package="lunabot_util",
         executable="blade_joint_controller",
-        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
+        condition=LaunchConfigurationEquals("robot_type", "bulldozer"),
     )
 
     diff_drive_controller_spawner = Node(

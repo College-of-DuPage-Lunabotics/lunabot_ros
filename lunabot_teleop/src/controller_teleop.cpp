@@ -13,9 +13,19 @@
 
 #include "SparkMax.hpp"
 
+#define WHEEL_RADIUS 0.095 // In meters
+#define WHEEL_BASE 0.53
+
+// ANSI color codes
+#define RESET "\033[0m"
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define MAGENTA "\033[1;35m"
+
 /**
  * @class ControllerTeleop
- * @brief Handles joystick/navigation commands, applies smoothing, and drives motors.
+ * @brief Handles joystick/navigation commands and drives motors.
  */
 class ControllerTeleop : public rclcpp::Node
 {
@@ -39,7 +49,7 @@ public:
       "joy", 10,
       std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
 
-    RCLCPP_INFO(get_logger(), "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+    RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
   }
 
 private:
@@ -48,13 +58,11 @@ private:
    */
   void declare_and_get_parameters()
   {
-    declare_parameter("smoothing_alpha", 0.2);
     declare_parameter("steam_mode", true);
     declare_parameter("xbox_mode", false);
     declare_parameter("ps4_mode", false);
     declare_parameter("switch_mode", false);
 
-    get_parameter("smoothing_alpha", smoothing_alpha_);
     get_parameter("steam_mode", steam_mode_);
     get_parameter("xbox_mode", xbox_mode_);
     get_parameter("ps4_mode", ps4_mode_);
@@ -65,19 +73,6 @@ private:
    * @brief Clamp helper for motor duty‑cycle.
    */
   static double clamp(double v) {return std::clamp(v, -1.0, 1.0);}
-
-  /**
-   * @brief Low‑pass filter for wheel speed commands.
-   * @param curr Current (unsmoothed) command.
-   * @param prev Previous filtered value (updated).
-   * @return Smoothed and clamped command.
-   */
-  double smooth_speed(double curr, double & prev)
-  {
-    curr = smoothing_alpha_ * curr + (1.0 - smoothing_alpha_) * prev;
-    prev = curr;
-    return clamp(curr);
-  }
 
   /**
    * @brief Retrieve a button index based on controller type.
@@ -115,17 +110,15 @@ private:
    */
   void drive(double left_speed, double right_speed)
   {
+    // Avoid small commands that may cause jitter
     if (abs(left_speed) <= 0.1 && abs(right_speed) <= 0.1) {
       left_wheel_motor_.SetDutyCycle(0.0);
       right_wheel_motor_.SetDutyCycle(0.0);
       return;
     }
 
-    left_wheel_motor_.SetDutyCycle(
-      smooth_speed(left_speed, prev_left_speed_));
-
-    right_wheel_motor_.SetDutyCycle(
-      smooth_speed(right_speed, prev_right_speed_));
+    left_wheel_motor_.SetDutyCycle(left_speed);
+    right_wheel_motor_.SetDutyCycle(right_speed);
   }
 
   /**
@@ -147,22 +140,22 @@ private:
     right_joystick_y_ = -msg->axes[3];
 
     d_pad_vertical_ = get_axis(msg, {5, 7, 7});
-  
+
     if (share_button_) {
       manual_enabled_ = true;
       RCLCPP_INFO_THROTTLE(
-        get_logger(), clock, 1000, "\033[1;35mMANUAL CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+        get_logger(), clock, 1000, MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
     }
 
     if (menu_button_) {
       manual_enabled_ = false;
       RCLCPP_INFO_THROTTLE(
-        get_logger(), clock, 1000, "\033[1;33mAUTONOMOUS CONTROL:\033[0m \033[1;32mENABLED\033[0m");
+        get_logger(), clock, 1000, YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
     }
 
     if (home_button_) {
       robot_disabled_ = true;
-      RCLCPP_ERROR(get_logger(), "\033[1;31mROBOT DISABLED\033[0m");
+      RCLCPP_ERROR(get_logger(), RED "ROBOT DISABLED" RESET);
     }
 
     if (!manual_enabled_ || robot_disabled_) {return;}
@@ -174,17 +167,16 @@ private:
     double left_speed = left_joystick_y_ - left_joystick_x_;
     double right_speed = left_joystick_y_ + left_joystick_x_;
 
-    // Apply smoothing to the commands and drive the motors
+    // Drive the motors
     drive(left_speed * drive_speed_multiplier, right_speed * drive_speed_multiplier);
 
-    // Lift/lower blade usnig right joystick
+    // Lift/lower blade using right joystick
     double lift_speed = right_joystick_y_;
     lift_speed = clamp(lift_speed);
 
     if (abs(lift_speed) > 0.4) {
       lift_actuator_motor_.SetDutyCycle(lift_speed);
-      }
-    else {
+    } else {
       lift_actuator_motor_.SetDutyCycle(0.0);
     }
   }
@@ -198,16 +190,13 @@ private:
     lift_actuator_motor_.Heartbeat();
 
     // Calculate left and right wheel speeds based on linear and angular velocities
-    double wheel_radius = 0.095;
-    double wheel_base = 0.53;
-
-    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
+    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
 
     RCLCPP_INFO(
       get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
-    // Apply smoothing to the commands and drive the motors
+    // Drive the motors
     drive(left_cmd, right_cmd);
   }
 
@@ -223,7 +212,6 @@ private:
   double d_pad_vertical_;
   double left_joystick_x_, left_joystick_y_, right_joystick_y_;
   double prev_left_speed_ = 0.0, prev_right_speed_ = 0.0;
-  double smoothing_alpha_;
 };
 
 /**

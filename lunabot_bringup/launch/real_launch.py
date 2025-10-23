@@ -30,13 +30,6 @@ def generate_launch_description():
     rtabmap_params_file = os.path.join(
         config_dir, "params", "rtabmap", "rtabmap_params.yaml"
     )
-    ukf_params_file = os.path.join(
-        config_dir, "params", "robot_localization", "ukf_params.yaml"
-    )
-    s3_params_file = os.path.join(
-        config_dir, "params", "laser_filters", "s3_params.yaml"
-    )
-
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
@@ -75,77 +68,6 @@ def generate_launch_description():
             ("scan", "/scan"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    icp_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="icp_odometry",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "Reg/Strategy": "1",
-                "Odom/Strategy": "1",
-                "Odom/FilteringStrategy": "1",
-                "Odom/KalmanProcessNoise": "0.001",
-                "Odom/KalmanMeasurementNoise": "0.01",
-                "Icp/PointToPlane": "true",
-                "Icp/Iterations": "10",
-                "Icp/VoxelSize": "0.1",
-                "Icp/Epsilon": "0.001",
-                "Icp/PointToPlaneK": "20",
-                "Icp/PointToPlaneRadius": "0",
-                "Icp/MaxTranslation": "2",
-                "Icp/MaxCorrespondenceDistance": "1",
-                "Icp/Strategy": "1",
-                "Icp/OutlierRatio": "0.7",
-                "Icp/CorrespondenceRatio": "0.01",
-                "Odom/ScanKeyFrameThr": "0.4",
-                "OdomF2M/ScanSubtractRadius": "0.1",
-                "OdomF2M/ScanMaxSize": "15000",
-                "OdomF2M/BundleAdjustment": "false",
-            }
-        ],
-        remappings=[
-            ("scan", "/scan"),
-            ("odom", "/icp_odom"),
-        ],
-        arguments=["--ros-args", "--log-level", "warn"],
-    )
-
-    rf2o_odometry_node = Node(
-        package="rf2o_laser_odometry",
-        executable="rf2o_laser_odometry_node",
-        name="rf2o_laser_odometry",
-        output="screen",
-        parameters=[
-            {
-                "laser_scan_topic": "/scan",
-                "odom_topic": "/rf2o_odom",
-                "publish_tf": False,
-                "base_frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "init_pose_from_topic": "",
-                "freq": 20.0,
-            }
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    ukf_node = Node(
-        package="robot_localization",
-        executable="ukf_node",
-        name="ukf_filter_node",
-        output="screen",
-        parameters=[
-            {
-                "use_sim_time": False,
-            },
-            ukf_params_file,
-        ],
     )
 
     excavation_server_node = Node(
@@ -217,32 +139,6 @@ def generate_launch_description():
         ]}, {"node_timeout": 10.0}],
     )
 
-    s3_lidar_node = Node(
-        package="rplidar_ros",
-        executable="rplidar_node",
-        name="rplidar_node",
-        parameters=[
-            {
-                "channel_type": "serial",
-                "serial_port": "/dev/ttyUSB0",
-                "serial_baudrate": 1000000,
-                "frame_id": "s3_lidar_link",
-                "inverted": False,
-                "angle_compensate": True,
-                "scan_mode": "DenseBoost",
-                "scan_frequency": 20.0,
-            }
-        ],
-        output="screen",
-    )
-
-    s3_filter_node = Node(
-        package="laser_filters",
-        executable="scan_to_scan_filter_chain",
-        parameters=[s3_params_file],
-        remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
-    )
-
     d456_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
@@ -303,8 +199,6 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
-    ld.add_action(s3_lidar_node)
-    ld.add_action(s3_filter_node)
     ld.add_action(d456_launch)
     ld.add_action(d456_imu_filter)
     ld.add_action(apriltag_d456_node)
@@ -317,9 +211,6 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
-                        icp_odometry_node,
-                        rf2o_odometry_node,
-                        ukf_node,
                     ],
                 ),
                 TimerAction(
@@ -357,9 +248,6 @@ def generate_launch_description():
                 TimerAction(
                     period=5.0,
                     actions=[
-                        icp_odometry_node,
-                        rf2o_odometry_node,
-                        ukf_node,
                         slam_node,
                     ],
                 ),

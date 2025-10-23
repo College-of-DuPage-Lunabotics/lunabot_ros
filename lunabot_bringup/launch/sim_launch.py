@@ -48,16 +48,19 @@ def generate_launch_description():
         description="Specify the type of robot to launch: 'bulldozer', or 'trencher'. Each option loads the respective robot configuration.",
     )
 
-    rtabmap_params_file = os.path.join(
-        config_dir, "params", "rtabmap", "rtabmap_params.yaml"
-    )
-
-    s3_params_file = os.path.join(
-        config_dir, "params", "laser_filters", "s3_params.yaml"
-    )
-
     ukf_params_file = os.path.join(
         config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
+
+    kiss_icp_config = os.path.join(
+        get_package_share_directory("lunabot_config"),
+        "params",
+        "kiss_icp",
+        "mid360.yaml",
+    )
+
+    rtabmap_params_file = os.path.join(
+        config_dir, "params", "rtabmap", "rtabmap_params.yaml"
     )
 
     bt_nav_to_pose = os.path.join(
@@ -96,9 +99,10 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "sync_queue_size": 1000,
-                "subscribe_scan_cloud": False,
-                "subscribe_scan": True,
+                "queue_size": 30,
+                "approx_sync_max_interval": 0.1,
+                "subscribe_scan_cloud": True,
+                "subscribe_scan": False,
                 "wait_imu_to_init": True,
             },
             rtabmap_params_file,
@@ -107,67 +111,25 @@ def generate_launch_description():
             ("rgb/image", "/d456/color/image_raw"),
             ("depth/image", "/d456/depth/image_rect_raw"),
             ("rgb/camera_info", "/d456/color/camera_info"),
-            ("scan", "/scan"),
+            ("scan_cloud", "/livox/points"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    icp_odometry_node = Node(
-        package="rtabmap_odom",
-        executable="icp_odometry",
+    kiss_icp_node = Node(
+        package="kiss_icp",
+        executable="kiss_icp_node",
+        name="kiss_icp_node",
         output="screen",
         parameters=[
             {
-                "frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "publish_tf": False,
-                "approx_sync": True,
-                "Reg/Strategy": "1",
-                "Odom/Strategy": "1",
-                "Odom/FilteringStrategy": "1",
-                "Odom/KalmanProcessNoise": "0.001",
-                "Odom/KalmanMeasurementNoise": "0.01",
-                "Icp/PointToPlane": "true",
-                "Icp/Iterations": "10",
-                "Icp/VoxelSize": "0.1",
-                "Icp/Epsilon": "0.001",
-                "Icp/PointToPlaneK": "20",
-                "Icp/PointToPlaneRadius": "0",
-                "Icp/MaxTranslation": "2",
-                "Icp/MaxCorrespondenceDistance": "1",
-                "Icp/Strategy": "1",
-                "Icp/OutlierRatio": "0.7",
-                "Icp/CorrespondenceRatio": "0.01",
-                "Odom/ScanKeyFrameThr": "0.4",
-                "OdomF2M/ScanSubtractRadius": "0.1",
-                "OdomF2M/ScanMaxSize": "15000",
-                "OdomF2M/BundleAdjustment": "false",
-            }
+                "use_sim_time": True
+            },
+            kiss_icp_config,
         ],
         remappings=[
-            ("scan", "/scan"),
-            ("odom", "/icp_odom"),
+            ("pointcloud_topic", "/livox/points"),
         ],
-        arguments=["--ros-args", "--log-level", "error"],
-    )
-
-    rf2o_odometry_node = Node(
-        package="rf2o_laser_odometry",
-        executable="rf2o_laser_odometry_node",
-        name="rf2o_laser_odometry",
-        output="screen",
-        parameters=[
-            {
-                "laser_scan_topic": "/scan",
-                "odom_topic": "/rf2o_odom",
-                "publish_tf": False,
-                "base_frame_id": "base_link",
-                "odom_frame_id": "odom",
-                "init_pose_from_topic": "",
-                "freq": 40.0,
-            }
-        ],
-        arguments=["--ros-args", "--log-level", "error"],
     )
 
     ukf_node = Node(
@@ -181,13 +143,6 @@ def generate_launch_description():
             },
             ukf_params_file,
         ],
-    )
-
-    s3_filter_node = Node(
-        package="laser_filters",
-        executable="scan_to_scan_filter_chain",
-        parameters=[s3_params_file],
-        remappings=[("scan", "/scan_raw"), ("scan_filtered", "/scan")],
     )
 
     excavation_server_node = Node(
@@ -338,10 +293,8 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
-                        icp_odometry_node,
-                        rf2o_odometry_node,
                         ukf_node,
-                        s3_filter_node,
+                        kiss_icp_node,
                     ],
                 ),
                 TimerAction(
@@ -382,11 +335,9 @@ def generate_launch_description():
                 TimerAction(
                     period=5.0,
                     actions=[
-                        icp_odometry_node,
-                        rf2o_odometry_node,
                         ukf_node,
                         slam_node,
-                        s3_filter_node,
+                        kiss_icp_node,
                     ],
                 ),
                 TimerAction(

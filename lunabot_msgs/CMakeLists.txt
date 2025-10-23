@@ -1,5 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(lunabot_msgs)
+
+# Set policies to suppress warnings from system packages
+if(POLICY CMP0148)
+  cmake_policy(SET CMP0148 OLD)
+endif()
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)

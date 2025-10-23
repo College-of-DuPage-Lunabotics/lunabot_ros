@@ -70,45 +70,47 @@ private:
   }
 
 
-void lower_blade() {
-      RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING BLADE FOR 4.0 SECONDS...\033[0m");
+  void lower_blade()
+  {
+    RCLCPP_INFO(this->get_logger(), "\033[1;36mLOWERING BLADE FOR 4.0 SECONDS...\033[0m");
 
-      auto start = std::chrono::high_resolution_clock::now();
-      while (std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::high_resolution_clock::now() -
-          start)
-        .count() < 4.0)
-      {
-        lift_motor_.Heartbeat();
-        lift_motor_.SetDutyCycle(1.0);
-      }
-
+    auto start = std::chrono::high_resolution_clock::now();
+    while (std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::high_resolution_clock::now() -
+        start)
+      .count() < 4.0)
+    {
       lift_motor_.Heartbeat();
-      lift_motor_.SetDutyCycle(0.0);
-      
-      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LOWERED.\033[0m");
-}
+      lift_motor_.SetDutyCycle(1.0);
+    }
 
-void lift_blade() {
+    lift_motor_.Heartbeat();
+    lift_motor_.SetDutyCycle(0.0);
 
-      RCLCPP_INFO(this->get_logger(), "\033[1;LIFTING BLADE FOR 5.5 SECONDS...\033[0m");
+    RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LOWERED.\033[0m");
+  }
 
-      auto start = std::chrono::high_resolution_clock::now();
-      while (std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::high_resolution_clock::now() -
-          start)
-        .count() < 5.5)
-      {
-        lift_motor_.Heartbeat();
-        lift_motor_.SetDutyCycle(-1.0);
-      }
+  void lift_blade()
+  {
 
+    RCLCPP_INFO(this->get_logger(), "\033[1;LIFTING BLADE FOR 5.5 SECONDS...\033[0m");
+
+    auto start = std::chrono::high_resolution_clock::now();
+    while (std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::high_resolution_clock::now() -
+        start)
+      .count() < 5.5)
+    {
       lift_motor_.Heartbeat();
-      lift_motor_.SetDutyCycle(0.0);
-      
-      RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LIFTED.\033[0m");
-}
-void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
+      lift_motor_.SetDutyCycle(-1.0);
+    }
+
+    lift_motor_.Heartbeat();
+    lift_motor_.SetDutyCycle(0.0);
+
+    RCLCPP_INFO(this->get_logger(), "\033[1;32mBLADE LIFTED.\033[0m");
+  }
+  void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
     auto result = std::make_shared<Excavation::Result>();
     bool excavation_success = false;
