@@ -17,6 +17,8 @@ install_camera_dependencies() {
 
 install_cmake() {
     echo -e "\n------------------------ Upgrade CMake (required for KISS-ICP) ------------------------ \n"
+    # Install pip
+    sudo apt install -y python3-pip
     # Check current CMake version
     current_version=$(cmake --version | grep -oP '(?<=cmake version )[0-9.]+' || echo "0.0.0")
     required_version="3.24.0"
