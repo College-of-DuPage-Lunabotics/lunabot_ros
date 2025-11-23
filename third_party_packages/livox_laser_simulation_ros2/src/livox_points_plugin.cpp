@@ -70,7 +70,7 @@ namespace gazebo
         node = transport::NodePtr(new transport::Node());
         node->Init(raySensor->WorldName());
         // PointCloud2 publisher
-        cloud2_pub = node_->create_publisher<sensor_msgs::msg::PointCloud2>(curr_scan_topic + "/points", 10);
+        cloud2_pub = node_->create_publisher<sensor_msgs::msg::PointCloud2>(curr_scan_topic + "/lidar", 10);
 
         scanPub = node->Advertise<msgs::LaserScanStamped>(curr_scan_topic+"laserscan", 50);
 

@@ -111,7 +111,7 @@ def generate_launch_description():
             ("rgb/image", "/d456/color/image_raw"),
             ("depth/image", "/d456/depth/image_rect_raw"),
             ("rgb/camera_info", "/d456/color/camera_info"),
-            ("scan_cloud", "/livox/points"),
+            ("scan_cloud", "/livox/lidar"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
@@ -128,7 +128,7 @@ def generate_launch_description():
             kiss_icp_config,
         ],
         remappings=[
-            ("pointcloud_topic", "/livox/points"),
+            ("pointcloud_topic", "/livox/lidar"),
         ],
     )
 

@@ -14,6 +14,7 @@ from launch.actions import (
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     realsense_dir = get_package_share_directory("realsense2_camera")
+    livox_dir = get_package_share_directory("livox_ros_driver2")
 
     apriltag_params_file = os.path.join(
         config_dir, "params", "apriltag", "tag_params.yaml"
@@ -30,6 +31,11 @@ def generate_launch_description():
     rtabmap_params_file = os.path.join(
         config_dir, "params", "rtabmap", "rtabmap_params.yaml"
     )
+
+    livox_params_file = os.path.join(
+        config_dir, "params", "mid360", "mid360.json"
+    )
+    
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
@@ -41,7 +47,7 @@ def generate_launch_description():
         output="log",
         parameters=[
             {
-                "use_sim_time": True,
+                "use_sim_time": False,
                 "subscribe_depth": True,
                 "subscribe_rgbd": False,
                 "subscribe_rgb": True,
@@ -54,9 +60,10 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "sync_queue_size": 1000,
-                "subscribe_scan_cloud": False,
-                "subscribe_scan": True,
+                "queue_size": 30,
+                "approx_sync_max_interval": 0.1,
+                "subscribe_scan_cloud": True,
+                "subscribe_scan": False,
                 "wait_imu_to_init": True,
             },
             rtabmap_params_file,
@@ -65,7 +72,7 @@ def generate_launch_description():
             ("rgb/image", "/d456/color/image_raw"),
             ("depth/image", "/d456/depth/image_rect_raw"),
             ("rgb/camera_info", "/d456/color/camera_info"),
-            ("scan", "/scan"),
+            ("scan_cloud", "/livox/lidar"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
@@ -156,6 +163,8 @@ def generate_launch_description():
         }.items(),
     )
 
+    
+
     d456_imu_filter = Node(
         package="imu_complementary_filter",
         executable="complementary_filter_node",
@@ -196,9 +205,26 @@ def generate_launch_description():
         remappings=[('/image_rect', '/d456/color/image_raw'),
                     ('/camera_info', '/d456/color/camera_info')])
 
+    livox_driver = Node(
+        package="livox_ros_driver2",
+        executable="livox_ros_driver2_node",
+        name="livox_lidar_publisher",
+        output="screen",
+        parameters=[
+            {"xfer_format": 0},  # 0 = PointCloud2 (PointXYZRTL), 1 = CustomMsg
+            {"multi_topic": 0},  # 0 = single /livox/lidar topic
+            {"data_src": 0},     # 0 = lidar data source
+            {"publish_freq": 10.0},
+            {"output_data_type": 0},
+            {"frame_id": "livox_frame"},
+            {"user_config_path": livox_config_path},
+        ],
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(declare_robot_mode)
+    ld.add_action(livox_driver)
     ld.add_action(d456_launch)
     ld.add_action(d456_imu_filter)
     ld.add_action(apriltag_d456_node)
