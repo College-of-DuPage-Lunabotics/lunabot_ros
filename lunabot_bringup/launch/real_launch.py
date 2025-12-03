@@ -36,6 +36,14 @@ def generate_launch_description():
         config_dir, "params", "mid360", "mid360.json"
     )
     
+    kiss_icp_config = os.path.join(
+        config_dir, "params", "kiss_icp", "mid360.yaml"
+    )
+    
+    ukf_params_file = os.path.join(
+        config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
+    
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
@@ -60,11 +68,10 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "queue_size": 30,
-                "approx_sync_max_interval": 0.1,
+                "queue_size": 1000,
                 "subscribe_scan_cloud": True,
                 "subscribe_scan": False,
-                "wait_imu_to_init": True,
+                "wait_imu_to_init": False,
             },
             rtabmap_params_file,
         ],
@@ -74,7 +81,36 @@ def generate_launch_description():
             ("rgb/camera_info", "/d456/color/camera_info"),
             ("scan_cloud", "/livox/lidar"),
         ],
-        arguments=["--ros-args", "--log-level", "error"],
+        arguments=["--ros-args", "--log-level", "info"],
+    )
+
+    kiss_icp_node = Node(
+        package="kiss_icp",
+        executable="kiss_icp_node",
+        name="kiss_icp_node",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": False
+            },
+            kiss_icp_config,
+        ],
+        remappings=[
+            ("pointcloud_topic", "/livox/lidar"),
+        ],
+    )
+
+    ukf_node = Node(
+        package="robot_localization",
+        executable="ukf_node",
+        name="ukf_filter_node",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": False,
+            },
+            ukf_params_file,
+        ],
     )
 
     excavation_server_node = Node(
@@ -216,8 +252,8 @@ def generate_launch_description():
             {"data_src": 0},     # 0 = lidar data source
             {"publish_freq": 10.0},
             {"output_data_type": 0},
-            {"frame_id": "livox_frame"},
-            {"user_config_path": livox_config_path},
+            {"frame_id": "mid360_lidar_link"},
+            {"user_config_path": livox_params_file},
         ],
     )
 
@@ -237,6 +273,8 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
+                        ukf_node,
+                        kiss_icp_node,
                     ],
                 ),
                 TimerAction(
@@ -248,11 +286,11 @@ def generate_launch_description():
                 TimerAction(
                     period=15.0,
                     actions=[
-                        controller_server_node,
-                        planner_server_node,
-                        behavior_server_node,
-                        bt_navigator_node,
-                        lifecycle_manager_node,
+                        #controller_server_node,
+                        #planner_server_node,
+                        #behavior_server_node,
+                        #bt_navigator_node,
+                        #lifecycle_manager_node,
                     ],
                 ),
             ],
@@ -280,11 +318,11 @@ def generate_launch_description():
                 TimerAction(
                     period=7.0,
                     actions=[
-                        controller_server_node,
-                        planner_server_node,
-                        behavior_server_node,
-                        bt_navigator_node,
-                        lifecycle_manager_node,
+                        #controller_server_node,
+                        #planner_server_node,
+                        #behavior_server_node,
+                        #bt_navigator_node,
+                        #lifecycle_manager_node,
                     ],
                 ),
             ],

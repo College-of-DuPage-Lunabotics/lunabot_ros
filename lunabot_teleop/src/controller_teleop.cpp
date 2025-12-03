@@ -35,9 +35,11 @@ public:
    */
   ControllerTeleop()
   : Node("controller_teleop"),
-    left_wheel_motor_("can0", 1),
-    right_wheel_motor_("can0", 2),
-    lift_actuator_motor_("can0", 3)
+    right_actuator_motor_("can0", 1),
+    left_actuator_motor_("can0", 2),
+    right_wheel_motor_("can0", 3),
+    left_wheel_motor_("can0", 4),
+    vibration_motor_("can0", 5)
   {
     declare_and_get_parameters();
 
@@ -49,6 +51,10 @@ public:
       "joy", 10,
       std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
 
+    left_actuator_motor_.SetSensorType(SensorType::kEncoder);
+    right_actuator_motor_.SetSensorType(SensorType::kEncoder);
+    left_actuator_motor_.BurnFlash();
+    right_actuator_motor_.BurnFlash();
     RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
   }
 
@@ -58,8 +64,8 @@ private:
    */
   void declare_and_get_parameters()
   {
-    declare_parameter("steam_mode", true);
-    declare_parameter("xbox_mode", false);
+    declare_parameter("steam_mode", false);
+    declare_parameter("xbox_mode", true);
     declare_parameter("ps4_mode", false);
     declare_parameter("switch_mode", false);
 
@@ -110,15 +116,8 @@ private:
    */
   void drive(double left_speed, double right_speed)
   {
-    // Avoid small commands that may cause jitter
-    if (abs(left_speed) <= 0.1 && abs(right_speed) <= 0.1) {
-      left_wheel_motor_.SetDutyCycle(0.0);
-      right_wheel_motor_.SetDutyCycle(0.0);
-      return;
-    }
-
-    left_wheel_motor_.SetDutyCycle(left_speed);
-    right_wheel_motor_.SetDutyCycle(right_speed);
+    left_wheel_motor_.SetDutyCycle(0.3 * clamp(left_speed));
+    right_wheel_motor_.SetDutyCycle(0.3 * clamp(-right_speed));
   }
 
   /**
@@ -137,7 +136,7 @@ private:
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    right_joystick_y_ = -msg->axes[3];
+    right_joystick_y_ = -msg->axes[4];
 
     d_pad_vertical_ = get_axis(msg, {5, 7, 7});
 
@@ -160,24 +159,27 @@ private:
 
     if (!manual_enabled_ || robot_disabled_) {return;}
 
-    lift_actuator_motor_.Heartbeat();
-
-    double drive_speed_multiplier = (x_button_) ? 1.0 : 0.7;
+    // Send heartbeat to all motors
+    left_actuator_motor_.Heartbeat();
 
     double left_speed = left_joystick_y_ - left_joystick_x_;
     double right_speed = left_joystick_y_ + left_joystick_x_;
 
     // Drive the motors
-    drive(left_speed * drive_speed_multiplier, right_speed * drive_speed_multiplier);
+    drive(left_speed, right_speed);
 
-    // Lift/lower blade using right joystick
-    double lift_speed = right_joystick_y_;
-    lift_speed = clamp(lift_speed);
+    // Control actuators using right joystick
+    double actuator_speed = right_joystick_y_;
+    actuator_speed = clamp(actuator_speed);
 
-    if (abs(lift_speed) > 0.4) {
-      lift_actuator_motor_.SetDutyCycle(lift_speed);
+    left_actuator_motor_.SetDutyCycle(actuator_speed);
+    right_actuator_motor_.SetDutyCycle(actuator_speed);
+
+    // Control vibration motor using X button
+    if (x_button_) {
+      vibration_motor_.SetDutyCycle(1.0); // 60% duty cycle for vibration
     } else {
-      lift_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
     }
   }
 
@@ -187,7 +189,9 @@ private:
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
     if (manual_enabled_) {return;}
-    lift_actuator_motor_.Heartbeat();
+    
+    // Send heartbeat
+    left_actuator_motor_.Heartbeat();
 
     // Calculate left and right wheel speeds based on linear and angular velocities
     double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
@@ -203,9 +207,9 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
 
-  SparkMax left_wheel_motor_, right_wheel_motor_, lift_actuator_motor_;
+  SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_, vibration_motor_;
 
-  bool manual_enabled_ = false, robot_disabled_ = false;
+  bool manual_enabled_ = true, robot_disabled_ = false;
   bool steam_mode_, xbox_mode_, ps4_mode_, switch_mode_;
   bool share_button_, menu_button_, home_button_, x_button_, y_button_;
 

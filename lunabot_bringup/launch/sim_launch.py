@@ -103,7 +103,7 @@ def generate_launch_description():
                 "approx_sync_max_interval": 0.1,
                 "subscribe_scan_cloud": True,
                 "subscribe_scan": False,
-                "wait_imu_to_init": True,
+                "wait_imu_to_init": False,
             },
             rtabmap_params_file,
         ],
