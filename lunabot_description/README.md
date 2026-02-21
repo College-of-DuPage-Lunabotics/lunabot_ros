@@ -5,5 +5,4 @@ This package contains meshes and URDF descriptions for simulating the robot in G
 ## Content
 - **meshes**: Robot meshes.
 - **urdf**
-  - **bulldozer_bot.urdf.xacro**: URDF description of a bulldozer robot.
-  - **trencher_bot.urdf.xacro**: URDF description of a trencher robot.
+  - **test_bot.urdf.xacro**: URDF description of the test robot with Livox Mid-360 LiDAR and IMU.

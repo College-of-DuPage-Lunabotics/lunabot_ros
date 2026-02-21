@@ -36,16 +36,35 @@ def generate_launch_description():
         config_dir, "params", "mid360", "mid360.json"
     )
     
-    kiss_icp_config = os.path.join(
-        config_dir, "params", "kiss_icp", "mid360.yaml"
+    point_lio_config = os.path.join(
+        config_dir,
+        "params",
+        "point_lio",
+        "mid360_real.yaml",
     )
-    
-    ukf_params_file = os.path.join(
-        config_dir, "params", "robot_localization", "ukf_params.yaml"
-    )
+
+
     
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
+    )
+
+    rgbd_sync_node = Node(
+        package="rtabmap_sync",
+        executable="rgbd_sync",
+        name="rgbd_sync",
+        output="screen",
+        parameters=[
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
+        ],
+        remappings=[
+            ("rgb/image", "/d456/color/image_raw"),
+            ("depth/image", "/d456/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d456/color/camera_info"),
+            ("rgbd_image", "/d456/rgbd_image"),
+        ],
+        namespace="d456",
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
     slam_node = Node(
@@ -56,9 +75,9 @@ def generate_launch_description():
         parameters=[
             {
                 "use_sim_time": False,
-                "subscribe_depth": True,
-                "subscribe_rgbd": False,
-                "subscribe_rgb": True,
+                "subscribe_depth": False,
+                "subscribe_rgbd": True,
+                "subscribe_rgb": False,
                 "subscribe_odom_info": False,
                 "odom_sensor_sync": True,
                 "frame_id": "base_link",
@@ -76,42 +95,41 @@ def generate_launch_description():
             rtabmap_params_file,
         ],
         remappings=[
-            ("rgb/image", "/d456/color/image_raw"),
-            ("depth/image", "/d456/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456/color/camera_info"),
-            ("scan_cloud", "/livox/lidar"),
+            ("rgbd_image", "/d456/rgbd_image"),
+            ("scan_cloud", "/livox/lidar_PointCloud2"),
         ],
         arguments=["--ros-args", "--log-level", "info"],
     )
 
-    kiss_icp_node = Node(
-        package="kiss_icp",
-        executable="kiss_icp_node",
-        name="kiss_icp_node",
+    point_lio_node = Node(
+        package="point_lio",
+        executable="pointlio_mapping",
+        name="laserMapping",
         output="screen",
         parameters=[
+            point_lio_config,
             {
-                "use_sim_time": False
+                "use_sim_time": False,
+                "use_imu_as_input": False,
+                "prop_at_freq_of_imu": True,
+                "check_satu": False,
+                "init_map_size": 10,
+                "point_filter_num": 3,
+                "space_down_sample": True,
+                "filter_size_surf": 0.5,
+                "filter_size_map": 0.5,
+                "ivox_nearby_type": 26,
+                "runtime_pos_log_enable": False,
+                "odom_header_frame_id": "odom",
+                "odom_child_frame_id": "base_link",
             },
-            kiss_icp_config,
         ],
         remappings=[
-            ("pointcloud_topic", "/livox/lidar"),
+            ("/Odometry", "/odom"),
         ],
     )
 
-    ukf_node = Node(
-        package="robot_localization",
-        executable="ukf_node",
-        name="ukf_filter_node",
-        output="screen",
-        parameters=[
-            {
-                "use_sim_time": False,
-            },
-            ukf_params_file,
-        ],
-    )
+
 
     excavation_server_node = Node(
         package="lunabot_nav",
@@ -233,6 +251,7 @@ def generate_launch_description():
         executable="static_transform_publisher",
         name="map_to_odom_tf",
         arguments=["0", "0", "0", "0", "0", "0", "map", "odom"],
+        condition=LaunchConfigurationEquals("robot_mode", "auto"),  # Only for auto mode
     )
 
     apriltag_d456_node = Node(
@@ -247,11 +266,11 @@ def generate_launch_description():
         name="livox_lidar_publisher",
         output="screen",
         parameters=[
-            {"xfer_format": 0},  # 0 = PointCloud2 (PointXYZRTL), 1 = CustomMsg
+            {"xfer_format": 1},  # 1 = CustomMsg for Point-LIO
             {"multi_topic": 0},  # 0 = single /livox/lidar topic
             {"data_src": 0},     # 0 = lidar data source
             {"publish_freq": 10.0},
-            {"output_data_type": 0},
+            {"output_data_type": 1},  # 1 = CustomMsg
             {"frame_id": "mid360_lidar_link"},
             {"user_config_path": livox_params_file},
         ],
@@ -263,9 +282,9 @@ def generate_launch_description():
     ld.add_action(livox_driver)
     ld.add_action(d456_launch)
     ld.add_action(d456_imu_filter)
-    ld.add_action(apriltag_d456_node)
     ld.add_action(map_to_odom_tf)
     ld.add_action(controller_teleop_node)
+    ld.add_action(rgbd_sync_node)
 
     ld.add_action(
         GroupAction(
@@ -273,8 +292,7 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
-                        ukf_node,
-                        kiss_icp_node,
+                        point_lio_node,
                     ],
                 ),
                 TimerAction(

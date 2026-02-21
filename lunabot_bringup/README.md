@@ -14,7 +14,7 @@ world_file = os.path.join(
 ## Launch Files
 - **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
 - **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-- **viz_launch.py**: Launches RViz2/Foxglove bridge and Gazebo to visualize the robot and its sensor data.
+- **viz_launch.py**: Launches RViz2 and Gazebo to visualize the robot and its sensor data.
 
 ## Parameters
 
@@ -69,7 +69,7 @@ world_file = os.path.join(
 - `use_sim`: Specifies whether to launch Gazebo or not.
   - Options:
     - `true`: Launches simulated robot in Gazebo. **(Default)**
-    - `false`: Only launches RViz2 or Foxglove Studio instead of Gazebo, will receive data from real hardware.
+    - `false`: Only launches RViz2 instead of Gazebo, will receive data from real hardware.
   - Example: `use_sim:=false`
 
 - `sim_gui`: Enables or disables the Gazebo GUI.
@@ -78,8 +78,3 @@ world_file = os.path.join(
     - `false`: Runs Gazebo in headless mode.
   - Example: `sim_gui:=false`
 
-- `viz_type`: Choose between RViz2 or Foxglove Studio for visualization.
-  - Options:
-    - `rviz`: Opens visualization in RViz2. **(Default)**
-    - `foxglove`: Launches Foxglove bridge to allow for connecting in the Foxglove Studio app.
-  - Example: `viz_type:=foxglove`

@@ -71,6 +71,26 @@
 
   <link name="d456_optical_link"></link>
 
+  <link name="d455_link">
+    <visual>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+      </geometry>
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <material name="camera_grey" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+      </geometry>
+      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+    </collision>
+  </link>
+
+  <link name="d455_optical_link"></link>
+
   <link name="mid360_lidar_link">
     <visual>
       <geometry>
@@ -156,7 +176,7 @@
   <joint name="base_d456_joint" type="fixed">
     <parent link="base_link" />
     <child link="d456_link" />
-    <origin xyz="0.34 0 0.54" rpy="0 0 3.14" />
+    <origin xyz="0.34 0 0.54" rpy="0 0.523599 3.14" />
   </joint>
 
   <joint name="d456_optical_joint" type="fixed">
@@ -165,10 +185,22 @@
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
+  <joint name="base_d455_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="d455_link" />
+    <origin xyz="-0.128 0 0.5" rpy="0 0 3.14" />
+  </joint>
+
+  <joint name="d455_optical_joint" type="fixed">
+    <parent link="d455_link" />
+    <child link="d455_optical_link" />
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+  </joint>
+
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_lidar_link" />
-    <origin xyz="0.36 0 0.5" rpy="3.14 0 0" />
+    <origin xyz="0.36 0 0.5" rpy="0 0 0" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
@@ -317,6 +349,45 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
+    <gazebo reference="d455_link">
+      <sensor type="depth" name="d455">
+        <pose>0 0 0 0 0 0</pose>
+        <update_rate>30.0</update_rate>
+        <visualize>false</visualize>
+        <camera>
+          <horizontal_fov>1.540</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>360</height>
+            <format>R8G8B8</format>
+          </image>
+          <distortion>
+            <k1>-0.06792929080519726</k1>
+            <k2>0.08058277259698843</k2>
+            <k3>-0.04417756393089296</k3>
+            <p1>-0.001690544521662593</p1>
+            <p2>-0.0008235437909836152</p2>
+          </distortion>
+          <clip>
+            <near>0.05</near>
+            <far>10.0</far>
+          </clip>
+        </camera>
+        <plugin name="d455_controller" filename="libgazebo_ros_camera.so">
+          <ros>
+            <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
+            <remapping>/d455/points:=/d455/color/points</remapping>
+            <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
+            <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
+          </ros>
+          <frame_name>d455_optical_link</frame_name>
+          <publish_tf>false</publish_tf>
+          <publish_point_cloud>true</publish_point_cloud>
+        </plugin>
+      </sensor>
+      <material>Gazebo/Grey</material>
+    </gazebo>
+
     <gazebo reference="mid360_lidar_link">
       <sensor type="ray" name="mid360_lidar_link">
         <always_on>true</always_on>
@@ -341,7 +412,7 @@
             </scan>
             <range>
               <min>0.1</min>
-              <max>10.0</max>
+              <max>50.0</max>
               <resolution>0.002</resolution>
             </range>
             <noise>
@@ -354,7 +425,7 @@
           <samples>20000</samples>
           <downsample>2</downsample>
           <csv_file_name>$(find ros2_livox_simulation)/scan_mode/mid360.csv</csv_file_name>
-          <topic>livox</topic>
+          <topic>livox/lidar</topic>
         </plugin>
       </sensor>
     </gazebo>
@@ -363,15 +434,15 @@
       <gravity>false</gravity>
       <sensor name="imu_sensor" type="imu">
         <always_on>true</always_on>
-        <update_rate>200</update_rate>
+        <update_rate>100</update_rate>
         <visualize>true</visualize>
         <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
           <ros>
             <namespace></namespace>
             <remapping>~/out:=/livox/imu</remapping>
           </ros>
-          <bodyName>base_link</bodyName>
-          <gaussianNoise>0.0</gaussianNoise>
+          <bodyName>mid360_imu_link</bodyName>
+          <gaussianNoise>0.01</gaussianNoise>
           <xyzOffset>0 0 0</xyzOffset>
           <rpyOffset>0 0 0</rpyOffset>
           <frameName>mid360_imu_link</frameName>
@@ -394,16 +465,6 @@
       <hardware>
         <plugin>gazebo_ros2_control/GazeboSystem</plugin>
       </hardware>
-      <joint name="blade_arm_joint">
-        <command_interface name="position" />
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
-      <joint name="base_blade_arm_joint">
-        <command_interface name="position" />
-        <state_interface name="position" />
-        <state_interface name="velocity" />
-      </joint>
       <joint name="base_front_right_wheel_joint">
         <command_interface name="velocity">
           <param name="min">-1</param>

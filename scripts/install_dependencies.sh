@@ -15,22 +15,6 @@ install_camera_dependencies() {
     sudo apt install -y ros-humble-realsense2-*
 }
 
-install_cmake() {
-    echo -e "\n------------------------ Upgrade CMake (required for KISS-ICP) ------------------------ \n"
-    # Install pip
-    sudo apt install -y python3-pip
-    # Check current CMake version
-    current_version=$(cmake --version | grep -oP '(?<=cmake version )[0-9.]+' || echo "0.0.0")
-    required_version="3.24.0"
-
-    if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" = "$required_version" ]; then
-        echo "CMake $current_version is already >= $required_version, skipping upgrade"
-    else
-        echo "Upgrading CMake from $current_version to latest..."
-        pip3 install --upgrade cmake
-    fi
-}
-
 install_git_dependencies() {
     echo -e "\n------------------------ Install Git Dependencies and Pull LFS------------------------ \n"
     cd "${WORKSPACE_DIR}/src/lunabot_ros"
@@ -64,7 +48,6 @@ install_livox_sdk() {
 
 main() {
     install_camera_dependencies
-    install_cmake
     install_git_dependencies
     install_sparkcan
     install_livox_sdk

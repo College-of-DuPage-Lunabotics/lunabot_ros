@@ -6,26 +6,19 @@ from launch.conditions import LaunchConfigurationEquals
 from launch.substitutions import LaunchConfiguration
 from launch.actions import (
     DeclareLaunchArgument,
-    SetLaunchConfiguration,
     TimerAction,
     GroupAction,
     ExecuteProcess,
-    OpaqueFunction,
+    SetLaunchConfiguration,
 )
-
-
-def set_nav2_params(context, *args, **kwargs):
-    robot_type = context.launch_configurations.get("robot_type")
-    config_dir = get_package_share_directory("lunabot_config")
-
-    nav2_params_file = os.path.join(
-        config_dir, "params", "nav2", f"nav2_{robot_type}_bot_params.yaml"
-    )
-    return [SetLaunchConfiguration("nav2_params_file", nav2_params_file)]
 
 
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
+
+    nav2_params_file = os.path.join(
+        config_dir, "params", "nav2", "nav2_test_bot_params.yaml"
+    )
 
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode",
@@ -41,23 +34,17 @@ def generate_launch_description():
         description="Choose the teleoperation mode: 'keyboard' for keyboard control or 'xbox' for Xbox controller.",
     )
 
-    declare_robot_type = DeclareLaunchArgument(
-        "robot_type",
-        default_value="bulldozer",
-        choices=["bulldozer", "trencher"],
-        description="Specify the type of robot to launch: 'bulldozer', or 'trencher'. Each option loads the respective robot configuration.",
+    point_lio_config = os.path.join(
+        config_dir,
+        "params",
+        "point_lio",
+        "mid360_sim.yaml",
     )
 
     ukf_params_file = os.path.join(
         config_dir, "params", "robot_localization", "ukf_params.yaml"
     )
 
-    kiss_icp_config = os.path.join(
-        get_package_share_directory("lunabot_config"),
-        "params",
-        "kiss_icp",
-        "mid360.yaml",
-    )
 
     rtabmap_params_file = os.path.join(
         config_dir, "params", "rtabmap", "rtabmap_params.yaml"
@@ -79,6 +66,43 @@ def generate_launch_description():
 
     topic_remapper_node = Node(package="lunabot_util", executable="topic_remapper")
 
+    # RGBD Synchronization nodes for dual-camera setup
+    rgbd_sync_d456 = Node(
+        package="rtabmap_sync",
+        executable="rgbd_sync",
+        name="rgbd_sync_d456",
+        output="log",
+        parameters=[{
+            "use_sim_time": True,
+            "approx_sync": True,
+            "queue_size": 30,
+        }],
+        remappings=[
+            ("rgb/image", "/d456/color/image_raw"),
+            ("depth/image", "/d456/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d456/color/camera_info"),
+            ("rgbd_image", "/d456/rgbd_image"),
+        ],
+    )
+
+    rgbd_sync_d455 = Node(
+        package="rtabmap_sync",
+        executable="rgbd_sync",
+        name="rgbd_sync_d455",
+        output="log",
+        parameters=[{
+            "use_sim_time": True,
+            "approx_sync": True,
+            "queue_size": 30,
+        }],
+        remappings=[
+            ("rgb/image", "/d455/color/image_raw"),
+            ("depth/image", "/d455/depth/image_rect_raw"),
+            ("rgb/camera_info", "/d455/color/camera_info"),
+            ("rgbd_image", "/d455/rgbd_image"),
+        ],
+    )
+
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
@@ -87,11 +111,12 @@ def generate_launch_description():
         parameters=[
             {
                 "use_sim_time": True,
-                "subscribe_depth": True,
-                "subscribe_rgbd": False,
-                "subscribe_rgb": True,
+                "subscribe_depth": False,
+                "subscribe_rgbd": True,
+                "rgbd_cameras": 2,
+                "subscribe_rgb": False,
                 "subscribe_odom_info": False,
-                "odom_sensor_sync": True,
+                "odom_sensor_sync": False,
                 "frame_id": "base_link",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
@@ -100,35 +125,49 @@ def generate_launch_description():
                 "database_path": "",
                 "approx_sync": True,
                 "queue_size": 30,
-                "approx_sync_max_interval": 0.1,
-                "subscribe_scan_cloud": True,
+                "approx_sync_max_interval": 0.2,
+                "wait_for_transform": 0.2,
+                "subscribe_scan_cloud": False,
                 "subscribe_scan": False,
                 "wait_imu_to_init": False,
+                "subscribe_odom": True,
             },
             rtabmap_params_file,
         ],
         remappings=[
-            ("rgb/image", "/d456/color/image_raw"),
-            ("depth/image", "/d456/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456/color/camera_info"),
-            ("scan_cloud", "/livox/lidar"),
+            ("rgbd_image0", "/d456/rgbd_image"),
+            ("rgbd_image1", "/d455/rgbd_image"),
+            ("odom", "/odometry/filtered"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    kiss_icp_node = Node(
-        package="kiss_icp",
-        executable="kiss_icp_node",
-        name="kiss_icp_node",
+    point_lio_node = Node(
+        package="point_lio",
+        executable="pointlio_mapping",
+        name="laserMapping",
         output="screen",
         parameters=[
+            point_lio_config,
             {
-                "use_sim_time": True
+                "use_sim_time": True,
+                "use_imu_as_input": False,
+                "prop_at_freq_of_imu": True,
+                "check_satu": False,
+                "init_map_size": 10,
+                "point_filter_num": 1,
+                "space_down_sample": True,
+                "filter_size_surf": 0.1,
+                "filter_size_map": 0.1,
+                "ivox_nearby_type": 26,
+                "runtime_pos_log_enable": False,
+                "publish.tf_send_en": False,
+                "publish.odom_frame_id": "odom",
+                "publish.base_frame_id": "base_link",
             },
-            kiss_icp_config,
         ],
         remappings=[
-            ("pointcloud_topic", "/livox/lidar"),
+            ("/aft_mapped_to_init", "/lio_odom"),
         ],
     )
 
@@ -138,12 +177,14 @@ def generate_launch_description():
         name="ukf_filter_node",
         output="screen",
         parameters=[
-            {
-                "use_sim_time": True,
-            },
             ukf_params_file,
+            {"use_sim_time": True},
         ],
     )
+
+
+
+
 
     excavation_server_node = Node(
         package="lunabot_nav",
@@ -171,7 +212,7 @@ def generate_launch_description():
         executable="controller_server",
         name="controller_server",
         output="screen",
-        parameters=[LaunchConfiguration("nav2_params_file")],
+        parameters=[nav2_params_file],
     )
 
     planner_server_node = Node(
@@ -179,7 +220,7 @@ def generate_launch_description():
         executable="planner_server",
         name="planner_server",
         output="screen",
-        parameters=[LaunchConfiguration("nav2_params_file")],
+        parameters=[nav2_params_file],
     )
 
     behavior_server_node = Node(
@@ -187,7 +228,7 @@ def generate_launch_description():
         executable="behavior_server",
         name="behavior_server",
         output="screen",
-        parameters=[LaunchConfiguration("nav2_params_file")],
+        parameters=[nav2_params_file],
     )
 
     bt_navigator_node = Node(
@@ -196,7 +237,7 @@ def generate_launch_description():
         name="bt_navigator",
         output="screen",
         parameters=[
-            LaunchConfiguration("nav2_params_file"),
+            nav2_params_file,
             {
                 "default_nav_to_pose_bt_xml": bt_nav_to_pose,
                 "default_nav_through_poses_bt_xml": bt_nav_through_poses,
@@ -281,9 +322,9 @@ def generate_launch_description():
 
     ld.add_action(declare_robot_mode)
     ld.add_action(declare_teleop_mode)
-    ld.add_action(declare_robot_type)
-    ld.add_action(OpaqueFunction(function=set_nav2_params))
     ld.add_action(topic_remapper_node)
+    ld.add_action(rgbd_sync_d456)
+    ld.add_action(rgbd_sync_d455)
     ld.add_action(apriltag_d456_node)
     ld.add_action(map_to_odom_tf)
 
@@ -293,8 +334,8 @@ def generate_launch_description():
                 TimerAction(
                     period=2.0,
                     actions=[
+                        point_lio_node,
                         ukf_node,
-                        kiss_icp_node,
                     ],
                 ),
                 TimerAction(
@@ -335,9 +376,9 @@ def generate_launch_description():
                 TimerAction(
                     period=5.0,
                     actions=[
-                        ukf_node,
                         slam_node,
-                        kiss_icp_node,
+                        point_lio_node,
+                        ukf_node,
                     ],
                 ),
                 TimerAction(
