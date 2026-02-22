@@ -15,6 +15,7 @@ std::string lid_topic, imu_topic;
 bool prop_at_freq_of_imu = true, check_satu = true, con_frame = false, cut_frame = false;
 bool use_imu_as_input = false, space_down_sample = true,
      publish_odometry_without_downsample = false;
+bool sensors_upside_down = false;
 int init_map_size = 10, con_frame_num = 1;
 double match_s = 81, satu_acc, satu_gyro, cut_frame_time_interval = 0.1;
 float plane_thr = 0.1f;
@@ -66,6 +67,9 @@ void readParameters(std::shared_ptr<rclcpp::Node> & nh)
 
     nh->declare_parameter<bool>("space_down_sample", true);
     nh->get_parameter("space_down_sample", space_down_sample);
+
+    nh->declare_parameter<bool>("sensors_upside_down", false);
+    nh->get_parameter("sensors_upside_down", sensors_upside_down);
 
     nh->declare_parameter<double>("mapping.satu_acc", 3.0);
     nh->get_parameter("mapping.satu_acc", satu_acc);

@@ -11,6 +11,7 @@ from launch.actions import (
     GroupAction,
 )
 
+
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     realsense_dir = get_package_share_directory("realsense2_camera")
@@ -20,7 +21,9 @@ def generate_launch_description():
         config_dir, "params", "apriltag", "tag_params.yaml"
     )
     bt_nav_to_pose = os.path.join(
-        config_dir, "behavior_trees", "nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml"
+        config_dir,
+        "behavior_trees",
+        "nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml",
     )
     bt_nav_through_poses = os.path.join(
         config_dir, "behavior_trees", "nav_through_poses_w_replanning_and_recovery.xml"
@@ -32,10 +35,8 @@ def generate_launch_description():
         config_dir, "params", "rtabmap", "rtabmap_params.yaml"
     )
 
-    livox_params_file = os.path.join(
-        config_dir, "params", "mid360", "mid360.json"
-    )
-    
+    livox_params_file = os.path.join(config_dir, "params", "mid360", "mid360.json")
+
     point_lio_config = os.path.join(
         config_dir,
         "params",
@@ -43,8 +44,6 @@ def generate_launch_description():
         "mid360_real.yaml",
     )
 
-
-    
     declare_robot_mode = DeclareLaunchArgument(
         "robot_mode", default_value="manual", choices=["manual", "auto"]
     )
@@ -129,8 +128,6 @@ def generate_launch_description():
         ],
     )
 
-
-
     excavation_server_node = Node(
         package="lunabot_nav",
         executable="excavation_server",
@@ -183,7 +180,10 @@ def generate_launch_description():
         output="screen",
         parameters=[
             nav2_params_file,
-            {"default_nav_to_pose_bt_xml": bt_nav_to_pose, "default_nav_through_poses_bt_xml": bt_nav_through_poses},
+            {
+                "default_nav_to_pose_bt_xml": bt_nav_to_pose,
+                "default_nav_through_poses_bt_xml": bt_nav_through_poses,
+            },
         ],
     )
 
@@ -192,12 +192,18 @@ def generate_launch_description():
         executable="lifecycle_manager",
         name="lifecycle_manager_navigation",
         output="screen",
-        parameters=[{"autostart": True}, {"node_names": [
-            "controller_server",
-            "planner_server",
-            "behavior_server",
-            "bt_navigator",
-        ]}, {"node_timeout": 10.0}],
+        parameters=[
+            {"autostart": True},
+            {
+                "node_names": [
+                    "controller_server",
+                    "planner_server",
+                    "behavior_server",
+                    "bt_navigator",
+                ]
+            },
+            {"node_timeout": 10.0},
+        ],
     )
 
     d456_launch = IncludeLaunchDescription(
@@ -216,8 +222,6 @@ def generate_launch_description():
             "rgb_camera.color_profile": "640x480x60",
         }.items(),
     )
-
-    
 
     d456_imu_filter = Node(
         package="imu_complementary_filter",
@@ -255,10 +259,15 @@ def generate_launch_description():
     )
 
     apriltag_d456_node = Node(
-        package='apriltag_ros', executable='apriltag_node', output='screen',
+        package="apriltag_ros",
+        executable="apriltag_node",
+        output="screen",
         parameters=[apriltag_params_file],
-        remappings=[('/image_rect', '/d456/color/image_raw'),
-                    ('/camera_info', '/d456/color/camera_info')])
+        remappings=[
+            ("/image_rect", "/d456/color/image_raw"),
+            ("/camera_info", "/d456/color/camera_info"),
+        ],
+    )
 
     livox_driver = Node(
         package="livox_ros_driver2",
@@ -268,7 +277,7 @@ def generate_launch_description():
         parameters=[
             {"xfer_format": 1},  # 1 = CustomMsg for Point-LIO
             {"multi_topic": 0},  # 0 = single /livox/lidar topic
-            {"data_src": 0},     # 0 = lidar data source
+            {"data_src": 0},  # 0 = lidar data source
             {"publish_freq": 10.0},
             {"output_data_type": 1},  # 1 = CustomMsg
             {"frame_id": "mid360_lidar_link"},
@@ -304,11 +313,11 @@ def generate_launch_description():
                 TimerAction(
                     period=15.0,
                     actions=[
-                        #controller_server_node,
-                        #planner_server_node,
-                        #behavior_server_node,
-                        #bt_navigator_node,
-                        #lifecycle_manager_node,
+                        # controller_server_node,
+                        # planner_server_node,
+                        # behavior_server_node,
+                        # bt_navigator_node,
+                        # lifecycle_manager_node,
                     ],
                 ),
             ],
@@ -323,7 +332,7 @@ def generate_launch_description():
                     period=3.0,
                     actions=[
                         excavation_server_node,
-                        #localization_server_node,
+                        # localization_server_node,
                         navigation_client_node,
                     ],
                 ),
@@ -336,11 +345,11 @@ def generate_launch_description():
                 TimerAction(
                     period=7.0,
                     actions=[
-                        #controller_server_node,
-                        #planner_server_node,
-                        #behavior_server_node,
-                        #bt_navigator_node,
-                        #lifecycle_manager_node,
+                        # controller_server_node,
+                        # planner_server_node,
+                        # behavior_server_node,
+                        # bt_navigator_node,
+                        # lifecycle_manager_node,
                     ],
                 ),
             ],

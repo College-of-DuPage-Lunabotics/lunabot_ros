@@ -63,7 +63,7 @@ def set_world_file(context, *args, **kwargs):
             sim_dir, "worlds", "high_resolution", "ucf", "ucf_arena.world"
         ),
         "artemis": os.path.join(
-            sim_dir, "worlds", "high_resolution", "artemis", "artemis_no_walls.world"
+            sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena.world"
         ),
     }
 
@@ -77,7 +77,7 @@ def generate_launch_description():
     description_dir = get_package_share_directory("lunabot_description")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_file = os.path.join(description_dir, "urdf", "test_bot.urdf.xacro")
+    urdf_file = os.path.join(description_dir, "urdf", "v2.urdf.xacro")
 
     declare_use_sim = DeclareLaunchArgument(
         "use_sim",
@@ -87,7 +87,7 @@ def generate_launch_description():
 
     declare_robot_heading = DeclareLaunchArgument(
         "robot_heading",
-        default_value="east",
+        default_value="north",
         choices=["north", "east", "south", "west", "random"],
         description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation.",
     )
@@ -179,6 +179,16 @@ def generate_launch_description():
         ],
     )
 
+    position_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "position_controller",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+    )
+
     joint_state_publisher_node = Node(
         package="joint_state_publisher",
         executable="joint_state_publisher",
@@ -206,6 +216,7 @@ def generate_launch_description():
                 spawn_robot_node,
                 joint_state_broadcaster_spawner,
                 diff_drive_controller_spawner,
+                position_controller_spawner,
             ],
             condition=LaunchConfigurationEquals("use_sim", "true"),
         )

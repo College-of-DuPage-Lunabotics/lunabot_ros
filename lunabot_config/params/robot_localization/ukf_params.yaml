@@ -23,17 +23,6 @@ ukf_filter_node:
     odom0_relative: false
     odom0_queue_size: 10
 
-    imu0: /livox/imu
-    imu0_config: [false, false, false,   # position
-                  true,  true,  true,    # roll, pitch, yaw orientation
-                  false, false, false,   # velocity
-                  true,  true,  true,    # roll_dot, pitch_dot, yaw_dot
-                  true,  true,  true]    # x_ddot, y_ddot, z_ddot acceleration
-    imu0_differential: false
-    imu0_relative: false
-    imu0_queue_size: 10
-    imu0_remove_gravitational_acceleration: true
-
     # Process noise covariance
     process_noise_covariance: [0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,

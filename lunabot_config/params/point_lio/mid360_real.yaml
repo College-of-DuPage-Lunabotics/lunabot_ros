@@ -52,6 +52,7 @@
             scan_publish_en: true
             scan_bodyframe_pub_en: true
             tf_send_en: false
+            base_frame_id: "base_link"
 
         pcd_save:
             pcd_save_en: false

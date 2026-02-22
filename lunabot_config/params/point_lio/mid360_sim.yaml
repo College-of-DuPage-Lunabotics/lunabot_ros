@@ -40,9 +40,9 @@
             gravity: [ 0.0, 0.0, -9.810 ]
             gravity_init: [ 0.0, 0.0, -9.810 ]
             extrinsic_T: [ 0.0, 0.0, 0.0 ]
-            extrinsic_R: [ 1.,  0.,  0.,
-                           0.,  1.,  0.,
-                           0.,  0., 1. ]
+            extrinsic_R: [ 1.,   0.,   0.,
+                           0.,   1.,   0.,
+                           0.,   0.,   1. ]
 
         odometry:
             publish_odometry_without_downsample: false
@@ -51,6 +51,7 @@
             path_en: true
             scan_publish_en: true
             scan_bodyframe_pub_en: true
+            base_frame_id: "base_link"
 
         pcd_save:
             pcd_save_en: false

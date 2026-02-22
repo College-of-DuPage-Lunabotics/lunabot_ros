@@ -2,6 +2,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch_ros.event_handlers import OnStateTransition
 from launch.conditions import LaunchConfigurationEquals
 from launch.substitutions import LaunchConfiguration
 from launch.actions import (
@@ -10,7 +11,9 @@ from launch.actions import (
     GroupAction,
     ExecuteProcess,
     SetLaunchConfiguration,
+    RegisterEventHandler,
 )
+from launch.event_handlers import OnProcessStart
 
 
 def generate_launch_description():
@@ -32,6 +35,13 @@ def generate_launch_description():
         default_value="keyboard",
         choices=["keyboard", "xbox"],
         description="Choose the teleoperation mode: 'keyboard' for keyboard control or 'xbox' for Xbox controller.",
+    )
+
+    declare_use_localization = DeclareLaunchArgument(
+        "use_localization",
+        default_value="false",
+        choices=["true", "false"],
+        description="Enable AprilTag localization phase before navigation (default: false).",
     )
 
     point_lio_config = os.path.join(
@@ -67,40 +77,42 @@ def generate_launch_description():
     topic_remapper_node = Node(package="lunabot_util", executable="topic_remapper")
 
     # RGBD Synchronization nodes for dual-camera setup
-    rgbd_sync_d456 = Node(
+    rgbd_sync_front = Node(
         package="rtabmap_sync",
         executable="rgbd_sync",
-        name="rgbd_sync_d456",
-        output="log",
+        name="rgbd_sync_front",
+        output="screen",
         parameters=[{
             "use_sim_time": True,
             "approx_sync": True,
-            "queue_size": 30,
+            "sync_queue_size": 1000,
         }],
         remappings=[
-            ("rgb/image", "/d456/color/image_raw"),
-            ("depth/image", "/d456/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456/color/camera_info"),
-            ("rgbd_image", "/d456/rgbd_image"),
+            ("rgb/image", "/camera_front/color/image_raw"),
+            ("depth/image", "/camera_front/depth/image_rect_raw"),
+            ("rgb/camera_info", "/camera_front/color/camera_info"),
+            ("rgbd_image", "/camera_front/rgbd_image"),
         ],
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
-    rgbd_sync_d455 = Node(
+    rgbd_sync_back = Node(
         package="rtabmap_sync",
         executable="rgbd_sync",
-        name="rgbd_sync_d455",
-        output="log",
+        name="rgbd_sync_back",
+        output="screen",
         parameters=[{
             "use_sim_time": True,
             "approx_sync": True,
-            "queue_size": 30,
+            "sync_queue_size": 1000,
         }],
         remappings=[
-            ("rgb/image", "/d455/color/image_raw"),
-            ("depth/image", "/d455/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d455/color/camera_info"),
-            ("rgbd_image", "/d455/rgbd_image"),
+            ("rgb/image", "/camera_back/color/image_raw"),
+            ("depth/image", "/camera_back/depth/image_rect_raw"),
+            ("rgb/camera_info", "/camera_back/color/camera_info"),
+            ("rgbd_image", "/camera_back/rgbd_image"),
         ],
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
     slam_node = Node(
@@ -124,8 +136,7 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "queue_size": 30,
-                "approx_sync_max_interval": 0.2,
+                "sync_queue_size": 1000,
                 "wait_for_transform": 0.2,
                 "subscribe_scan_cloud": False,
                 "subscribe_scan": False,
@@ -135,8 +146,8 @@ def generate_launch_description():
             rtabmap_params_file,
         ],
         remappings=[
-            ("rgbd_image0", "/d456/rgbd_image"),
-            ("rgbd_image1", "/d455/rgbd_image"),
+            ("rgbd_image0", "/camera_front/rgbd_image"),
+            ("rgbd_image1", "/camera_back/rgbd_image"),
             ("odom", "/odometry/filtered"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
@@ -182,10 +193,6 @@ def generate_launch_description():
         ],
     )
 
-
-
-
-
     excavation_server_node = Node(
         package="lunabot_nav",
         executable="excavation_server",
@@ -205,6 +212,7 @@ def generate_launch_description():
         executable="navigation_client",
         name="navigation_client",
         output="screen",
+        parameters=[{"use_localization": LaunchConfiguration("use_localization")}],
     )
 
     controller_server_node = Node(
@@ -300,14 +308,14 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("teleop_mode", "keyboard"),
     )
 
-    apriltag_d456_node = Node(
+    apriltag_front_node = Node(
         package="apriltag_ros",
         executable="apriltag_node",
         output="screen",
         parameters=[apriltag_params_file],
         remappings=[
-            ("/image_rect", "/d456/color/image_raw"),
-            ("/camera_info", "/d456/color/camera_info"),
+            ("/image_rect", "/camera_front/color/image_raw"),
+            ("/camera_info", "/camera_front/color/camera_info"),
         ],
     )
 
@@ -322,78 +330,91 @@ def generate_launch_description():
 
     ld.add_action(declare_robot_mode)
     ld.add_action(declare_teleop_mode)
+    ld.add_action(declare_use_localization)
     ld.add_action(topic_remapper_node)
-    ld.add_action(rgbd_sync_d456)
-    ld.add_action(rgbd_sync_d455)
-    ld.add_action(apriltag_d456_node)
+    ld.add_action(rgbd_sync_front)
+    ld.add_action(rgbd_sync_back)
+    ld.add_action(apriltag_front_node)
     ld.add_action(map_to_odom_tf)
 
-    ld.add_action(
-        GroupAction(
-            actions=[
-                TimerAction(
-                    period=2.0,
-                    actions=[
-                        point_lio_node,
-                        ukf_node,
-                    ],
-                ),
-                TimerAction(
-                    period=5.0,
-                    actions=[
-                        slam_node,
-                    ],
-                ),
-                TimerAction(
-                    period=20.0,
-                    actions=[
-                        controller_server_node,
-                        planner_server_node,
-                        behavior_server_node,
-                        bt_navigator_node,
-                        lifecycle_manager_node,
-                    ],
-                ),
-                joy_node,
-                teleop_twist_joy_node,
-                keyboard_teleop_node,
-            ],
-            condition=LaunchConfigurationEquals("robot_mode", "manual"),
-        )
+    # Manual mode: Event-based launch sequence
+    # Step 1: Launch odometry stack when rgbd_sync starts
+    manual_odometry_handler = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=rgbd_sync_front,
+            on_start=[point_lio_node, ukf_node],
+        ),
+        condition=LaunchConfigurationEquals("robot_mode", "manual"),
     )
 
-    ld.add_action(
-        GroupAction(
-            actions=[
-                TimerAction(
-                    period=3.0,
-                    actions=[
-                        excavation_server_node,
-                        # localization_server_node,
-                        navigation_client_node,
-                    ],
-                ),
-                TimerAction(
-                    period=5.0,
-                    actions=[
-                        slam_node,
-                        point_lio_node,
-                        ukf_node,
-                    ],
-                ),
-                TimerAction(
-                    period=10.0,
-                    actions=[
-                        controller_server_node,
-                        planner_server_node,
-                        behavior_server_node,
-                        bt_navigator_node,
-                        lifecycle_manager_node,
-                    ],
-                ),
-            ],
-            condition=LaunchConfigurationEquals("robot_mode", "auto"),
-        )
+    # Step 2: Launch SLAM when odometry starts
+    manual_slam_handler = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=point_lio_node,
+            on_start=[slam_node],
+        ),
+        condition=LaunchConfigurationEquals("robot_mode", "manual"),
     )
+
+    # Step 3: Launch Nav2 stack when SLAM starts
+    manual_nav2_handler = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=slam_node,
+            on_start=[
+                controller_server_node,
+                planner_server_node,
+                behavior_server_node,
+                bt_navigator_node,
+                lifecycle_manager_node,
+            ],
+        ),
+        condition=LaunchConfigurationEquals("robot_mode", "manual"),
+    )
+
+    # Step 4: Launch teleop when everything else is ready
+    manual_teleop = GroupAction(
+        actions=[joy_node, teleop_twist_joy_node, keyboard_teleop_node],
+        condition=LaunchConfigurationEquals("robot_mode", "manual"),
+    )
+
+    ld.add_action(manual_odometry_handler)
+    ld.add_action(manual_slam_handler)
+    ld.add_action(manual_nav2_handler)
+    ld.add_action(manual_teleop)
+
+    # Auto mode: Event-based launch sequence
+    # Step 1: Launch Nav2 stack immediately (needs to be ready first)
+    auto_nav2_stack = GroupAction(
+        actions=[
+            controller_server_node,
+            planner_server_node,
+            behavior_server_node,
+            bt_navigator_node,
+            lifecycle_manager_node,
+        ],
+        condition=LaunchConfigurationEquals("robot_mode", "auto"),
+    )
+
+    # Step 2: When lifecycle manager starts, launch odometry/localization stack
+    auto_localization_handler = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=lifecycle_manager_node,
+            on_start=[point_lio_node, ukf_node, slam_node],
+        ),
+        condition=LaunchConfigurationEquals("robot_mode", "auto"),
+    )
+
+    # Step 3: When SLAM starts, launch navigation clients
+    auto_clients_handler = RegisterEventHandler(
+        event_handler=OnProcessStart(
+            target_action=slam_node,
+            on_start=[excavation_server_node, navigation_client_node],
+        ),
+        condition=LaunchConfigurationEquals("robot_mode", "auto"),
+    )
+
+    ld.add_action(auto_nav2_stack)
+    ld.add_action(auto_localization_handler)
+    ld.add_action(auto_clients_handler)
 
     return ld

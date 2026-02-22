@@ -51,7 +51,7 @@
   <!--           SENSOR LINKS            -->
   <!-- ================================= -->
 
-  <link name="d456_link">
+  <link name="camera_front_link">
     <visual>
       <geometry>
         <mesh
@@ -69,9 +69,9 @@
     </collision>
   </link>
 
-  <link name="d456_optical_link"></link>
+  <link name="camera_front_optical_link"></link>
 
-  <link name="d455_link">
+  <link name="camera_back_link">
     <visual>
       <geometry>
         <mesh
@@ -89,7 +89,7 @@
     </collision>
   </link>
 
-  <link name="d455_optical_link"></link>
+  <link name="camera_back_optical_link"></link>
 
   <link name="mid360_lidar_link">
     <visual>
@@ -173,40 +173,40 @@
   <!--           SENSOR JOINTS           -->
   <!-- ================================= -->
 
-  <joint name="base_d456_joint" type="fixed">
+  <joint name="base_camera_front_joint" type="fixed">
     <parent link="base_link" />
-    <child link="d456_link" />
-    <origin xyz="0.34 0 0.54" rpy="0 0.523599 3.14" />
+    <child link="camera_front_link" />
+    <origin xyz="0.40 0 0.54" rpy="0 0.523599 0" />
   </joint>
 
-  <joint name="d456_optical_joint" type="fixed">
-    <parent link="d456_link" />
-    <child link="d456_optical_link" />
+  <joint name="camera_front_optical_joint" type="fixed">
+    <parent link="camera_front_link" />
+    <child link="camera_front_optical_link" />
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
-  <joint name="base_d455_joint" type="fixed">
+  <joint name="base_camera_back_joint" type="fixed">
     <parent link="base_link" />
-    <child link="d455_link" />
-    <origin xyz="-0.128 0 0.5" rpy="0 0 3.14" />
+    <child link="camera_back_link" />
+    <origin xyz="-0.128 0 0.5" rpy="0 0.523599 3.14" />
   </joint>
 
-  <joint name="d455_optical_joint" type="fixed">
-    <parent link="d455_link" />
-    <child link="d455_optical_link" />
+  <joint name="camera_back_optical_joint" type="fixed">
+    <parent link="camera_back_link" />
+    <child link="camera_back_optical_link" />
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_lidar_link" />
-    <origin xyz="0.36 0 0.5" rpy="0 0 0" />
+    <origin xyz="-0.128 0 0.46" rpy="0 0 0" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="0.36 0 0.5" rpy="0 0 0" />
+    <origin xyz="-0.128 0 0.46" rpy="0 0 0" />
   </joint>
 
   <!-- ================================= -->
@@ -310,10 +310,10 @@
       </surface>
     </gazebo>
 
-    <gazebo reference="d456_link">
-      <sensor type="depth" name="d456">
+    <gazebo reference="camera_front_link">
+      <sensor type="depth" name="camera_front">
         <pose>0 0 0 0 0 0</pose>
-        <update_rate>30.0</update_rate>
+        <update_rate>60.0</update_rate>
         <visualize>false</visualize>
         <camera>
           <horizontal_fov>1.540</horizontal_fov>
@@ -334,14 +334,14 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="d456_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="camera_front_controller" filename="libgazebo_ros_camera.so">
           <ros>
-            <remapping>/d456/image_raw:=/d456/color/image_raw</remapping>
-            <remapping>/d456/points:=/d456/color/points</remapping>
-            <remapping>/d456/camera_info:=/d456/color/camera_info</remapping>
-            <remapping>/d456/depth/image_raw:=/d456/depth/image_rect_raw</remapping>
+            <remapping>/camera_front/image_raw:=/camera_front/color/image_raw</remapping>
+            <remapping>/camera_front/points:=/camera_front/color/points</remapping>
+            <remapping>/camera_front/camera_info:=/camera_front/color/camera_info</remapping>
+            <remapping>/camera_front/depth/image_raw:=/camera_front/depth/image_rect_raw</remapping>
           </ros>
-          <frame_name>d456_optical_link</frame_name>
+          <frame_name>camera_front_optical_link</frame_name>
           <publish_tf>false</publish_tf>
           <publish_point_cloud>true</publish_point_cloud>
         </plugin>
@@ -349,10 +349,10 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="d455_link">
-      <sensor type="depth" name="d455">
+    <gazebo reference="camera_back_link">
+      <sensor type="depth" name="camera_back">
         <pose>0 0 0 0 0 0</pose>
-        <update_rate>30.0</update_rate>
+        <update_rate>60.0</update_rate>
         <visualize>false</visualize>
         <camera>
           <horizontal_fov>1.540</horizontal_fov>
@@ -373,14 +373,14 @@
             <far>10.0</far>
           </clip>
         </camera>
-        <plugin name="d455_controller" filename="libgazebo_ros_camera.so">
+        <plugin name="camera_back_controller" filename="libgazebo_ros_camera.so">
           <ros>
-            <remapping>/d455/image_raw:=/d455/color/image_raw</remapping>
-            <remapping>/d455/points:=/d455/color/points</remapping>
-            <remapping>/d455/camera_info:=/d455/color/camera_info</remapping>
-            <remapping>/d455/depth/image_raw:=/d455/depth/image_rect_raw</remapping>
+            <remapping>/camera_back/image_raw:=/camera_back/color/image_raw</remapping>
+            <remapping>/camera_back/points:=/camera_back/color/points</remapping>
+            <remapping>/camera_back/camera_info:=/camera_back/color/camera_info</remapping>
+            <remapping>/camera_back/depth/image_raw:=/camera_back/depth/image_rect_raw</remapping>
           </ros>
-          <frame_name>d455_optical_link</frame_name>
+          <frame_name>camera_back_optical_link</frame_name>
           <publish_tf>false</publish_tf>
           <publish_point_cloud>true</publish_point_cloud>
         </plugin>

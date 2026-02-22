@@ -8,6 +8,10 @@ install_ros_dependencies() {
     sudo rosdep init 2>/dev/null || true
     rosdep update
     rosdep install --from-paths src --ignore-src -r -y
+    
+    # Remove ROS Humble grid_map packages that conflict with RTAB-Map's grid_map dependency
+    echo -e "\n------------------------ Remove Conflicting grid_map Packages ------------------------ \n"
+    sudo apt remove -y ros-humble-grid-map-core ros-humble-grid-map-ros ros-humble-grid-map-cv ros-humble-grid-map-msgs 2>/dev/null || true
 }
 
 install_camera_dependencies() {

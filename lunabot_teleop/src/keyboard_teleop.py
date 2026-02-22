@@ -22,13 +22,9 @@ z : Decrease linear speed
 e : Increase angular speed
 c : Decrease angular speed
 
-Lift the blade with Up/Down arrows:
-Up Arrow: Increase position
-Down Arrow: Decrease position
-
-Tilt the blade with Left/Right arrows:
-Left Arrow: Counter-clockwise
-Right Arrow: Clockwise
+Control the bucket with Up/Down arrows:
+Up Arrow: Raise bucket
+Down Arrow: Lower bucket
 
 CTRL-C to quit
 """
@@ -47,11 +43,9 @@ SPEED_BINDINGS = {
     "c": (1.0, 0.9),
 }
 
-BLADE_BINDINGS = {
-    "\x1b[A": -0.025,
-    "\x1b[B": 0.025,
-    "\x1b[D": -0.025,
-    "\x1b[C": 0.025,
+BUCKET_BINDINGS = {
+    "\x1b[A": -0.05,
+    "\x1b[B": 0.05,
 }
 
 
@@ -82,7 +76,7 @@ def main():
 
     node = rclpy.create_node("keyboard_teleop")
     cmd_vel_pub = node.create_publisher(Twist, "/cmd_vel", 10)
-    blade_pub = node.create_publisher(Float64MultiArray, "/position_controller/commands", 10)
+    bucket_pub = node.create_publisher(Float64MultiArray, "/position_controller/commands", 10)
 
     spin_thread = threading.Thread(target=rclpy.spin, args=(node,))
     spin_thread.start()
@@ -91,12 +85,9 @@ def main():
     turn = 0.25
     max_speed = 0.75
     max_turn = 0.75
-    blade_pos = 0.0
-    blade_arm_pos = 0.0
-    max_blade_pos = 0.75
-    min_blade_pos = -0.75
-    max_blade_arm_pos = 1.0
-    min_blade_arm_pos = -1.0
+    bucket_pos = 0.0
+    max_bucket_pos = 0.5
+    min_bucket_pos = -3.14
     x = 0.0
     theta = 0.0
     status = 0
@@ -126,18 +117,14 @@ def main():
                     print(HELP_MSG)
                 status = (status + 1) % 15
 
-            elif key in BLADE_BINDINGS:
-                if key in ("\x1b[A", "\x1b[B"):
-                    blade_arm_pos = max(
-                        min(blade_arm_pos + BLADE_BINDINGS[key], max_blade_arm_pos),
-                        min_blade_arm_pos,
-                    )
-                else:  # left/right arrows
-                    blade_pos = max(
-                        min(blade_pos + BLADE_BINDINGS[key], max_blade_pos), min_blade_pos
-                    )
-                blade_msg = Float64MultiArray(data=[blade_pos, blade_arm_pos])
-                blade_pub.publish(blade_msg)
+            elif key in BUCKET_BINDINGS:
+                bucket_pos = max(
+                    min(bucket_pos + BUCKET_BINDINGS[key], max_bucket_pos),
+                    min_bucket_pos,
+                )
+                bucket_msg = Float64MultiArray(data=[bucket_pos])
+                bucket_pub.publish(bucket_msg)
+                print(f"Bucket position: {bucket_pos:.2f} rad")
 
             else:
                 x = 0.0
