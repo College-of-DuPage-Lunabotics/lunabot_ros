@@ -41,7 +41,7 @@ def generate_launch_description():
         config_dir,
         "params",
         "point_lio",
-        "mid360_real.yaml",
+        "mid360.yaml",
     )
 
     declare_robot_mode = DeclareLaunchArgument(

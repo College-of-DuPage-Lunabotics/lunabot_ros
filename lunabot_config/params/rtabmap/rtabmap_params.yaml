@@ -1,9 +1,9 @@
 rtabmap:
   ros__parameters:
     Grid/CellSize: "0.02"
-    Grid/MaxGroundAngle: "20"
-    Grid/MinGroundHeight: "-0.2"
-    Grid/MaxGroundHeight: "0.05"
+    Grid/MaxGroundAngle: "32"
+    Grid/MinGroundHeight: "-0.05"
+    Grid/MaxGroundHeight: "0.10"
     Grid/MinClusterSize: "30"
     Grid/Sensor: "2"
     Grid/RangeMin: "0.5"

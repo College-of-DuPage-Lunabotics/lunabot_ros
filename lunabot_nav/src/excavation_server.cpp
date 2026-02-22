@@ -31,7 +31,7 @@
 #define YELLOW "\033[1;33m"
 #define CYAN "\033[1;36m"
 
-#define EXCAVATION_TICKS 1000.0    // Number of encoder ticks to lower the bucket
+#define EXCAVATION_TICKS 1000.0  // Number of encoder ticks to lower the bucket
 #define LIFT_TICKS 1000.0        // Number of encoder ticks to lift the bucket up to dump
 
 class ExcavationServer : public rclcpp::Node

@@ -94,11 +94,11 @@ private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
     // Read button and axis values
-    bool share_button = msg->buttons[9];    // View button
-    bool menu_button = msg->buttons[10];    // Menu button
-    bool home_button = msg->buttons[8];     // Xbox button
-    bool x_button = msg->buttons[2];        // X button
-    bool y_button = msg->buttons[3];        // Y button
+    bool share_button = msg->buttons[9];  // View button
+    bool menu_button = msg->buttons[10];  // Menu button
+    bool home_button = msg->buttons[8];   // Xbox button
+    bool x_button = msg->buttons[2];      // X button
+    bool y_button = msg->buttons[3];      // Y button
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];

@@ -48,7 +48,7 @@ def generate_launch_description():
         config_dir,
         "params",
         "point_lio",
-        "mid360_sim.yaml",
+        "mid360.yaml",
     )
 
     ukf_params_file = os.path.join(

@@ -157,6 +157,12 @@ void imu_cbk(const sensor_msgs::msg::Imu::SharedPtr msg_in)
   sensor_msgs::msg::Imu::SharedPtr msg(new sensor_msgs::msg::Imu(*msg_in));
   // publish_count ++;
 
+  // Transform IMU, sensor is mounted upside down
+  msg->angular_velocity.y = -msg->angular_velocity.y;
+  msg->angular_velocity.z = -msg->angular_velocity.z;
+  msg->linear_acceleration.y = -msg->linear_acceleration.y;
+  msg->linear_acceleration.z = -msg->linear_acceleration.z;
+
   msg->header.stamp = get_ros_time(
     get_time_sec(msg_in->header.stamp) - timediff_imu_wrt_lidar - time_lag_IMU_wtr_lidar);
 
