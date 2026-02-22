@@ -1,4 +1,4 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![build](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml/badge.svg?branch=development)](https://github.com/College-of-DuPage-Lunabotics/lunabot_ros/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 # Project Overview
 
@@ -7,7 +7,7 @@ This repository contains the software developed by the College of DuPage team fo
 ## System Components
 
 **Computer**
-- ASRock 4X4 BOX-8840U w/ 32GB 5200MHz DDR5 RAM
+- GMKtec NucBox G5 (Intel Alder Lake N97, 12GB RAM)
 
 **Sensors**
 - 1x Livox Mid-360
