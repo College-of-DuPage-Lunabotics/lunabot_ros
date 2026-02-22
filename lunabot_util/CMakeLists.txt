@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(lunabot_util)
 
 # Compiler settings
@@ -22,26 +22,17 @@ endif()
 
 # Find required packages
 find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(std_msgs REQUIRED)
 
 # Define executables
-add_executable(blade_joint_controller src/blade_joint_controller.cpp)
-add_executable(hardware_monitor src/hardware_monitor.cpp)
 add_executable(topic_remapper src/topic_remapper.cpp)
 
 # Set target dependencies
-ament_target_dependencies(blade_joint_controller rclcpp sensor_msgs)
-ament_target_dependencies(hardware_monitor rclcpp sensor_msgs)
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
 
 # Install targets
 install(TARGETS
-  blade_joint_controller
-  hardware_monitor
   topic_remapper
   DESTINATION lib/${PROJECT_NAME})
 

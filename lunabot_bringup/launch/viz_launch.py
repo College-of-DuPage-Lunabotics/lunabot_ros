@@ -1,12 +1,10 @@
 import os
-import random
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import Command, LaunchConfiguration
-from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
+from launch.conditions import LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
@@ -18,50 +16,17 @@ from launch.actions import (
 
 def set_orientation(context, *args, **kwargs):
     orientations = {"north": -1.5708, "east": 3.1416, "south": 1.5708, "west": 0.0}
-    random_orientation = random.choice(list(orientations.values()))
     chosen_orientation = context.launch_configurations.get("robot_heading")
-
-    if chosen_orientation == "random":
-        return [SetLaunchConfiguration("robot_heading", str(random_orientation))]
-    else:
-        return [
-            SetLaunchConfiguration(
-                "robot_heading", str(orientations[chosen_orientation])
-            )
-        ]
-
-
-def set_robot_description(context, *args, **kwargs):
-    robot_type = context.launch_configurations.get("robot_type")
-    config_dir = get_package_share_directory("lunabot_description")
-
-    urdf_file = os.path.join(config_dir, "urdf", f"{robot_type}_bot.urdf.xacro")
-    return [
-        SetLaunchConfiguration(
-            "robot_description",
-            Command(
-                ["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")]
-            ),
-        )
-    ]
+    return [SetLaunchConfiguration("robot_heading", str(orientations.get(chosen_orientation, 0.0)))]
 
 
 def set_spawn_coordinates(context, *args, **kwargs):
-    world_type = context.launch_configurations.get("arena_type")
-
     world_coords = {
         "ucf": {"x": "1.0", "y": "-3.0", "z": "0.35"},
-        "artemis": {
-            "x": "2.5",
-            "y": "-1.6",
-            "z": "0.35",
-        },
+        "artemis": {"x": "2.5", "y": "1.6", "z": "0.35"},
     }
-
-    coords = world_coords.get(
-        world_type, world_coords["artemis"]
-    )
-
+    world_type = context.launch_configurations.get("arena_type")
+    coords = world_coords.get(world_type, world_coords["artemis"])
     return [
         SetLaunchConfiguration("spawn_x", coords["x"]),
         SetLaunchConfiguration("spawn_y", coords["y"]),
@@ -72,32 +37,19 @@ def set_spawn_coordinates(context, *args, **kwargs):
 def set_world_file(context, *args, **kwargs):
     sim_dir = get_package_share_directory("lunabot_sim")
     world_type = context.launch_configurations.get("arena_type")
-
     world_files = {
-        "ucf": os.path.join(
-            sim_dir, "worlds", "high_resolution", "ucf", "ucf_arena.world"
-        ),
-        "artemis": os.path.join(
-            sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena3.world"
-        ),
+        "ucf": os.path.join(sim_dir, "worlds", "high_resolution", "ucf", "ucf_arena.world"),
+        "artemis": os.path.join(sim_dir, "worlds", "high_resolution", "artemis", "artemis_arena.world"),
     }
-
-    world_file = world_files.get(world_type, world_files["ucf"])
-
-    return [SetLaunchConfiguration("world_file", world_file)]
+    return [SetLaunchConfiguration("world_file", world_files.get(world_type, world_files["artemis"]))]
 
 
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
+    description_dir = get_package_share_directory("lunabot_description")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-
-    declare_robot_type = DeclareLaunchArgument(
-        "robot_type",
-        default_value="bulldozer",
-        choices=["bulldozer", "trencher"],
-        description="Defines the robot configuration to use: 'bulldozer', or 'trencher', each with unique characteristics and capabilities.",
-    )
+    urdf_file = os.path.join(description_dir, "urdf", "v2_bot.urdf.xacro")
 
     declare_use_sim = DeclareLaunchArgument(
         "use_sim",
@@ -107,16 +59,9 @@ def generate_launch_description():
 
     declare_robot_heading = DeclareLaunchArgument(
         "robot_heading",
-        default_value="east",
-        choices=["north", "east", "south", "west", "random"],
-        description="Sets the starting orientation of the robot. Choose a cardinal direction ('north', 'east', 'south', 'west') or 'random' for a randomized orientation.",
-    )
-
-    declare_viz_type = DeclareLaunchArgument(
-        "viz_type",
-        default_value="rviz",
-        choices=["rviz", "foxglove"],
-        description="Choose 'rviz' for visualization in RViz or 'foxglove' for visualization in Foxglove Studio.",
+        default_value="north",
+        choices=["north", "east", "south", "west"],
+        description="Sets the starting orientation of the robot. Choose a cardinal direction.",
     )
 
     declare_sim_gui = DeclareLaunchArgument(
@@ -128,7 +73,7 @@ def generate_launch_description():
 
     declare_arena_type = DeclareLaunchArgument(
         "arena_type",
-        default_value="ucf",
+        default_value="artemis",
         choices=["ucf", "artemis"],
         description="Choose the arena: 'ucf' for UCF arena or 'artemis' for Artemis arena.",
     )
@@ -138,18 +83,26 @@ def generate_launch_description():
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
-        condition=LaunchConfigurationEquals("viz_type", "rviz"),
     )
 
-    foxglove_bridge_launch = IncludeLaunchDescription(
-        XMLLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("foxglove_bridge"),
-                "launch",
-                "foxglove_bridge_launch.xml",
-            )
-        ),
-        condition=LaunchConfigurationEquals("viz_type", "foxglove"),
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        output="screen",
+        parameters=[
+            {
+                "robot_description": Command(
+                    ["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")]
+                ),
+                "use_sim_time": LaunchConfiguration("use_sim"),
+            }
+        ],
+    )
+
+    joint_state_publisher_node = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        parameters=[{"use_sim_time": False}],
     )
 
     sim_launch = IncludeLaunchDescription(
@@ -171,7 +124,7 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-entity",
-            LaunchConfiguration("robot_type"),
+            "v2_bot",
             "-x",
             LaunchConfiguration("spawn_x"),
             "-y",
@@ -184,23 +137,21 @@ def generate_launch_description():
         output="screen",
     )
 
-    robot_state_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        output="screen",
-        parameters=[
-            {
-                "robot_description": LaunchConfiguration("robot_description"),
-                "use_sim_time": LaunchConfiguration("use_sim"),
-            }
-        ],
-    )
-
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=[
             "joint_state_broadcaster",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+    )
+
+    diff_drive_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "diff_drive_controller",
             "--controller-manager",
             "/controller_manager",
         ],
@@ -214,70 +165,38 @@ def generate_launch_description():
             "--controller-manager",
             "/controller_manager",
         ],
-        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
     )
 
-    blade_joint_controller_node = Node(
-        package="lunabot_util",
-        executable="blade_joint_controller",
-        condition=LaunchConfigurationNotEquals("robot_type", "trencher"),
-    )
-
-    diff_drive_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "diff_drive_controller",
-            "--controller-manager",
-            "/controller_manager",
+    sim_group = GroupAction(
+        actions=[
+            sim_launch,
+            spawn_robot_node,
+            joint_state_broadcaster_spawner,
+            diff_drive_controller_spawner,
+            position_controller_spawner,
         ],
+        condition=LaunchConfigurationEquals("use_sim", "true"),
     )
 
-    joint_state_publisher_node = Node(
-        package="joint_state_publisher",
-        executable="joint_state_publisher",
-        parameters=[{"use_sim_time": False}],
+    joint_state_publisher_real = GroupAction(
+        actions=[joint_state_publisher_node],
+        condition=LaunchConfigurationEquals("use_sim", "false"),
     )
 
     ld = LaunchDescription()
 
-    ld.add_action(declare_robot_type)
     ld.add_action(declare_use_sim)
     ld.add_action(declare_robot_heading)
-    ld.add_action(declare_viz_type)
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
-    ld.add_action(OpaqueFunction(function=set_robot_description))
     ld.add_action(OpaqueFunction(function=set_world_file))
     ld.add_action(OpaqueFunction(function=set_spawn_coordinates))
 
     ld.add_action(rviz_launch)
-    ld.add_action(foxglove_bridge_launch)
     ld.add_action(robot_state_publisher)
-
-    ld.add_action(
-        GroupAction(
-            actions=[
-                sim_launch,
-                spawn_robot_node,
-                joint_state_broadcaster_spawner,
-                diff_drive_controller_spawner,
-                position_controller_spawner,
-                blade_joint_controller_node,
-            ],
-            condition=LaunchConfigurationEquals("use_sim", "true"),
-        )
-    )
-
-    ld.add_action(
-        GroupAction(
-            actions=[
-                joint_state_publisher_node,
-            ],
-            condition=LaunchConfigurationEquals("use_sim", "false"),
-        )
-    )
+    ld.add_action(sim_group)
+    ld.add_action(joint_state_publisher_real)
 
     return ld

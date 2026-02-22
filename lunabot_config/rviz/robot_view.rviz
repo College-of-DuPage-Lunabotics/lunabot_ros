@@ -7,8 +7,8 @@ Panels:
         - /Global Options1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /D455 Image1
-        - /D456 Image1
+        - /Front View1
+        - /Back View1
       Splitter Ratio: 0.5833333134651184
     Tree Height: 243
   - Class: rviz_common/Selection
@@ -79,12 +79,12 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        d456_link:
+        camera_front_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        d456_optical_link:
+        camera_front_optical_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -141,9 +141,9 @@ Visualization Manager:
           Value: true
         blade_link:
           Value: true
-        d456_link:
+        camera_front_link:
           Value: true
-        d456_optical_link:
+        camera_front_optical_link:
           Value: true
         front_left_wheel_link:
           Value: true
@@ -174,8 +174,8 @@ Visualization Manager:
             base_link:
               blade_arm_link:
                 blade_link: {}
-              d456_link:
-                d456_optical_link: {}
+              camera_front_link:
+                camera_front_optical_link: {}
               front_left_wheel_link: {}
               front_right_wheel_link: {}
               imu_link: {}
@@ -422,6 +422,20 @@ Visualization Manager:
       Max Value: 1
       Median window: 5
       Min Value: 0
+      Name: Front View
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /camera_front/color/image_raw
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
       Name: Back View
       Normalize Range: true
       Topic:
@@ -429,7 +443,7 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /d456/color/image_raw
+        Value: /camera_back/color/image_raw
       Value: true
   Enabled: true
   Global Options:
@@ -490,9 +504,9 @@ Visualization Manager:
       Yaw: 0.7853981852531433
     Saved: ~
 Window Geometry:
-  d455 Image:
+  Front View:
     collapsed: false
-  D456 Image:
+  Back View:
     collapsed: false
   Displays:
     collapsed: false

@@ -8,11 +8,15 @@ install_ros_dependencies() {
     sudo rosdep init 2>/dev/null || true
     rosdep update
     rosdep install --from-paths src --ignore-src -r -y
+    
+    # Remove ROS Humble grid_map packages that conflict with RTAB-Map's grid_map dependency
+    echo -e "\n------------------------ Remove Conflicting grid_map Packages ------------------------ \n"
+    sudo apt remove -y ros-humble-grid-map-core ros-humble-grid-map-ros ros-humble-grid-map-cv ros-humble-grid-map-msgs 2>/dev/null || true
 }
 
-install_sensor_dependencies() {
-    echo -e "\n------------------------ Install Sensor Dependencies ------------------------ \n"
-    sudo apt install -y ros-humble-rplidar-ros ros-humble-realsense2-*
+install_camera_dependencies() {
+    echo -e "\n------------------------ Install Camera Dependencies ------------------------ \n"
+    sudo apt install -y ros-humble-realsense2-*
 }
 
 install_git_dependencies() {
@@ -29,10 +33,28 @@ install_sparkcan() {
     sudo apt install sparkcan -y
 }
 
+install_livox_sdk() {
+    echo -e "\n------------------------ Install Livox SDK2 ------------------------ \n"
+    cd /tmp
+    if [ -d "Livox-SDK2" ]; then
+        echo "Removing existing Livox-SDK2 directory..."
+        rm -rf Livox-SDK2
+    fi
+    git clone https://github.com/Livox-SDK/Livox-SDK2.git
+    cd Livox-SDK2
+    mkdir build
+    cd build
+    # Use CMAKE_POLICY_VERSION_MINIMUM to handle newer CMake with older SDK
+    cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && make -j$(nproc)
+    sudo make install
+    echo "Livox SDK2 installed successfully"
+}
+
 main() {
-    install_sensor_dependencies
+    install_camera_dependencies
     install_git_dependencies
     install_sparkcan
+    install_livox_sdk
     install_ros_dependencies
 }
 

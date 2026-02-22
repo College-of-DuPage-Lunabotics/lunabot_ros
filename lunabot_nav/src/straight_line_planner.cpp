@@ -35,9 +35,8 @@ public:
    * @param tf The transform buffer.
    * @param costmap_ros The costmap.
    */
-  void configure(
-    const rclcpp_lifecycle::LifecycleNode::WeakPtr & parent, std::string name,
-    std::shared_ptr<tf2_ros::Buffer> tf, std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
+  void configure(const rclcpp_lifecycle::LifecycleNode::WeakPtr& parent, std::string name,
+                 std::shared_ptr<tf2_ros::Buffer> tf, std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros)
   {
     node_ = parent.lock();
     name_ = name;
@@ -78,9 +77,8 @@ public:
    * @param goal The goal pose.
    * @return The generated path as a sequence of poses.
    */
-  nav_msgs::msg::Path createPlan(
-    const geometry_msgs::msg::PoseStamped & start,
-    const geometry_msgs::msg::PoseStamped & goal)
+  nav_msgs::msg::Path createPlan(const geometry_msgs::msg::PoseStamped& start,
+                                 const geometry_msgs::msg::PoseStamped& goal)
   {
     nav_msgs::msg::Path global_path;
 
@@ -89,15 +87,14 @@ public:
     global_path.header.frame_id = global_frame_;
 
     int total_points =
-      std::hypot(
-      goal.pose.position.x - start.pose.position.x,
-      goal.pose.position.y - start.pose.position.y) /
-      resolution_;
+        std::hypot(goal.pose.position.x - start.pose.position.x, goal.pose.position.y - start.pose.position.y) /
+        resolution_;
 
     double x_increment = (goal.pose.position.x - start.pose.position.x) / total_points;
     double y_increment = (goal.pose.position.y - start.pose.position.y) / total_points;
 
-    for (int i = 0; i < total_points; ++i) {
+    for (int i = 0; i < total_points; ++i)
+    {
       geometry_msgs::msg::PoseStamped pose;
       pose.pose.position.x = start.pose.position.x + x_increment * i;
       pose.pose.position.y = start.pose.position.y + y_increment * i;
@@ -131,6 +128,6 @@ private:
 
   double resolution_;
 };
-} // namespace straight_line_planner
+}  // namespace straight_line_planner
 
 PLUGINLIB_EXPORT_CLASS(straight_line_planner::StraightLine, nav2_core::GlobalPlanner)
