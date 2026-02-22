@@ -10,16 +10,12 @@ This repository contains the software developed by the College of DuPage team fo
 - ASRock 4X4 BOX-8840U w/ 32GB 5200MHz DDR5 RAM
 
 **Sensors**
-- Livox Mid-360
-- Intel RealSense D455 Depth Camera
-- Intel RealSense D456 Depth Camera w/ IR Filter
+- 1x Livox Mid-360
+- 2x Intel RealSense D456 Depth Camera w/ IR Filter
 
 **Hardware**
-- REV Robotics NEO Vortex (x2)
-- REV Robotics Spark Max (x2)
-- REV Robotics Power Distribution Hub
-- Turnigy 5S 5000mAh LiPo Battery
-- Turnigy 4S 12000mAh LiPo Battery
+- REV Robotics NEO V1.1 (x2)
+- REV Robotics Spark Max (x5)
 - ODrive USB-CAN Adapter
 
 ## Installation
@@ -123,11 +119,6 @@ ros2 launch lunabot_bringup sim_launch.py
   <img src="demo_rviz.png">
 </p>
 
-This GIF demonstrates the excavation functionality of the rover, which is activated after successful navigation to the excavation zone. It does not navigate around obstacles in this zone, instead it continuously corrects itself to align with the goal and push rocks if they are in the way. This is done through using a straight line path planner and the Regulated Pure Pursuit controller from Nav2.
-
-<p align="center">
-  <img src="demo_excavation.gif">
-</p>
 
 ## Running the Physical Robot
 

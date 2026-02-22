@@ -7,16 +7,18 @@ This package contains configuration files for Nav2 behavior trees, RViz2 configu
 - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: Replans only when the path becomes invalid to prevent Nav2 from repeatedly alternating between ambiguous paths.
 
 ## Parameters
+- **apriltag**
+  - **tag_params.yaml**: AprilTag detection parameters.
 - **gazebo**
-  - **gazebo_bulldozer_bot_params.yaml**: Bulldozer robot joint controller parameters for Gazebo.
-  - **gazebo_trencher_bot_params.yaml**: Trencher robot joint controller parameters for Gazebo.
-- **laser_filters**
-  - **s2l_params.yaml**: S2L lidar scan filtering parameters.
-  - **s3_params.yaml**: S3 lidar scan filtering parameters.
+  - **gazebo_v1_bot_params.yaml**: V1 robot joint controller parameters for Gazebo.
+  - **gazebo_v2_bot_params.yaml**: V2 robot joint controller parameters for Gazebo.
+- **mid360**
+  - **mid360.json**: Livox Mid-360 LiDAR driver configuration.
 - **nav2**
-  - **nav2_bulldozer_bot_params.yaml**: Nav2 parameters for bulldozer robot in simulation.
+  - **nav2_v1_bot_params.yaml**: Nav2 parameters for simulation.
   - **nav2_real_bot_params.yaml**: Nav2 parameters for physical robot.
-  - **nav2_trencher_bot_params.yaml**: Nav2 parameters for trencher robot in simulation.
+- **point_lio**
+  - **mid360.yaml**: Point-LIO configuration for Mid-360 LiDAR.
 - **robot_localization**
   - **ukf_params.yaml**: Unscented Kalman Filter (UKF) parameters.
 - **rtabmap**

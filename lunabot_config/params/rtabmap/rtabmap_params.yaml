@@ -6,7 +6,7 @@ rtabmap:
     Grid/MaxGroundHeight: "0.10"
     Grid/MinClusterSize: "30"
     Grid/Sensor: "2"
-    Grid/RangeMin: "0.5"
+    Grid/RangeMin: "1.0"
     Grid/RangeMax: "15.0"
     Grid/MaxObstacleHeight: "0.6"
     Grid/RayTracing: "true"

@@ -136,7 +136,7 @@ private:
     else
     {
       RCLCPP_ERROR(this->get_logger(), "\033[1;31mLOCALIZATION FAILED.\033[0m");
-      rclcpp::shutdown();
+      current_state_ = State::IDLE;
     }
   }
 

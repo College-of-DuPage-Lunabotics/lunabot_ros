@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="test_bot"
+<robot name="v1_bot"
   xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:arg name="use_sim" default="true" />
@@ -29,14 +29,14 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_body.dae" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_body.dae" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 1.5708" />
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_body.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_body.stl" />
       </geometry>
       <origin xyz="0 0 0.1625" rpy="0 0 1.5708" />
     </collision>
@@ -55,7 +55,7 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
       <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
@@ -63,7 +63,7 @@
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
       <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
@@ -75,7 +75,7 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
       <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
@@ -83,7 +83,7 @@
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_d456_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
       <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
@@ -95,14 +95,14 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_mid360_lidar.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_mid360_lidar.stl" />
       </geometry>
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/test_bot/test_bot_mid360_lidar.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_mid360_lidar.stl" />
       </geometry>
     </collision>
   </link>
@@ -457,7 +457,7 @@
       <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
         <robot_param>robot_description</robot_param>
         <robot_param_node>robot_state_publisher</robot_param_node>
-        <parameters>$(find lunabot_config)/params/gazebo/gazebo_test_bot_params.yaml</parameters>
+        <parameters>$(find lunabot_config)/params/gazebo/gazebo_v1_bot_params.yaml</parameters>
       </plugin>
     </gazebo>
 
