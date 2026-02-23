@@ -77,10 +77,20 @@ class LunabotGUI(QMainWindow):
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle('Lunabot Control Panel')
-        self.setGeometry(100, 100, 1600, 900)
         
-        # Ensure window can be maximized
-        self.setWindowFlags(Qt.Window | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
+        # Get screen size and adjust window accordingly
+        screen = QApplication.primaryScreen().geometry()
+        # Use 90% of screen size, or target size (1600x900), whichever is smaller
+        window_width = min(1600, int(screen.width() * 0.9))
+        window_height = min(900, int(screen.height() * 0.9))
+        # Center the window
+        x = (screen.width() - window_width) // 2
+        y = (screen.height() - window_height) // 2
+        self.setGeometry(x, y, window_width, window_height)
+        
+        # Set reasonable size constraints (allows resizing)
+        # Minimum size ensures text remains readable
+        self.setMinimumSize(1000, 650)
         
         self.setStyleSheet(MAIN_STYLESHEET)
         
@@ -96,11 +106,12 @@ class LunabotGUI(QMainWindow):
         
         # Main content area
         content_widget = self.create_content_area()
-        main_layout.addWidget(content_widget, 4)
+        main_layout.addWidget(content_widget, 10)
         
-        # Right sidebar
+        # Right sidebar (fixed width, no stretch)
         sidebar_container = self.create_sidebar()
-        main_layout.addWidget(sidebar_container, 1)
+        sidebar_container.setMinimumWidth(250)
+        main_layout.addWidget(sidebar_container, 0)
     
     def create_content_area(self):
         """Create main content area with cameras and telemetry"""
@@ -140,7 +151,7 @@ class LunabotGUI(QMainWindow):
         swappable_camera_layout = QVBoxLayout()
         self.swappable_camera_label = QLabel("No camera feed")
         self.swappable_camera_label.setAlignment(Qt.AlignCenter)
-        self.swappable_camera_label.setMinimumSize(400, 300)
+        self.swappable_camera_label.setMinimumSize(320, 240)
         self.swappable_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.swappable_camera_label.setStyleSheet(Styles.camera_label())
         swappable_camera_layout.addWidget(self.swappable_camera_label)
@@ -176,7 +187,7 @@ class LunabotGUI(QMainWindow):
         fisheye_layout = QVBoxLayout()
         self.fisheye_camera_label = QLabel("No camera feed")
         self.fisheye_camera_label.setAlignment(Qt.AlignCenter)
-        self.fisheye_camera_label.setMinimumSize(400, 300)
+        self.fisheye_camera_label.setMinimumSize(320, 240)
         self.fisheye_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.fisheye_camera_label.setStyleSheet(Styles.camera_label())
         fisheye_layout.addWidget(self.fisheye_camera_label)
@@ -247,9 +258,10 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget = QWidget()
         self.sidebar_widget.setStyleSheet("background-color: #1a1a1a;")
         self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.sidebar_widget.setMinimumWidth(240)  # Prevent controls from compressing
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setSpacing(6)  # Reduced spacing to give more room to buttons
         self.sidebar_widget.setLayout(sidebar_layout)
         
         # Add control groups
@@ -264,12 +276,16 @@ class LunabotGUI(QMainWindow):
         action_group = ui_widgets.create_action_control_group(self)
         sidebar_layout.addWidget(action_group)
         
+        # Add stretch to push teleop down but allow it to compress
+        sidebar_layout.addStretch(1)
+        
         teleop_group = ui_widgets.create_teleop_control_group(self)
-        sidebar_layout.addWidget(teleop_group)
+        teleop_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
+        sidebar_layout.addWidget(teleop_group, 0)  # stretch factor 0 = can shrink
         if self.robot.is_real_mode:
             teleop_group.setEnabled(False)
         
-        sidebar_container_layout.addWidget(self.sidebar_widget, 0, Qt.AlignBottom)
+        sidebar_container_layout.addWidget(self.sidebar_widget)
         
         # Edge tab
         self.edge_tab = QPushButton("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
@@ -292,7 +308,7 @@ class LunabotGUI(QMainWindow):
         """)
         self.edge_tab.setMaximumWidth(30)
         self.edge_tab.clicked.connect(self.toggle_sidebar)
-        sidebar_container_layout.addWidget(self.edge_tab, 0, Qt.AlignVCenter)
+        sidebar_container_layout.addWidget(self.edge_tab)
         
         return self.sidebar_container
     
@@ -322,10 +338,12 @@ class LunabotGUI(QMainWindow):
         if self.sidebar_collapsed:
             self.sidebar_widget.hide()
             self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
+            self.sidebar_container.setMinimumWidth(30)
             self.sidebar_container.setMaximumWidth(30)
         else:
             self.sidebar_widget.show()
             self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
+            self.sidebar_container.setMinimumWidth(250)
             self.sidebar_container.setMaximumWidth(16777215)
     
     def toggle_mode(self):

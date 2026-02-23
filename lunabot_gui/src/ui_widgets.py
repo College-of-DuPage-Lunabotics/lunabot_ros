@@ -309,7 +309,6 @@ def create_network_group(app):
     app.robot_host_edit = QLineEdit(app.robot.robot_host)
     app.robot_host_edit.setFont(QFont("Monospace", 9))
     app.robot_host_edit.setStyleSheet("background-color: #2d2d2d; color: #e0e0e0; padding: 2px;")
-    app.robot_host_edit.setMinimumWidth(140)
     app.robot_host_edit.setMaximumHeight(20)
     config_layout.addWidget(app.robot_host_edit)
     
@@ -324,7 +323,6 @@ def create_network_group(app):
     app.robot_user_edit = QLineEdit(app.robot.robot_user)
     app.robot_user_edit.setFont(QFont("Monospace", 9))
     app.robot_user_edit.setStyleSheet("background-color: #2d2d2d; color: #e0e0e0; padding: 2px;")
-    app.robot_user_edit.setMinimumWidth(100)
     app.robot_user_edit.setMaximumHeight(20)
     config_layout.addWidget(app.robot_user_edit)
     
@@ -652,16 +650,18 @@ def create_teleop_control_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
     layout = QVBoxLayout()
+    layout.setSpacing(4)
+    layout.setContentsMargins(4, 4, 4, 4)
     
     # Top row: Bucket controls (left) and Speed info (right)
     top_row = QHBoxLayout()
     
     # Left side: Bucket controls
     bucket_section = QVBoxLayout()
-    bucket_section.setSpacing(4)
+    bucket_section.setSpacing(3)
     
     arrow_label = QLabel("Bucket")
-    arrow_label.setStyleSheet("color: #bbb; font-size: 13px; background-color: transparent;")
+    arrow_label.setStyleSheet("color: #bbb; font-size: 11px; background-color: transparent;")
     arrow_label.setAlignment(Qt.AlignCenter)
     bucket_section.addWidget(arrow_label)
     
@@ -671,12 +671,12 @@ def create_teleop_control_group(app):
             background-color: #424242;
             color: white;
             border: 2px solid #616161;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 14px;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 11px;
             font-weight: bold;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 25px;
+            min-height: 25px;
         }
         QPushButton:hover {
             background-color: #616161;
@@ -695,12 +695,12 @@ def create_teleop_control_group(app):
             background-color: #4a7ba7;
             color: white;
             border: 2px solid #5a8bc7;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 14px;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 11px;
             font-weight: bold;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 25px;
+            min-height: 25px;
         }
     """
     
@@ -741,13 +741,13 @@ def create_teleop_control_group(app):
     
     # WASD Movement Controls
     wasd_label = QLabel("Movement")
-    wasd_label.setStyleSheet("color: #bbb; font-size: 13px; margin-top: 8px; background-color: transparent;")
+    wasd_label.setStyleSheet("color: #bbb; font-size: 11px; margin-top: 2px; background-color: transparent;")
     wasd_label.setAlignment(Qt.AlignCenter)
     layout.addWidget(wasd_label)
     
     # WASD button grid
     wasd_grid = QGridLayout()
-    wasd_grid.setSpacing(4)
+    wasd_grid.setSpacing(8)  # Spacing for easier clicking
     
     app.btn_w = QPushButton("W")
     app.btn_a = QPushButton("A")
@@ -792,14 +792,16 @@ def create_launch_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
     layout = QVBoxLayout()
+    layout.setSpacing(4)  # Spacing between buttons
+    layout.setContentsMargins(4, 4, 4, 4)
     
     button_style = """
         QPushButton {
             background-color: #424242;
             color: white;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 6px;
+            padding: 4px;
             border-radius: 4px;
             border: 2px solid #616161;
             text-align: center;
@@ -814,21 +816,29 @@ def create_launch_group(app):
     
     pointlio_btn = QPushButton("PointLIO")
     pointlio_btn.setStyleSheet(button_style)
+    pointlio_btn.setMinimumHeight(24)
+    pointlio_btn.setMaximumHeight(26)
     pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
     layout.addWidget(pointlio_btn)
     
     mapping_btn = QPushButton("Mapping")
     mapping_btn.setStyleSheet(button_style)
+    mapping_btn.setMinimumHeight(24)
+    mapping_btn.setMaximumHeight(26)
     mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
     layout.addWidget(mapping_btn)
     
     nav2_btn = QPushButton("Nav2")
     nav2_btn.setStyleSheet(button_style)
+    nav2_btn.setMinimumHeight(24)
+    nav2_btn.setMaximumHeight(26)
     nav2_btn.clicked.connect(lambda: app.launch_system('nav2'))
     layout.addWidget(nav2_btn)
     
     rviz_btn = QPushButton("RViz2")
-    rviz_btn.setStyleSheet(Styles.light_blue_button())
+    rviz_btn.setStyleSheet(Styles.light_blue_button(size=10))
+    rviz_btn.setMinimumHeight(24)
+    rviz_btn.setMaximumHeight(26)
     rviz_btn.clicked.connect(app.launch_rviz)
     layout.addWidget(rviz_btn)
     
@@ -842,25 +852,33 @@ def create_action_control_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
     layout = QVBoxLayout()
+    layout.setSpacing(5)  # Spacing between buttons for easier clicking
+    layout.setContentsMargins(4, 4, 4, 4)
     
     app.home_btn = QPushButton("Home Actuators")
-    app.home_btn.setStyleSheet(Styles.orange_button())
+    app.home_btn.setStyleSheet(Styles.orange_button(size=10))
+    app.home_btn.setMinimumHeight(32)
+    app.home_btn.setMaximumHeight(36)
     app.home_btn.clicked.connect(app.send_home_goal)
     layout.addWidget(app.home_btn)
     
     app.localize_btn = QPushButton("Localize")
-    app.localize_btn.setStyleSheet(Styles.standard_button())
+    app.localize_btn.setStyleSheet(Styles.standard_button(size=10))
+    app.localize_btn.setMinimumHeight(32)
+    app.localize_btn.setMaximumHeight(36)
     app.localize_btn.clicked.connect(lambda: app.launch_system('localization'))
     layout.addWidget(app.localize_btn)
     
     app.excavate_btn = QPushButton("Excavate")
+    app.excavate_btn.setMinimumHeight(32)
+    app.excavate_btn.setMaximumHeight(36)
     app.excavate_btn.setStyleSheet("""
         QPushButton {
             background-color: #424242;
             color: white;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 8px;
+            padding: 4px;
             border-radius: 4px;
             border: 2px solid #616161;
         }
@@ -880,13 +898,15 @@ def create_action_control_group(app):
     layout.addWidget(app.excavate_btn)
     
     app.dump_btn = QPushButton("Dump")
+    app.dump_btn.setMinimumHeight(32)
+    app.dump_btn.setMaximumHeight(36)
     app.dump_btn.setStyleSheet("""
         QPushButton {
             background-color: #424242;
             color: white;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 8px;
+            padding: 4px;
             border-radius: 4px;
             border: 2px solid #616161;
         }
@@ -906,12 +926,16 @@ def create_action_control_group(app):
     layout.addWidget(app.dump_btn)
     
     app.auto_btn = QPushButton("One Cycle Auto")
-    app.auto_btn.setStyleSheet(Styles.blue_button())
+    app.auto_btn.setStyleSheet(Styles.blue_button(size=10))
+    app.auto_btn.setMinimumHeight(32)
+    app.auto_btn.setMaximumHeight(36)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
-    app.emergency_stop_btn.setStyleSheet(Styles.red_button())
+    app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=10))
+    app.emergency_stop_btn.setMinimumHeight(32)
+    app.emergency_stop_btn.setMaximumHeight(36)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
     app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
@@ -1067,14 +1091,18 @@ def create_hardware_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
     layout = QVBoxLayout()
+    layout.setSpacing(4)  # Spacing between buttons
+    layout.setContentsMargins(4, 4, 4, 4)
     
     can_btn = QPushButton("Start CAN Interface")
-    can_btn.setStyleSheet(Styles.standard_button(size=13))
+    can_btn.setStyleSheet(Styles.standard_button(size=12))
+    can_btn.setMinimumHeight(32)
     can_btn.clicked.connect(app.start_can_interface)
     layout.addWidget(can_btn)
     
     hardware_btn = QPushButton("Launch Hardware")
-    hardware_btn.setStyleSheet(Styles.standard_button(size=13))
+    hardware_btn.setStyleSheet(Styles.standard_button(size=12))
+    hardware_btn.setMinimumHeight(32)
     hardware_btn.clicked.connect(app.launch_hardware)
     layout.addWidget(hardware_btn)
     
