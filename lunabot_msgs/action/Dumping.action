@@ -1,0 +1,6 @@
+# Dumping action - performs dumping sequence
+---
+bool success
+string message
+---
+string feedback_message

@@ -4,6 +4,9 @@ controller_manager:
 
     position_controller:
       type: position_controllers/JointGroupPositionController
+    
+    camera_controller:
+      type: position_controllers/JointGroupPositionController
 
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
@@ -15,6 +18,12 @@ position_controller:
   ros__parameters:
     joints:
       - base_bucket_joint
+    open_loop_control: true
+
+camera_controller:
+  ros__parameters:
+    joints:
+      - camera_fisheye_yaw_joint
     open_loop_control: true
 
 diff_drive_controller:

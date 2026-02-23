@@ -1,10 +1,10 @@
 # lunabot_bringup
 
-This package contains launch files to bring up autonomy nodes, Gazebo simulation, and real-world hardware.
+This package contains launch files to bring up the robot GUI, autonomy nodes, Gazebo simulation, and hardware.
 
-There are three worlds available for Gazebo simulation and they come in both high and low resolution versions. They have different rock and crater placements and some are easier to navigate through than others. Modify lines 41 or 42 as shown below in `viz_launch.py` and rebuild this package if you'd like to change the world. The default world type is **artemis**. You can find the worlds listed [here](../lunabot_sim/README.md).
+There are three worlds available for Gazebo simulation and they come in both high and low resolution versions. They have different rock and crater placements and some are easier to navigate through than others. Modify lines 41 or 42 as shown below in `gui_launch.py` and rebuild this package if you'd like to change the world. The default world type is **artemis**. You can find the worlds listed [here](../lunabot_sim/README.md).
 
-**viz_launch.py**
+**gui_launch.py**
 ```python
 world_files = {
   "ucf": os.path.join(sim_dir, "worlds", "high_resolution", "ucf", "ucf_arena.world"),
@@ -13,46 +13,36 @@ world_files = {
 ```
 
 ## Launch Files
-- **real_launch.py**: Launches the required nodes for bringing up the physical robot hardware and sensors, along with manual control and/or autonomy nodes.
-- **sim_launch.py**: Launches the required nodes for simulating robot autonomy in Gazebo.
-- **viz_launch.py**: Launches RViz2 and Gazebo to visualize the robot and its sensor data.
+
+### Main Launch File
+- **gui_launch.py**: Primary launch file for both simulation and real robot. Launches visualization (RViz2 or custom PyQt GUI), robot state publisher, and handles both simulation (Gazebo) and real robot modes. Automatically starts joy_node in real mode for controller input.
+
+### Component Launch Files
+These are launched individually via GUI buttons or for specific subsystems:
+- **hardware_launch.py**: Launches hardware drivers, cameras, LiDAR, and controller input for real robot
+- **actions_launch.py**: Launches action servers for excavation, dumping, and homing operations
+- **pointlio_launch.py**: Launches Point-LIO SLAM system
+- **mapping_launch.py**: Launches RTAB-Map for dense 3D mapping
+- **nav2_stack_launch.py**: Launches Nav2 navigation stack
+- **localization_launch.py**: Launches AprilTag-based localization
 
 ## Parameters
 
-### real_launch.py
-- `robot_mode`: Selects the mode of operation.
-  - Options:
-    - `manual`: Runs the robot in manual mode. **(Default)**
-    - `auto`: Runs the robot in autonomous mode.
-  - Example: `robot_mode:=auto`
+### gui_launch.py
 
-- `use_localization`: Enables AprilTag localization before navigation.
+- `use_sim`: Specifies whether to run in simulation or real robot mode.
   - Options:
-    - `true`: Waits for successful AprilTag localization before starting SLAM. **(Default)**
-    - `false`: Skips localization and starts SLAM immediately.
-  - Example: `use_localization:=false`
+    - `true`: Launches simulated robot in Gazebo. **(Default)**
+    - `false`: Real robot mode - uses real hardware data and automatically starts joy_node for controller input.
+  - Example: `use_sim:=false`
 
-### sim_launch.py
-- `robot_mode`: Selects the mode of operation.
+- `viz_mode`: Selects the visualization interface.
   - Options:
-    - `manual`: Runs the robot in manual mode. **(Default)**
-    - `auto`: Runs the robot in autonomous mode.
-  - Example: `robot_mode:=auto`
+    - `gui`: Launches custom PyQt5 GUI with camera feeds and telemetry. **(Default)**
+    - `rviz`: Launches traditional RViz2 3D visualization.
+  - Example: `viz_mode:=rviz`
 
-- `teleop_mode`: Chooses the teleoperation method.
-  - Options:
-    - `keyboard`: Uses keyboard for teleoperation. **(Default)**
-    - `xbox`: Uses Xbox controller for teleoperation.
-  - Example: `teleop_mode:=xbox`
-
-- `use_localization`: Enables AprilTag localization before navigation.
-  - Options:
-    - `true`: Waits for successful AprilTag localization before starting SLAM. **(Default)**
-    - `false`: Skips localization and starts SLAM immediately.
-  - Example: `use_localization:=false`
-
-### viz_launch.py
-- `robot_heading`: Sets the initial orientation of the robot in Gazebo.
+- `robot_heading`: Sets the initial orientation of the robot in Gazebo (simulation only).
   - Options:
     - `north`: Points the robot north. **(Default)**
     - `south`: Points the robot south.
@@ -60,21 +50,67 @@ world_files = {
     - `west`: Points the robot west.
   - Example: `robot_heading:=south`
 
-- `arena_type` : Selects the arena world file.
-  -  Options:
-     -  `ucf`: Selects the UCF arena world file.
-     -  `artemis`: Selects the Artemis arena world file.
-  - Example: `arena_type:=artemis`
-
-- `use_sim`: Specifies whether to launch Gazebo or not.
+- `arena_type`: Selects the arena world file (simulation only).
   - Options:
-    - `true`: Launches simulated robot in Gazebo. **(Default)**
-    - `false`: Only launches RViz2 instead of Gazebo, will receive data from real hardware.
-  - Example: `use_sim:=false`
+    - `artemis`: Selects the Artemis arena world file. **(Default)**
+    - `ucf`: Selects the UCF arena world file.
+  - Example: `arena_type:=ucf`
 
-- `sim_gui`: Enables or disables the Gazebo GUI.
+- `sim_gui`: Enables or disables the Gazebo GUI (simulation only).
   - Options:
     - `true`: Runs Gazebo with its GUI. **(Default)**
     - `false`: Runs Gazebo in headless mode.
   - Example: `sim_gui:=false`
+
+### Remote Robot Parameters (for gui_launch.py with custom GUI)
+
+When using the custom PyQt GUI, you can configure remote robot operation:
+
+- `robot_host`: Robot PC hostname or IP address for SSH commands.
+  - Default: `localhost`
+  - Example: `robot_host:=192.168.1.100`
+
+- `robot_user`: SSH username for robot PC.
+  - Default: Current user (`$USER`)
+  - Example: `robot_user:=lunabot`
+
+- `robot_workspace`: Workspace path on robot PC.
+  - Default: `~/lunabot_ws`
+  - Example: `robot_workspace:=/home/robot/lunabot_ws`
+
+## Usage Examples
+
+### Simulation
+```bash
+# Default - GUI with Gazebo
+ros2 launch lunabot_bringup gui_launch.py
+
+# RViz with Gazebo
+ros2 launch lunabot_bringup gui_launch.py viz_mode:=rviz
+
+# Different arena
+ros2 launch lunabot_bringup gui_launch.py arena_type:=ucf
+
+# Headless Gazebo
+ros2 launch lunabot_bringup gui_launch.py sim_gui:=false
+```
+
+### Real Robot - Local
+```bash
+# GUI on robot PC (joy_node starts automatically)
+ros2 launch lunabot_bringup gui_launch.py use_sim:=false
+
+# RViz on robot PC
+ros2 launch lunabot_bringup gui_launch.py use_sim:=false viz_mode:=rviz
+```
+
+### Real Robot - Remote
+```bash
+# GUI on laptop, hardware controlled on robot PC via SSH
+ros2 launch lunabot_bringup gui_launch.py \
+  use_sim:=false \
+  robot_host:=192.168.1.100 \
+  robot_user:=lunabot \
+  robot_workspace:=~/lunabot_ws
+```
 

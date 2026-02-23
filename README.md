@@ -47,11 +47,7 @@ This will permanently append these lines to your .bashrc file, so there is no ne
 mkdir -p ~/lunabot_ws/src
 cd ~/lunabot_ws/src
 git clone https://github.com/College-of-DuPage-Lunabotics/lunabot_ros.git
-cd lunabot_ros
-git submodule update --init --recursive --remote
 ```
-
-**If you have previously cloned this repository and do not see anything in the folders located in `third_party_packages` after running `git pull`, run `git submodule update --init --recursive --remote` inside the `lunabot_ros` folder to initialize the submodules.**
 
 #### 3. Install dependencies
 
@@ -84,141 +80,85 @@ cd ~/lunabot_ws
 colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 --parallel-workers 1 # Modify number as needed
 ```
 
-## Simulating the Robot
-The launch files have various parameters that can be set, such as changing the robot model and autonomy level.
-
-**A detailed list of the launch parameters can be found [here](lunabot_bringup/README.md).**
-
-#### 1. Navigate to workspace and source setup
-
-```bash
-cd ~/lunabot_ws
-source install/setup.bash
-```
-#### Open separate terminal windows and source the workspace setup for each next step:
-
-#### 2. Launch visualization
-
-```bash
-ros2 launch lunabot_bringup viz_launch.py
-```
-
-#### 3. Launch mapping and navigation
-
-```bash
-ros2 launch lunabot_bringup sim_launch.py
-```
-
-#### Gazebo
-<p align="center">
-  <img src="demo_gazebo.png">
-</p>
-
-#### RViz2
-<p align="center">
-  <img src="demo_rviz.png">
-</p>
-
-
 ## Running the Physical Robot
 
-### SSH into Robot Computer
+### SSH Setup for Remote Operation
 
-SSH (Secure Shell) allows you to access another device over the network and run commands. In this context:
-- The **client** is your personal computer (e.g., your laptop).
-- The **host** is the robot's onboard computer (e.g., ASRock 4X4 BOX-8840U).
+SSH (Secure Shell) enables remote access to the robot's onboard computer from your laptop.
 
-#### 1. Install and enable SSH server (host):
+#### 1. Install SSH on robot PC (host)
 ```bash
 sudo apt update
 sudo apt install openssh-server
-
-sudo systemctl start ssh
 sudo systemctl enable ssh
+sudo systemctl start ssh
 ```
 
-#### 2. Install SSH client (client):
-
+#### 2. Install SSH client on laptop (client)
 ```bash
 sudo apt update
 sudo apt install openssh-client
 ```
 
-#### 3. Create SSH-key (client)
-
+#### 3. Setup SSH key authentication (client)
 ```bash
-ssh-keygen
+# Generate SSH key (press Enter for all prompts)
+ssh-keygen -t ed25519
+
+# Get robot's IP address (run on robot PC)
+hostname -I  # First address in the list
+
+# Copy key to robot (run on laptop)
+ssh-copy-id username@robot_ip
+
+# Test connection (should not ask for password)
+ssh username@robot_ip 'echo success'
 ```
 
-#### 4. Get username and IP address (host)
+### Configure Device Permissions (Robot PC)
 
-```bash
-whoami
-```
-This will return the username of the host, although you can also see the username just by looking at the terminal. It is the first name before the @, for example, the username would be `asrock` for `asrock@asrock-main`.
-
-Next, get the IP address:
-```bash -->
-hostname -I
-```
-
-The IP address is the first set of numbers in the list.
-
-#### 5. Establish SSH connection (client)
-
-Using the username and IP address from the previous step, now you can connect to the host. It may look something like this for example:
-
-```bash
-ssh asrock@192.168.10.1 # (General format: username@ip_address)
-```
- It will ask you if you are sure you want to connect, type `yes`. Then, confirm by typing in the host's password.
-
-### Configure Device Permissions
-
-#### 1. Add user to dialout group then restart (host)
-
+#### 1. Add user to dialout group
 ```bash
 sudo usermod -a -G dialout $USER
 sudo reboot
 ```
 
-Use `ls /dev/ttyUSB*` to identify device numbers if the lidars are disconnected and reconnected, then adjust the lidar `"serial_port"` parameters in `real_launch.py` accordingly.
-
-#### 2. Setup camera udev rules (host)
-
+#### 2. Setup camera udev rules
 ```bash
 cd ~/lunabot_ws/src/lunabot_ros/scripts
 chmod +x setup_udev_rules.sh
 sudo ./setup_udev_rules.sh
 ```
 
-Make sure all cameras are unplugged while setting up the udev rules.
+**Note:** Unplug all cameras before running udev setup. Use `ls /dev/ttyUSB*` to verify device ports if needed.
 
-### Running Launch Files
+### Basic Usage
 
-#### 1. Source workspace setup (both client and host)
+**A detailed list of launch parameters can be found [here](lunabot_bringup/README.md).**
 
 ```bash
+# Navigate to workspace and source setup
 cd ~/lunabot_ws
 source install/setup.bash
+
+# Launch GUI in simulation mode (default)
+ros2 launch lunabot_bringup gui_launch.py
+
+# Launch GUI in real robot mode
+ros2 launch lunabot_bringup gui_launch.py use_sim:=false
 ```
 
-#### 2. Connect controller and run joy node (client)
+**For detailed GUI usage, remote operation, and configuration options, see [lunabot_gui/README.md](lunabot_gui/README.md).**
 
-Connect your controller either through a wired or Bluetooth connection to the client.
+### GUI Interface
 
-```bash
-ros2 run joy joy_node
-```
+#### Simulation Mode
+<p align="center">
+  <img src="gui_sim_mode.png">
+</p>
 
-#### 3. Visualize with RViz2 (client)
+#### Real Robot Mode
+<p align="center">
+  <img src="gui_real_mode.png">
+</p>
 
-```bash
-ros2 launch lunabot_bringup viz_launch.py use_sim:=false
-```
-
-#### 4. Launch the real robot (host)
-
-```bash
-ros2 launch lunabot_bringup real_launch.py
-```

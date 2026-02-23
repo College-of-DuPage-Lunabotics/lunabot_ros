@@ -289,7 +289,7 @@ local_costmap:
 
 planner_server:
   ros__parameters:
-    planner_plugins: ["GridBased", "StraightLine"]
+    planner_plugins: ["GridBased"]
     use_sim_time: true
 
     GridBased:
@@ -308,9 +308,6 @@ planner_server:
         w_smooth: 0.3
         w_data: 0.2
         tolerance: 1.0e-10
-
-    StraightLine:
-      plugin: "straight_line_planner::StraightLine"
 
 
 behavior_server:

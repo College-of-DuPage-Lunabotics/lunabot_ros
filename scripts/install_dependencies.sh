@@ -50,11 +50,17 @@ install_livox_sdk() {
     echo "Livox SDK2 installed successfully"
 }
 
+install_gui_dependencies() {
+    echo -e "\n------------------------ Install GUI Dependencies (PyQt5 and OpenCV) ------------------------ \n"
+    sudo apt install -y python3-pyqt5 python3-opencv
+}
+
 main() {
     install_camera_dependencies
     install_git_dependencies
     install_sparkcan
     install_livox_sdk
+    install_gui_dependencies
     install_ros_dependencies
 }
 

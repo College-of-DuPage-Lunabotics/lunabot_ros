@@ -1,7 +1,7 @@
 /**
  * @file localization_server.cpp
  * @author Grayson Arendt
- * @date 03/29/2025
+ * @date 02/22/2026
  */
 
 #include <algorithm>
@@ -67,7 +67,7 @@ public:
 
 private:
   /**
-   * @brief Executes the excavation process.
+   * @brief Executes the localization process.
    * @param goal_handle The handle to the goal being executed.
    */
   void execute(const std::shared_ptr<GoalHandleLocalization> goal_handle)

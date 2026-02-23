@@ -1,0 +1,6 @@
+# Homing action - homes actuators to establish zero position
+---
+bool success
+string message
+---
+string feedback_message

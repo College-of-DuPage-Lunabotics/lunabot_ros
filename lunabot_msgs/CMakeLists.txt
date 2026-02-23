@@ -26,8 +26,13 @@ endif()
 find_package(rosidl_default_generators REQUIRED)
 
 # Generate interfaces
-rosidl_generate_interfaces(${PROJECT_NAME} "action/Localization.action"
-                           "action/Excavation.action")
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ControlState.msg"
+  "action/Localization.action"
+  "action/Excavation.action"
+  "action/Dumping.action"
+  "action/Homing.action"
+)
 
 # Export the package
 ament_package()

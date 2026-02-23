@@ -50,6 +50,9 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
     urdf_file = os.path.join(description_dir, "urdf", "v2_bot.urdf.xacro")
+    ukf_params_file = os.path.join(
+        config_dir, "params", "robot_localization", "ukf_params.yaml"
+    )
 
     declare_use_sim = DeclareLaunchArgument(
         "use_sim",
@@ -78,11 +81,65 @@ def generate_launch_description():
         description="Choose the arena: 'ucf' for UCF arena or 'artemis' for Artemis arena.",
     )
 
+    declare_viz_mode = DeclareLaunchArgument(
+        "viz_mode",
+        default_value="gui",
+        choices=["rviz", "gui"],
+        description="Choose visualization mode: 'rviz' for RViz2 or 'gui' for custom PyQt GUI.",
+    )
+
+    declare_robot_host = DeclareLaunchArgument(
+        "robot_host",
+        default_value="localhost",
+        description="Robot PC hostname or IP address for remote SSH execution (GUI mode only).",
+    )
+
+    declare_robot_user = DeclareLaunchArgument(
+        "robot_user",
+        default_value=os.environ.get('USER', 'user'),
+        description="SSH username for robot PC (GUI mode only).",
+    )
+
+    declare_robot_workspace = DeclareLaunchArgument(
+        "robot_workspace",
+        default_value="~/lunabot_ws",
+        description="Workspace path on robot PC (GUI mode only).",
+    )
+
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
+    )
+
+    custom_gui_node = Node(
+        package="lunabot_gui",
+        executable="lunabot_gui",
+        name="lunabot_gui",
+        parameters=[{
+            'mode': LaunchConfiguration('use_sim', default='true'),  # Pass use_sim as mode (true=sim, false=real)
+            'robot_host': LaunchConfiguration('robot_host', default='localhost'),
+            'robot_user': LaunchConfiguration('robot_user', default=os.environ.get('USER', 'user')),
+            'robot_workspace': LaunchConfiguration('robot_workspace', default='~/lunabot_ws'),
+        }],
+        output="screen",
+    )
+
+    topic_remapper_node = Node(
+        package="lunabot_util",
+        executable="topic_remapper"
+    )
+
+    ukf_node = Node(
+        package="robot_localization",
+        executable="ukf_node",
+        name="ukf_filter_node",
+        output="screen",
+        parameters=[
+            ukf_params_file,
+            {"use_sim_time": LaunchConfiguration("use_sim")},
+        ],
     )
 
     robot_state_publisher = Node(
@@ -137,6 +194,19 @@ def generate_launch_description():
         output="screen",
     )
 
+    # Only launch action servers in sim mode - in real mode they're started with hardware
+    actions_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("lunabot_bringup"), "launch", "actions_launch.py"
+            )
+        ),
+        launch_arguments={
+            "use_sim": LaunchConfiguration("use_sim"),
+        }.items(),
+        condition=LaunchConfigurationEquals("use_sim", "true"),
+    )
+
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
@@ -167,13 +237,26 @@ def generate_launch_description():
         ],
     )
 
+    camera_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[
+            "camera_controller",
+            "--controller-manager",
+            "/controller_manager",
+        ],
+    )
+
     sim_group = GroupAction(
         actions=[
             sim_launch,
             spawn_robot_node,
+            topic_remapper_node,
+            ukf_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
             position_controller_spawner,
+            camera_controller_spawner,
         ],
         condition=LaunchConfigurationEquals("use_sim", "true"),
     )
@@ -183,20 +266,50 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("use_sim", "false"),
     )
 
+    # Joy node for controller input in real mode
+    joy_node = Node(
+        package="joy",
+        executable="joy_node",
+        name="joy_node",
+        output="screen",
+    )
+
+    joy_group = GroupAction(
+        actions=[joy_node],
+        condition=LaunchConfigurationEquals("use_sim", "false"),
+    )
+
+    rviz_group = GroupAction(
+        actions=[rviz_launch],
+        condition=LaunchConfigurationEquals("viz_mode", "rviz"),
+    )
+
+    custom_gui_group = GroupAction(
+        actions=[custom_gui_node],
+        condition=LaunchConfigurationEquals("viz_mode", "gui"),
+    )
+
     ld = LaunchDescription()
 
     ld.add_action(declare_use_sim)
     ld.add_action(declare_robot_heading)
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
+    ld.add_action(declare_viz_mode)
+    ld.add_action(declare_robot_host)
+    ld.add_action(declare_robot_user)
+    ld.add_action(declare_robot_workspace)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_world_file))
     ld.add_action(OpaqueFunction(function=set_spawn_coordinates))
 
-    ld.add_action(rviz_launch)
+    ld.add_action(rviz_group)
+    ld.add_action(custom_gui_group)
     ld.add_action(robot_state_publisher)
     ld.add_action(sim_group)
     ld.add_action(joint_state_publisher_real)
+    ld.add_action(joy_group)
+    ld.add_action(actions_launch)
 
     return ld

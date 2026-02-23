@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include "SparkMax.hpp"
 
@@ -45,6 +46,22 @@ public:
 
     joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
         "joy", 10, std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
+
+    emergency_stop_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+        "emergency_stop", 10, std::bind(&ControllerTeleop::emergency_stop_callback, this, std::placeholders::_1));
+
+    // Subscribe to mode switch commands from GUI
+    mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+        "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
+
+    // Publishers for robot state
+    manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
+    robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
+
+    // Timer to publish state periodically
+    state_timer_ = create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&ControllerTeleop::publish_state, this));
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
@@ -116,12 +133,14 @@ private:
     {
       manual_enabled_ = true;
       RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      publish_state();
     }
 
     if (menu_pressed)
     {
       manual_enabled_ = false;
       RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      publish_state();
     }
 
     if (home_pressed)
@@ -135,6 +154,7 @@ private:
       {
         RCLCPP_INFO(get_logger(), GREEN "ROBOT ENABLED" RESET);
       }
+      publish_state();
     }
 
     // Toggle vibration motor
@@ -200,8 +220,65 @@ private:
     drive(left_cmd, right_cmd);
   }
 
+  /**
+   * @brief Process emergency stop command.
+   */
+  void emergency_stop_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    if (msg->data)
+    {
+      robot_disabled_ = true;
+      RCLCPP_ERROR(get_logger(), RED "EMERGENCY STOP ACTIVATED!" RESET);
+      // Stop all motors immediately
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
+      publish_state();
+    }
+  }
+
+  /**
+   * @brief Process mode switch command from GUI.
+   */
+  void mode_switch_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    manual_enabled_ = msg->data;
+    if (manual_enabled_)
+    {
+      RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+    }
+    publish_state();
+  }
+
+  /**
+   * @brief Publish robot state (manual mode and disabled status).
+   */
+  void publish_state()
+  {
+    auto manual_msg = std_msgs::msg::Bool();
+    manual_msg.data = manual_enabled_;
+    manual_mode_publisher_->publish(manual_msg);
+
+    auto disabled_msg = std_msgs::msg::Bool();
+    disabled_msg.data = robot_disabled_;
+    robot_disabled_publisher_->publish(disabled_msg);
+  }
+
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
+
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
+
+  rclcpp::TimerBase::SharedPtr state_timer_;
 
   SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_, vibration_motor_;
 
