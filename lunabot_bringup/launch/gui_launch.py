@@ -50,9 +50,6 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
     urdf_file = os.path.join(description_dir, "urdf", "v2_bot.urdf.xacro")
-    ukf_params_file = os.path.join(
-        config_dir, "params", "robot_localization", "ukf_params.yaml"
-    )
     gui_params_file = os.path.join(
         config_dir, "params", "gui_params.yaml"
     )
@@ -112,17 +109,6 @@ def generate_launch_description():
     topic_remapper_node = Node(
         package="lunabot_util",
         executable="topic_remapper"
-    )
-
-    ukf_node = Node(
-        package="robot_localization",
-        executable="ukf_node",
-        name="ukf_filter_node",
-        output="screen",
-        parameters=[
-            ukf_params_file,
-            {"use_sim_time": LaunchConfiguration("use_sim")},
-        ],
     )
 
     robot_state_publisher = Node(
@@ -235,7 +221,6 @@ def generate_launch_description():
             sim_launch,
             spawn_robot_node,
             topic_remapper_node,
-            ukf_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
             position_controller_spawner,
