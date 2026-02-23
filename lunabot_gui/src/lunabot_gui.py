@@ -78,6 +78,10 @@ class LunabotGUI(QMainWindow):
         """Initialize the user interface"""
         self.setWindowTitle('Lunabot Control Panel')
         self.setGeometry(100, 100, 1600, 900)
+        
+        # Ensure window can be maximized
+        self.setWindowFlags(Qt.Window | Qt.WindowMaximizeButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
+        
         self.setStyleSheet(MAIN_STYLESHEET)
         
         # Main widget and layout
