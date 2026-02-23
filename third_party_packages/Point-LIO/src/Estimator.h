@@ -31,6 +31,8 @@ extern V3D Lidar_T_wrt_IMU; //(Zero3d);
 extern M3D Lidar_R_wrt_IMU; //(Eye3d);
 extern double G_m_s2;
 extern input_ikfom input_in;
+extern esekfom::esekf<state_input, 24, input_ikfom> kf_input;
+extern esekfom::esekf<state_output, 30, input_ikfom> kf_output;
 
 Eigen::Matrix<double, 24, 24> process_noise_cov_input();
 

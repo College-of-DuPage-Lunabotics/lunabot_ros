@@ -220,8 +220,60 @@ class Styles:
         """
     
     @staticmethod
+    def red_button(size=12):
+        """Red action button style (e.g., Emergency Stop)"""
+        return f"""
+            QPushButton {{
+                background-color: {Colors.BTN_RED};
+                color: white;
+                font-size: {size}px;
+                font-weight: bold;
+                padding: 8px;
+                border-radius: 4px;
+                border: 2px solid {Colors.BTN_RED_HOVER};
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BTN_RED_HOVER};
+            }}
+            QPushButton:pressed {{
+                background-color: {Colors.BTN_RED_PRESSED};
+            }}
+            QPushButton:disabled {{
+                background-color: #1f1f1f;
+                color: #555555;
+                border: 2px solid #333333;
+            }}
+        """
+    
+    @staticmethod
+    def light_blue_button(size=11):
+        """Light blue button style (e.g., RViz2)"""
+        return f"""
+            QPushButton {{
+                background-color: #3a8fbf;
+                color: white;
+                font-size: {size}px;
+                font-weight: bold;
+                padding: 6px;
+                border-radius: 4px;
+                border: 2px solid #5aa3cc;
+            }}
+            QPushButton:hover {{
+                background-color: #5aa3cc;
+            }}
+            QPushButton:pressed {{
+                background-color: #2a7fa8;
+            }}
+            QPushButton:disabled {{
+                background-color: #1f1f1f;
+                color: #555555;
+                border: 2px solid #333333;
+            }}
+        """
+    
+    @staticmethod
     def emergency_button():
-        """Emergency stop button style"""
+        """Emergency stop button style (large format)"""
         return f"""
             QPushButton {{
                 background-color: {Colors.BTN_RED};

@@ -16,6 +16,7 @@ setup(
     entry_points={
         "console_scripts": [
             "bandwidth_monitor = bandwidth_monitor:main",
+            "power_monitor = power_monitor:main",
         ],
     },
 )

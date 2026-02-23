@@ -53,6 +53,9 @@ def generate_launch_description():
     ukf_params_file = os.path.join(
         config_dir, "params", "robot_localization", "ukf_params.yaml"
     )
+    gui_params_file = os.path.join(
+        config_dir, "params", "gui_params.yaml"
+    )
 
     declare_use_sim = DeclareLaunchArgument(
         "use_sim",
@@ -88,24 +91,6 @@ def generate_launch_description():
         description="Choose visualization mode: 'rviz' for RViz2 or 'gui' for custom PyQt GUI.",
     )
 
-    declare_robot_host = DeclareLaunchArgument(
-        "robot_host",
-        default_value="localhost",
-        description="Robot PC hostname or IP address for remote SSH execution (GUI mode only).",
-    )
-
-    declare_robot_user = DeclareLaunchArgument(
-        "robot_user",
-        default_value=os.environ.get('USER', 'user'),
-        description="SSH username for robot PC (GUI mode only).",
-    )
-
-    declare_robot_workspace = DeclareLaunchArgument(
-        "robot_workspace",
-        default_value="~/lunabot_ws",
-        description="Workspace path on robot PC (GUI mode only).",
-    )
-
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
@@ -117,12 +102,10 @@ def generate_launch_description():
         package="lunabot_gui",
         executable="lunabot_gui",
         name="lunabot_gui",
-        parameters=[{
-            'mode': LaunchConfiguration('use_sim', default='true'),  # Pass use_sim as mode (true=sim, false=real)
-            'robot_host': LaunchConfiguration('robot_host', default='localhost'),
-            'robot_user': LaunchConfiguration('robot_user', default=os.environ.get('USER', 'user')),
-            'robot_workspace': LaunchConfiguration('robot_workspace', default='~/lunabot_ws'),
-        }],
+        parameters=[
+            gui_params_file,
+            {'mode': LaunchConfiguration('use_sim', default='true')},  # Pass use_sim as mode (true=sim, false=real)
+        ],
         output="screen",
     )
 
@@ -296,9 +279,6 @@ def generate_launch_description():
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
     ld.add_action(declare_viz_mode)
-    ld.add_action(declare_robot_host)
-    ld.add_action(declare_robot_user)
-    ld.add_action(declare_robot_workspace)
 
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_world_file))

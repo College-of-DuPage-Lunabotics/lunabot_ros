@@ -6,7 +6,7 @@ setup(
     name=package_name,
     version="0.1.0",
     package_dir={"": "src"},
-    py_modules=["lunabot_gui", "gui_styles"],
+    py_modules=["lunabot_gui", "gui_styles", "ros_interface", "ui_widgets"],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

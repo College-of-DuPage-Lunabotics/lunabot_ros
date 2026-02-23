@@ -31,10 +31,8 @@ install(PROGRAMS
 
 install(FILES
   src/gui_styles.py
+  src/ros_interface.py
+  src/ui_widgets.py
   DESTINATION lib/${PROJECT_NAME})
-
-# Install launch files
-install(DIRECTORY launch/
-  DESTINATION share/${PROJECT_NAME}/launch/)
 
 ament_package()

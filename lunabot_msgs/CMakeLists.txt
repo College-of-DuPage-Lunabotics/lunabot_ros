@@ -24,14 +24,17 @@ endif()
 
 # Find required packages
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Generate interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ControlState.msg"
+  "msg/PowerMonitor.msg"
   "action/Localization.action"
   "action/Excavation.action"
   "action/Dumping.action"
   "action/Homing.action"
+  DEPENDENCIES std_msgs
 )
 
 # Export the package

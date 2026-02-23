@@ -279,13 +279,13 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    // Navigate to construction zone coordinates (facing backwards for dumping)
+    // Navigate to construction zone coordinates (rotated 180 from excavation for dumping)
     goal_pose.position.x = -0.4;
     goal_pose.position.y = -4.5;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
-    goal_pose.orientation.z = 1.0;
-    goal_pose.orientation.w = 0.0;
+    goal_pose.orientation.z = 0.0;
+    goal_pose.orientation.w = 1.0;
 
     goal_msg.pose.pose = goal_pose;
     goal_msg.pose.header.stamp = this->now();
