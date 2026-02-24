@@ -91,7 +91,7 @@
 
   <link name="camera_back_optical_link"></link>
 
-  <link name="mid360_lidar_link">
+  <link name="livox_frame">
     <visual>
       <geometry>
         <mesh
@@ -199,7 +199,7 @@
 
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
-    <child link="mid360_lidar_link" />
+    <child link="livox_frame" />
     <origin xyz="-0.128 0 0.46" rpy="0 0 0" />
   </joint>
 
@@ -388,8 +388,8 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="mid360_lidar_link">
-      <sensor type="ray" name="mid360_lidar_link">
+    <gazebo reference="livox_frame">
+      <sensor type="ray" name="mid360_lidar_sensor">
         <always_on>true</always_on>
         <pose>0 0 0 0 0 0</pose>
         <visualize>false</visualize>

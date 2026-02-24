@@ -114,7 +114,7 @@ def generate_launch_description():
             {"data_src": 0},     # 0 = lidar data source
             {"publish_freq": 10.0},
             {"output_data_type": 0},
-            {"frame_id": "mid360_lidar_link"},
+            {"frame_id": "livox_frame"},
             {"user_config_path": livox_params_file},
         ],
     )
