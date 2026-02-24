@@ -87,7 +87,7 @@ def generate_launch_description():
                 "approx_sync": True,
                 "sync_queue_size": 1000,
                 "wait_for_transform": 0.2,
-                "subscribe_scan_cloud": True,
+                "subscribe_scan_cloud": False,  # Disabled - only using cameras
                 "subscribe_scan": False,
                 "wait_imu_to_init": False,
                 "subscribe_odom": True,
@@ -98,7 +98,6 @@ def generate_launch_description():
             ("rgbd_image0", "/camera_front/rgbd_image"),
             ("rgbd_image1", "/camera_back/rgbd_image"),
             ("odom", "/odometry/filtered"),
-            ("scan_cloud", "/livox/lidar_PointCloud2"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
