@@ -206,7 +206,7 @@
   <joint name="mid360_imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="-0.128 0 0.46" rpy="0 0 0" />
+    <origin xyz="-0.128 0 0.46" rpy="3.14159 0 0" />
   </joint>
 
   <!-- ================================= -->
