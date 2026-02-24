@@ -240,6 +240,7 @@ def generate_launch_description():
             sim_launch,
             spawn_robot_node,
             topic_remapper_node,
+            image_compressor_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
             position_controller_spawner,
@@ -272,7 +273,7 @@ def generate_launch_description():
     )
 
     custom_gui_group = GroupAction(
-        actions=[custom_gui_node, image_compressor_node],
+        actions=[custom_gui_node],
         condition=LaunchConfigurationEquals("viz_mode", "gui"),
     )
 

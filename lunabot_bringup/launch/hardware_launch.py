@@ -119,6 +119,18 @@ def generate_launch_description():
         ],
     )
 
+    # Image compressor for network bandwidth reduction
+    image_compressor_node = Node(
+        package="lunabot_util",
+        executable="image_compressor.py",
+        name="image_compressor",
+        output="screen",
+        parameters=[
+            {"jpeg_quality": 25},
+            {"scale": 1.0},
+        ],
+    )
+
     # RGBD Sync nodes for RTAB-Map
     rgbd_sync_front = Node(
         package="rtabmap_sync",
@@ -162,6 +174,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         livox_driver,
+        image_compressor_node,
         d456_front_launch,
         d456_back_launch,
         d456_imu_filter,
