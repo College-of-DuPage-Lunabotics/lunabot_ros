@@ -238,7 +238,7 @@ def create_network_group(app):
     values_container.setSpacing(6)
     
     # Total
-    total_label = QLabel("Total:")
+    total_label = QLabel("Total Avg:")
     total_label.setFont(QFont("Monospace", 9))
     total_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(total_label)
@@ -250,7 +250,7 @@ def create_network_group(app):
     values_container.addSpacing(6)
     
     # RX
-    rx_label = QLabel("RX:")
+    rx_label = QLabel("RX Avg:")
     rx_label.setFont(QFont("Monospace", 9))
     rx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(rx_label)
@@ -262,7 +262,7 @@ def create_network_group(app):
     values_container.addSpacing(6)
     
     # TX
-    tx_label = QLabel("TX:")
+    tx_label = QLabel("TX Avg:")
     tx_label.setFont(QFont("Monospace", 9))
     tx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(tx_label)

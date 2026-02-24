@@ -4,6 +4,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from launch.conditions import LaunchConfigurationEquals
 
 
 def generate_launch_description():
@@ -38,6 +39,7 @@ def generate_launch_description():
             ("rgbd_image", "/camera_front/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
+        condition=LaunchConfigurationEquals("use_sim", "true"),
     )
 
     rgbd_sync_back = Node(
@@ -59,6 +61,7 @@ def generate_launch_description():
             ("rgbd_image", "/camera_back/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
+        condition=LaunchConfigurationEquals("use_sim", "true"),
     )
 
     slam_node = Node(
