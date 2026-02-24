@@ -17,8 +17,8 @@
     <xacro:property name="camera_sim_joint_offset" value="0" />
   </xacro:if>
   <xacro:unless value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0.15" />
-    <xacro:property name="camera_sim_joint_offset" value="0.15" />
+    <xacro:property name="camera_sim_link_offset" value="0" />
+    <xacro:property name="camera_sim_joint_offset" value="0" />
   </xacro:unless>
 
   <!-- ================================= -->
@@ -200,7 +200,7 @@
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="livox_frame" />
-    <origin xyz="0.032 0 0.54" rpy="3.14159 0 -1.5708" />
+    <origin xyz="0.032 0 0.54" rpy="3.14159 0 1.5708" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">

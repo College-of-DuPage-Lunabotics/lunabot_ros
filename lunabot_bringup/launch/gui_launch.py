@@ -224,12 +224,22 @@ def generate_launch_description():
         ],
     )
 
+    image_compressor_node = Node(
+        package="lunabot_util",
+        executable="image_compressor.py",
+        name="image_compressor",
+        output="screen",
+        parameters=[
+            {"jpeg_quality": 25},
+            {"scale": 1.0},
+        ],
+    )
+
     sim_group = GroupAction(
         actions=[
             sim_launch,
             spawn_robot_node,
             topic_remapper_node,
-            image_compressor_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
             position_controller_spawner,
@@ -262,7 +272,7 @@ def generate_launch_description():
     )
 
     custom_gui_group = GroupAction(
-        actions=[custom_gui_node],
+        actions=[custom_gui_node, image_compressor_node],
         condition=LaunchConfigurationEquals("viz_mode", "gui"),
     )
 
