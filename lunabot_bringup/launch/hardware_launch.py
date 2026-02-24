@@ -126,7 +126,7 @@ def generate_launch_description():
         name="image_compressor",
         output="screen",
         parameters=[
-            {"jpeg_quality": 40},
+            {"jpeg_quality": 25},
             {"scale": 1.0},
         ],
     )

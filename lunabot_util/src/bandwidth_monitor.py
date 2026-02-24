@@ -27,15 +27,25 @@ class BandwidthMonitor(Node):
         
         self.get_logger().info(f'Monitoring interface: {self.interface}')
         
-        # Publishers
+        # Publishers - Current bandwidth
         self.rx_pub = self.create_publisher(Float32, 'bandwidth/rx_mbps', 10)
         self.tx_pub = self.create_publisher(Float32, 'bandwidth/tx_mbps', 10)
         self.total_pub = self.create_publisher(Float32, 'bandwidth/total_mbps', 10)
         
-        # State
+        # Publishers - Running average bandwidth
+        self.avg_rx_pub = self.create_publisher(Float32, 'bandwidth/avg_rx_mbps', 10)
+        self.avg_tx_pub = self.create_publisher(Float32, 'bandwidth/avg_tx_mbps', 10)
+        self.avg_total_pub = self.create_publisher(Float32, 'bandwidth/avg_total_mbps', 10)
+        
+        # State - Current
         self.last_rx_bytes = self.get_bytes('rx')
         self.last_tx_bytes = self.get_bytes('tx')
         self.last_time = time.time()
+        
+        # State - Running average
+        self.start_rx_bytes = self.last_rx_bytes
+        self.start_tx_bytes = self.last_tx_bytes
+        self.start_time = self.last_time
         
         # Timer
         self.timer = self.create_timer(1.0 / update_rate, self.update)
@@ -75,20 +85,44 @@ class BandwidthMonitor(Node):
         current_tx = self.get_bytes('tx')
         current_time = time.time()
         
-        # Calculate deltas
+        # Calculate current deltas
         delta_time = current_time - self.last_time
         delta_rx = current_rx - self.last_rx_bytes
         delta_tx = current_tx - self.last_tx_bytes
         
-        # Calculate Mbps
+        # Calculate current Mbps
         rx_mbps = (delta_rx * 8) / (delta_time * 1_000_000)
         tx_mbps = (delta_tx * 8) / (delta_time * 1_000_000)
         total_mbps = rx_mbps + tx_mbps
         
-        # Publish
+        # Calculate running average since start
+        total_time = current_time - self.start_time
+        if total_time > 0:
+            total_rx_bytes = current_rx - self.start_rx_bytes
+            total_tx_bytes = current_tx - self.start_tx_bytes
+            
+            avg_rx_mbps = (total_rx_bytes * 8) / (total_time * 1_000_000)
+            avg_tx_mbps = (total_tx_bytes * 8) / (total_time * 1_000_000)
+            avg_total_mbps = avg_rx_mbps + avg_tx_mbps
+        else:
+            avg_rx_mbps = 0.0
+            avg_tx_mbps = 0.0
+            avg_total_mbps = 0.0
+        
+        # Publish current
         self.rx_pub.publish(Float32(data=rx_mbps))
         self.tx_pub.publish(Float32(data=tx_mbps))
         self.total_pub.publish(Float32(data=total_mbps))
+        
+        # Publish running average
+        self.avg_rx_pub.publish(Float32(data=avg_rx_mbps))
+        self.avg_tx_pub.publish(Float32(data=avg_tx_mbps))
+        self.avg_total_pub.publish(Float32(data=avg_total_mbps))
+        
+        # Log occasionally (every 10 seconds based on 1Hz default)
+        if int(total_time) % 10 == 0 and delta_time < 1.5:
+            self.get_logger().info(
+                f'Current: {total_mbps:.2f} Mbps | Avg: {avg_total_mbps:.2f} Mbps | Runtime: {total_time:.0f}s')
         
         # Update state
         self.last_rx_bytes = current_rx

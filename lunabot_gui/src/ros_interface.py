@@ -65,10 +65,15 @@ class RobotInterface:
         # Initialize CV bridge
         self.bridge = CvBridge() if CV_AVAILABLE else None
         
-        # Data storage - bandwidth
+        # Data storage - bandwidth (current)
         self.bandwidth_total = 0.0
         self.bandwidth_rx = 0.0
         self.bandwidth_tx = 0.0
+        
+        # Data storage - bandwidth (running average)
+        self.bandwidth_avg_total = 0.0
+        self.bandwidth_avg_rx = 0.0
+        self.bandwidth_avg_tx = 0.0
         
         # Data storage - power monitoring
         self.power_voltage = 0.0
@@ -142,7 +147,7 @@ class RobotInterface:
     
     def _create_subscriptions(self):
         """Create all ROS topic subscriptions"""
-        # Bandwidth monitoring
+        # Bandwidth monitoring - Current
         self.node.create_subscription(
             Float32, '/bandwidth/total_mbps',
             lambda msg: setattr(self, 'bandwidth_total', msg.data), 10)
@@ -152,6 +157,17 @@ class RobotInterface:
         self.node.create_subscription(
             Float32, '/bandwidth/tx_mbps',
             lambda msg: setattr(self, 'bandwidth_tx', msg.data), 10)
+        
+        # Bandwidth monitoring - Running Average
+        self.node.create_subscription(
+            Float32, '/bandwidth/avg_total_mbps',
+            lambda msg: setattr(self, 'bandwidth_avg_total', msg.data), 10)
+        self.node.create_subscription(
+            Float32, '/bandwidth/avg_rx_mbps',
+            lambda msg: setattr(self, 'bandwidth_avg_rx', msg.data), 10)
+        self.node.create_subscription(
+            Float32, '/bandwidth/avg_tx_mbps',
+            lambda msg: setattr(self, 'bandwidth_avg_tx', msg.data), 10)
         
         # Camera feeds
         if CV_AVAILABLE:
