@@ -29,8 +29,11 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "424x240x30",
-            "rgb_camera.color_profile": "424x240x30",
+            "depth_module.depth_profile": "640x360x15",
+            "rgb_camera.color_profile": "640x360x15",
+            "enable_infra1": "false",
+            "enable_infra2": "false",
+            "depth_module.enable_auto_exposure": "true",
         }.items(),
     )
 
@@ -47,8 +50,11 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "424x240x30",
-            "rgb_camera.color_profile": "424x240x30",
+            "depth_module.depth_profile": "640x360x10",
+            "rgb_camera.color_profile": "640x360x10",
+            "enable_infra1": "false",
+            "enable_infra2": "false",
+            "depth_module.enable_auto_exposure": "true",
         }.items(),
     )
 

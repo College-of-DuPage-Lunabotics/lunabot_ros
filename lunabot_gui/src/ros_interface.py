@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from std_msgs.msg import Float32, String, Bool, Float64MultiArray
-from sensor_msgs.msg import Image, JointState
+from sensor_msgs.msg import Image, CompressedImage, JointState
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from diagnostic_msgs.msg import DiagnosticArray
@@ -156,13 +156,13 @@ class RobotInterface:
         # Camera feeds
         if CV_AVAILABLE:
             self.node.create_subscription(
-                Image, '/camera_front/color/image_raw',
+                CompressedImage, '/camera_front/color/image_raw/compressed',
                 self._front_camera_callback, 10)
             self.node.create_subscription(
-                Image, '/camera_back/color/image_raw',
+                CompressedImage, '/camera_back/color/image_raw/compressed',
                 self._rear_camera_callback, 10)
             self.node.create_subscription(
-                Image, '/camera_fisheye/color/image_raw',
+                CompressedImage, '/camera_fisheye/color/image_raw/compressed',
                 self._fisheye_camera_callback, 10)
         
         # Robot odometry
@@ -196,7 +196,9 @@ class RobotInterface:
     # Camera callbacks
     def _front_camera_callback(self, msg):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            import numpy as np
+            np_arr = np.frombuffer(msg.data, np.uint8)
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             self.front_camera_image = cv_image
             if self.on_camera_update:
                 self.on_camera_update('front', cv_image)
@@ -205,7 +207,9 @@ class RobotInterface:
     
     def _rear_camera_callback(self, msg):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            import numpy as np
+            np_arr = np.frombuffer(msg.data, np.uint8)
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             self.rear_camera_image = cv_image
             if self.on_camera_update:
                 self.on_camera_update('rear', cv_image)
@@ -214,7 +218,9 @@ class RobotInterface:
     
     def _fisheye_camera_callback(self, msg):
         try:
-            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            import numpy as np
+            np_arr = np.frombuffer(msg.data, np.uint8)
+            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             self.fisheye_camera_image = cv_image
             if self.on_camera_update:
                 self.on_camera_update('fisheye', cv_image)
