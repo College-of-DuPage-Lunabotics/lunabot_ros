@@ -21,9 +21,10 @@ def generate_launch_description():
             os.path.join(realsense_dir, "launch", "rs_launch.py")
         ),
         launch_arguments={
-            "camera_name": "d456_front",
+            "camera_name": "camera_front",
             "camera_namespace": "",
             "device_type": "d456",
+            "serial_no": "'327522301245'",
             "publish_tf": "true",
             "enable_gyro": "true",
             "enable_accel": "true",
@@ -39,9 +40,10 @@ def generate_launch_description():
             os.path.join(realsense_dir, "launch", "rs_launch.py")
         ),
         launch_arguments={
-            "camera_name": "d456_back",
+            "camera_name": "camera_back",
             "camera_namespace": "",
             "device_type": "d456",
+            "serial_no": "'333422300377'",
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
@@ -66,8 +68,8 @@ def generate_launch_description():
             {"gain_mag": 0.01},
         ],
         remappings=[
-            ("imu/data_raw", "/d456_front/imu/data_raw"),
-            ("imu/data", "/d456_front/imu/data"),
+            ("imu/data_raw", "/camera_front/imu/data_raw"),
+            ("imu/data", "/camera_front/imu/data"),
         ],
     )
 
@@ -86,8 +88,8 @@ def generate_launch_description():
         output="screen",
         parameters=[apriltag_params_file],
         remappings=[
-            ("/image_rect", "/d456_front/color/image_raw"),
-            ("/camera_info", "/d456_front/color/camera_info"),
+            ("/image_rect", "/camera_front/color/image_raw"),
+            ("/camera_info", "/camera_front/color/camera_info"),
         ],
     )
 
@@ -118,10 +120,10 @@ def generate_launch_description():
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/d456_front/color/image_raw"),
-            ("depth/image", "/d456_front/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456_front/color/camera_info"),
-            ("rgbd_image", "/d456_front/rgbd_image"),
+            ("rgb/image", "/camera_front/color/image_raw"),
+            ("depth/image", "/camera_front/depth/image_rect_raw"),
+            ("rgb/camera_info", "/camera_front/color/camera_info"),
+            ("rgbd_image", "/camera_front/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
@@ -135,10 +137,10 @@ def generate_launch_description():
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
         ],
         remappings=[
-            ("rgb/image", "/d456_back/color/image_raw"),
-            ("depth/image", "/d456_back/depth/image_rect_raw"),
-            ("rgb/camera_info", "/d456_back/color/camera_info"),
-            ("rgbd_image", "/d456_back/rgbd_image"),
+            ("rgb/image", "/camera_back/color/image_raw"),
+            ("depth/image", "/camera_back/depth/image_rect_raw"),
+            ("rgb/camera_info", "/camera_back/color/camera_info"),
+            ("rgbd_image", "/camera_back/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
     )
