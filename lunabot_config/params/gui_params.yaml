@@ -2,5 +2,5 @@
   ros__parameters:
     # Network configuration for SSH remote execution (used in real mode)
     network:
-      robot_host: "192.168.1.100"  # Robot PC IP address
-      robot_user: "lunabot"  # SSH username for robot PC
+      robot_host: "192.168.0.250"  # Robot PC IP address
+      robot_user: "codetc"  # SSH username for robot PC
