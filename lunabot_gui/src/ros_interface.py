@@ -156,13 +156,13 @@ class RobotInterface:
         # Camera feeds
         if CV_AVAILABLE:
             self.node.create_subscription(
-                CompressedImage, '/camera_front/color/image_raw/compressed',
+                CompressedImage, '/camera_front/color/image_compressed',
                 self._front_camera_callback, 10)
             self.node.create_subscription(
-                CompressedImage, '/camera_back/color/image_raw/compressed',
+                CompressedImage, '/camera_back/color/image_compressed',
                 self._rear_camera_callback, 10)
             self.node.create_subscription(
-                CompressedImage, '/camera_fisheye/color/image_raw/compressed',
+                CompressedImage, '/camera_fisheye/color/image_compressed',
                 self._fisheye_camera_callback, 10)
         
         # Robot odometry

@@ -17,6 +17,7 @@ setup(
         "console_scripts": [
             "bandwidth_monitor = bandwidth_monitor:main",
             "power_monitor = power_monitor:main",
+            "image_compressor = image_compressor:main",
         ],
     },
 )
