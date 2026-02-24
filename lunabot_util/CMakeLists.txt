@@ -39,6 +39,7 @@ install(TARGETS
 # Install Python scripts
 install(PROGRAMS
   src/bandwidth_monitor.py
+  src/image_compressor.py
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
