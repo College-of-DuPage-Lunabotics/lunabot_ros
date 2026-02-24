@@ -87,14 +87,17 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "info"],
     )
 
-    # AprilTag Detection
+    # AprilTag Detection  
     apriltag_d456_node = Node(
         package="apriltag_ros",
         executable="apriltag_node",
         output="screen",
-        parameters=[apriltag_params_file],
+        parameters=[
+            apriltag_params_file,
+            {"image_transport": "compressed"}
+        ],
         remappings=[
-            ("/image_rect", "/camera_front/color/image_raw/compressed"),
+            ("/image_rect", "/camera_front/color/image_raw"),
             ("/camera_info", "/camera_front/color/camera_info"),
         ],
     )
@@ -124,11 +127,13 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
-             "compressed_rate": 1.0}
+             "compressed_rate": 1.0,
+             "rgb_image_transport": "compressed",
+             "depth_image_transport": "compressedDepth"}
         ],
         remappings=[
-            ("rgb/image", "/camera_front/color/image_raw/compressed"),
-            ("depth/image", "/camera_front/depth/image_rect_raw/compressedDepth"),
+            ("rgb/image", "/camera_front/color/image_raw"),
+            ("depth/image", "/camera_front/depth/image_rect_raw"),
             ("rgb/camera_info", "/camera_front/color/camera_info"),
             ("rgbd_image", "/camera_front/rgbd_image"),
         ],
@@ -142,11 +147,13 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
-             "compressed_rate": 1.0}
+             "compressed_rate": 1.0,
+             "rgb_image_transport": "compressed",
+             "depth_image_transport": "compressedDepth"}
         ],
         remappings=[
-            ("rgb/image", "/camera_back/color/image_raw/compressed"),
-            ("depth/image", "/camera_back/depth/image_rect_raw/compressedDepth"),
+            ("rgb/image", "/camera_back/color/image_raw"),
+            ("depth/image", "/camera_back/depth/image_rect_raw"),
             ("rgb/camera_info", "/camera_back/color/camera_info"),
             ("rgbd_image", "/camera_back/rgbd_image"),
         ],
