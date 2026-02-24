@@ -49,7 +49,7 @@ def generate_launch_description():
     description_dir = get_package_share_directory("lunabot_description")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_file = os.path.join(description_dir, "urdf", "v2_bot.urdf.xacro")
+    urdf_file = os.path.join(description_dir, "urdf", "v1_bot.urdf.xacro")
     gui_params_file = os.path.join(
         config_dir, "params", "gui_params.yaml"
     )
@@ -229,6 +229,7 @@ def generate_launch_description():
             sim_launch,
             spawn_robot_node,
             topic_remapper_node,
+            image_compressor_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
             position_controller_spawner,
