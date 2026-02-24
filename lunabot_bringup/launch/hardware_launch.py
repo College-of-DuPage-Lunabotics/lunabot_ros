@@ -29,8 +29,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x360x15",
-            "rgb_camera.color_profile": "640x360x15",
+            "depth_module.depth_profile": "424x240x15",
+            "rgb_camera.color_profile": "424x240x15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -50,8 +50,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "640x360x10",
-            "rgb_camera.color_profile": "640x360x10",
+            "depth_module.depth_profile": "424x240x15",
+            "rgb_camera.color_profile": "424x240x15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -122,11 +122,11 @@ def generate_launch_description():
     # Image compressor for network bandwidth reduction
     image_compressor_node = Node(
         package="lunabot_util",
-        executable="image_compressor",
+        executable="image_compressor.py",
         name="image_compressor",
         output="screen",
         parameters=[
-            {"jpeg_quality": 35},
+            {"jpeg_quality": 40},
             {"scale": 1.0},
         ],
     )
