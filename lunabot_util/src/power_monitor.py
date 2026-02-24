@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-Power Monitor Node
-Reads power telemetry from serial power monitor and publishes to ROS
-Also calculates cumulative energy consumption (kWh) for competition scoring
-"""
-
 import rclpy
 from rclpy.node import Node
 from lunabot_msgs.msg import PowerMonitor

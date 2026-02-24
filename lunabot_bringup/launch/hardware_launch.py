@@ -29,8 +29,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x480x60",
-            "rgb_camera.color_profile": "640x480x60",
+            "depth_module.depth_profile": "640x480x30",
+            "rgb_camera.color_profile": "640x480x30",
         }.items(),
     )
 
@@ -47,8 +47,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "640x480x60",
-            "rgb_camera.color_profile": "640x480x60",
+            "depth_module.depth_profile": "640x480x30",
+            "rgb_camera.color_profile": "640x480x30",
         }.items(),
     )
 
@@ -100,11 +100,11 @@ def generate_launch_description():
         name="livox_lidar_publisher",
         output="screen",
         parameters=[
-            {"xfer_format": 1},
-            {"multi_topic": 0},
-            {"data_src": 0},
+            {"xfer_format": 1},  # 0 = PointCloud2 (PointXYZRTL), 1 = CustomMsg
+            {"multi_topic": 0},  # 0 = single /livox/lidar topic
+            {"data_src": 0},     # 0 = lidar data source
             {"publish_freq": 10.0},
-            {"output_data_type": 1},
+            {"output_data_type": 0},
             {"frame_id": "mid360_lidar_link"},
             {"user_config_path": livox_params_file},
         ],

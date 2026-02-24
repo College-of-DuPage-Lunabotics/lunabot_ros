@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-UI Widget Creation for Lunabot GUI
-Contains all PyQt5 widget creation functions
-"""
-
 from PyQt5.QtWidgets import (QGroupBox, QVBoxLayout, QHBoxLayout, QLabel, 
                               QPushButton, QGridLayout, QProgressBar, QSizePolicy, QLineEdit)
 from PyQt5.QtCore import Qt
@@ -247,7 +242,7 @@ def create_network_group(app):
     total_label.setFont(QFont("Monospace", 9))
     total_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(total_label)
-    app.bandwidth_total_label = QLabel("0.00 Mbps")
+    app.bandwidth_total_label = QLabel("0.0000 Mbps")
     app.bandwidth_total_label.setFont(QFont("Monospace", 9))
     app.bandwidth_total_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(app.bandwidth_total_label)
@@ -259,7 +254,7 @@ def create_network_group(app):
     rx_label.setFont(QFont("Monospace", 9))
     rx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(rx_label)
-    app.bandwidth_rx_label = QLabel("0.00 Mbps")
+    app.bandwidth_rx_label = QLabel("0.0000 Mbps")
     app.bandwidth_rx_label.setFont(QFont("Monospace", 9))
     app.bandwidth_rx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(app.bandwidth_rx_label)
@@ -271,7 +266,7 @@ def create_network_group(app):
     tx_label.setFont(QFont("Monospace", 9))
     tx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(tx_label)
-    app.bandwidth_tx_label = QLabel("0.00 Mbps")
+    app.bandwidth_tx_label = QLabel("0.0000 Mbps")
     app.bandwidth_tx_label.setFont(QFont("Monospace", 9))
     app.bandwidth_tx_label.setStyleSheet("background-color: transparent; color: #e0e0e0;")
     values_container.addWidget(app.bandwidth_tx_label)

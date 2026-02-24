@@ -1,8 +1,3 @@
-"""
-GUI Styling Constants and Stylesheets
-Centralized styling definitions for Lunabot GUI
-"""
-
 # Color Palette
 class Colors:
     """Color constants for GUI theme"""

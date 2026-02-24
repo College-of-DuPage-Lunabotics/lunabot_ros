@@ -111,6 +111,14 @@ def generate_launch_description():
         executable="topic_remapper"
     )
 
+    bandwidth_monitor_node = Node(
+        package="lunabot_util",
+        executable="bandwidth_monitor.py",
+        name="bandwidth_monitor",
+        output="screen",
+        parameters=[{'interface': 'wlo1'}],  # Force WiFi interface
+    )
+
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
@@ -272,6 +280,7 @@ def generate_launch_description():
     ld.add_action(rviz_group)
     ld.add_action(custom_gui_group)
     ld.add_action(robot_state_publisher)
+    ld.add_action(bandwidth_monitor_node)
     ld.add_action(sim_group)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)

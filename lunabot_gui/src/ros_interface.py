@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-ROS Interface for Lunabot GUI
-Handles all ROS functionality including node management, publishers, subscribers, and action clients
-"""
-
 import os
 import subprocess
 import rclpy
@@ -74,7 +69,6 @@ class RobotInterface:
         self.bandwidth_total = 0.0
         self.bandwidth_rx = 0.0
         self.bandwidth_tx = 0.0
-        self.bandwidth_status = "Initializing..."
         
         # Data storage - power monitoring
         self.power_voltage = 0.0
@@ -158,9 +152,6 @@ class RobotInterface:
         self.node.create_subscription(
             Float32, '/bandwidth/tx_mbps',
             lambda msg: setattr(self, 'bandwidth_tx', msg.data), 10)
-        self.node.create_subscription(
-            String, '/bandwidth/status',
-            lambda msg: setattr(self, 'bandwidth_status', msg.data), 10)
         
         # Camera feeds
         if CV_AVAILABLE:

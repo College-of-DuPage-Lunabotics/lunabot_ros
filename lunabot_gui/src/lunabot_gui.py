@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-Lunabot PyQt5 GUI - Refactored
-Custom control interface for NASA Lunabotics competition robot
-Separated into ROS interface and UI components for better maintainability
-"""
-
 import sys
 import signal
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -724,9 +718,9 @@ class LunabotGUI(QMainWindow):
     def update_ui(self):
         """Update UI elements with latest data"""
         # Update bandwidth
-        self.bandwidth_total_label.setText(f"{self.robot.bandwidth_total:.2f} Mbps")
-        self.bandwidth_rx_label.setText(f"{self.robot.bandwidth_rx:.2f}")
-        self.bandwidth_tx_label.setText(f"{self.robot.bandwidth_tx:.2f}")
+        self.bandwidth_total_label.setText(f"{self.robot.bandwidth_total:.4f} Mbps")
+        self.bandwidth_rx_label.setText(f"{self.robot.bandwidth_rx:.4f}")
+        self.bandwidth_tx_label.setText(f"{self.robot.bandwidth_tx:.4f}")
         
         bandwidth_percent = min(100, int((self.robot.bandwidth_total / 4.0) * 100))
         self.bandwidth_progress.setValue(bandwidth_percent)
