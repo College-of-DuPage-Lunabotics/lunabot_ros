@@ -29,8 +29,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640x480x30",
-            "rgb_camera.color_profile": "640x480x30",
+            "depth_module.depth_profile": "424x240x30",
+            "rgb_camera.color_profile": "424x240x30",
         }.items(),
     )
 
@@ -47,8 +47,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "640x480x30",
-            "rgb_camera.color_profile": "640x480x30",
+            "depth_module.depth_profile": "424x240x30",
+            "rgb_camera.color_profile": "424x240x30",
         }.items(),
     )
 
@@ -88,7 +88,7 @@ def generate_launch_description():
         output="screen",
         parameters=[apriltag_params_file],
         remappings=[
-            ("/image_rect", "/camera_front/color/image_raw"),
+            ("/image_rect", "/camera_front/color/image_raw/compressed"),
             ("/camera_info", "/camera_front/color/camera_info"),
         ],
     )
@@ -117,11 +117,12 @@ def generate_launch_description():
         name="rgbd_sync_front",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
+             "compressed_rate": 1.0}
         ],
         remappings=[
-            ("rgb/image", "/camera_front/color/image_raw"),
-            ("depth/image", "/camera_front/depth/image_rect_raw"),
+            ("rgb/image", "/camera_front/color/image_raw/compressed"),
+            ("depth/image", "/camera_front/depth/image_rect_raw/compressedDepth"),
             ("rgb/camera_info", "/camera_front/color/camera_info"),
             ("rgbd_image", "/camera_front/rgbd_image"),
         ],
@@ -134,11 +135,12 @@ def generate_launch_description():
         name="rgbd_sync_back",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000}
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
+             "compressed_rate": 1.0}
         ],
         remappings=[
-            ("rgb/image", "/camera_back/color/image_raw"),
-            ("depth/image", "/camera_back/depth/image_rect_raw"),
+            ("rgb/image", "/camera_back/color/image_raw/compressed"),
+            ("depth/image", "/camera_back/depth/image_rect_raw/compressedDepth"),
             ("rgb/camera_info", "/camera_back/color/camera_info"),
             ("rgbd_image", "/camera_back/rgbd_image"),
         ],
