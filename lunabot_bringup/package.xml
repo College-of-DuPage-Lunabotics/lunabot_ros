@@ -31,6 +31,8 @@
   <depend>lunabot_teleop</depend>
   <depend>lunabot_util</depend>
   <depend>lunabot_gui</depend>
+  
+  <exec_depend>rmw_cyclonedds_cpp</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

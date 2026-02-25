@@ -409,7 +409,7 @@ class RobotInterface:
                 request.system_name = 'hardware'
                 request.use_sim = False
                 
-                if not self.launch_client.wait_for_service(timeout_sec=2.0):
+                if not self.launch_client.wait_for_service(timeout_sec=10.0):
                     self.node.get_logger().error('Launch manager service not available')
                     return
                 
@@ -459,7 +459,7 @@ class RobotInterface:
                 request.system_name = system_name
                 request.use_sim = use_sim
                 
-                if not self.launch_client.wait_for_service(timeout_sec=2.0):
+                if not self.launch_client.wait_for_service(timeout_sec=10.0):
                     self.node.get_logger().error('Launch manager service not available')
                     return
                 
@@ -534,7 +534,7 @@ class RobotInterface:
                     request = StopSystem.Request()
                     request.system_name = system_name
                     
-                    if not self.stop_client.wait_for_service(timeout_sec=2.0):
+                    if not self.stop_client.wait_for_service(timeout_sec=10.0):
                         self.node.get_logger().error('Stop service not available')
                         return
                     
