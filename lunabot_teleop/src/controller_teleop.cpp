@@ -64,6 +64,10 @@ public:
         std::chrono::milliseconds(100),
         std::bind(&ControllerTeleop::publish_state, this));
 
+    control_timer_ = create_wall_timer(
+        std::chrono::milliseconds(50),
+        std::bind(&ControllerTeleop::control_loop, this));
+
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
     left_actuator_motor_.BurnFlash();
@@ -92,6 +96,31 @@ private:
   static double clamp(double v)
   {
     return std::clamp(v, -1.0, 1.0);
+  }
+
+  /**
+   * @brief Control loop called at fixed rate (20 Hz) to send motor commands
+   */
+  void control_loop()
+  {
+    // Send heartbeats
+    left_actuator_motor_.Heartbeat();
+    right_actuator_motor_.Heartbeat();
+    vibration_motor_.Heartbeat();
+
+    // Only send motor commands if in manual mode and not disabled
+    if (manual_enabled_ && !robot_disabled_)
+    {
+      // Drive wheels with tank drive using latest joystick values
+      double left_speed = left_joystick_y_ - left_joystick_x_;
+      double right_speed = left_joystick_y_ + left_joystick_x_;
+      drive(left_speed, right_speed);
+    }
+    else
+    {
+      // Stop motors if disabled or in autonomous mode
+      drive(0.0, 0.0);
+    }
   }
 
   /**
@@ -173,21 +202,10 @@ private:
       RCLCPP_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
     }
 
-    // Early return if not in manual mode or robot is disabled
     if (!manual_enabled_ || robot_disabled_)
     {
       return;
     }
-
-    // Send heartbeat and control motors
-    left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
-    vibration_motor_.Heartbeat();
-
-    // Drive wheels with tank drive
-    double left_speed = left_joystick_y_ - left_joystick_x_;
-    double right_speed = left_joystick_y_ + left_joystick_x_;
-    drive(left_speed, right_speed);
 
     // Control actuators with right joystick
     double actuator_speed = clamp(right_joystick_y_);
@@ -286,6 +304,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vibration_state_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
+  rclcpp::TimerBase::SharedPtr control_timer_;
 
   SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_, vibration_motor_;
 
