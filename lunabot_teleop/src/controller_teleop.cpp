@@ -174,6 +174,8 @@ private:
     if (menu_pressed)
     {
       manual_enabled_ = false;
+      // Clear vibration state when switching to auto mode (GUI update only)
+      vibration_enabled_ = false;
       RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
       publish_state();
     }
@@ -192,8 +194,8 @@ private:
       publish_state();
     }
 
-    // Toggle vibration motor and read back duty cycle
-    if (x_pressed)
+    // Toggle vibration motor and read back duty cycle (manual mode only)
+    if (x_pressed && manual_enabled_)
     {
       vibration_enabled_ = !vibration_enabled_;
       RCLCPP_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
@@ -262,6 +264,8 @@ private:
     else
     {
       RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      // Clear vibration state when switching to auto mode
+      vibration_enabled_ = false;
     }
     publish_state();
   }

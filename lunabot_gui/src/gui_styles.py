@@ -77,7 +77,7 @@ MAIN_STYLESHEET = f"""
         subcontrol-origin: margin;
         subcontrol-position: top left;
         padding: 0 5px;
-        top: 5px;
+        top: 4px;
         left: 2px;
         color: {Colors.TEXT_MAIN};
     }}
@@ -91,6 +91,9 @@ MAIN_STYLESHEET = f"""
     QLabel:disabled {{
         color: #555555;
     }}
+    QPushButton {{
+        font-weight: bold;
+    }}
     QPushButton:disabled {{
         background-color: #1f1f1f;
         color: #555555;
@@ -98,6 +101,16 @@ MAIN_STYLESHEET = f"""
     }}
     QProgressBar {{
         background-color: {Colors.BG_MAIN};
+        border: 1px solid {Colors.BORDER};
+        border-radius: 3px;
+        text-align: center;
+        color: {Colors.TEXT_MAIN};
+        font-weight: bold;
+        height: 20px;
+    }}
+    QProgressBar::chunk {{
+        background-color: {Colors.STATUS_INFO};
+        border-radius: 2px;
     }}
 """
 
@@ -144,6 +157,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_INACTIVE};
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
@@ -171,6 +185,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_ORANGE};
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
@@ -198,6 +213,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_BLUE};
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
@@ -225,6 +241,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_RED};
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
@@ -252,6 +269,7 @@ class Styles:
             QPushButton {{
                 background-color: #3a8fbf;
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 6px;
@@ -279,6 +297,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_RED};
                 color: white;
+                font-family: Monospace;
                 font-size: 16px;
                 font-weight: bold;
                 padding: 20px;
@@ -301,6 +320,7 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_INACTIVE};
                 color: white;
+                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 10px 20px;
@@ -322,9 +342,51 @@ class Styles:
         """
     
     @staticmethod
+    def camera_button(size=14):
+        """Camera control button style"""
+        return f"""
+            QPushButton {{
+                background-color: {Colors.BTN_INACTIVE};
+                color: white;
+                font-family: Monospace;
+                font-size: {size}px;
+                font-weight: bold;
+                padding: 20px 15px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BTN_HOVER};
+            }}
+            QPushButton:pressed {{
+                background-color: {Colors.BTN_PRESSED};
+            }}
+        """
+    
+    @staticmethod
+    def camera_center_button(size=14):
+        """Camera center/preset button style (smaller padding)"""
+        return f"""
+            QPushButton {{
+                background-color: {Colors.BTN_INACTIVE};
+                color: white;
+                font-family: Monospace;
+                font-size: {size}px;
+                font-weight: bold;
+                padding: 15px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BTN_HOVER};
+            }}
+            QPushButton:pressed {{
+                background-color: {Colors.BTN_PRESSED};
+            }}
+        """
+    
+    @staticmethod
     def subbox():
         """Sub-box group style - no border for nested boxes"""
-        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 8pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; }}"
+        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 8pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
     
     @staticmethod
     def transparent_label(color=None, font_size=11, italic=False):

@@ -35,4 +35,9 @@ install(FILES
   src/ui_widgets.py
   DESTINATION lib/${PROJECT_NAME})
 
+# Install resource files (icons, etc.)
+install(DIRECTORY resource/
+  DESTINATION share/${PROJECT_NAME}/resource
+  FILES_MATCHING PATTERN "*.png")
+
 ament_package()

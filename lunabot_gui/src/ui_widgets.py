@@ -693,7 +693,7 @@ def create_teleop_control_group(app):
     bucket_section.setSpacing(3)
     
     arrow_label = QLabel("Bucket")
-    arrow_label.setStyleSheet("color: #bbb; font-size: 11px; background-color: transparent;")
+    arrow_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: 11px; background-color: transparent;")
     arrow_label.setAlignment(Qt.AlignCenter)
     bucket_section.addWidget(arrow_label)
     
@@ -760,7 +760,7 @@ def create_teleop_control_group(app):
     speed_section = QVBoxLayout()
     speed_section.setSpacing(0)
     
-    speed_html = f'<div style="text-align: right; line-height: 1.2;"><span style="color: #aaa; font-size: 13px;">Lin: {app.linear_speed:.2f} m/s | Ang: {app.angular_speed:.2f} rad/s</span><br><span style="color: #888; font-size: 11px; font-style: italic;">Q/Z: Linear Speed | E/C: Angular Speed</span></div>'
+    speed_html = f'<div style="text-align: right; line-height: 1.2;"><span style="color: {Colors.TEXT_DIM}; font-size: 13px;">Lin: {app.linear_speed:.2f} m/s | Ang: {app.angular_speed:.2f} rad/s</span><br><span style="color: {Colors.TEXT_DARKER}; font-size: 11px; font-style: italic;">Q/Z: Linear Speed | E/C: Angular Speed</span></div>'
     app.speed_label = QLabel(speed_html)
     app.speed_label.setStyleSheet("background-color: transparent; padding: 0px; margin: 0px;")
     app.speed_label.setAlignment(Qt.AlignRight)
@@ -771,7 +771,7 @@ def create_teleop_control_group(app):
     
     # WASD Movement Controls
     wasd_label = QLabel("Movement")
-    wasd_label.setStyleSheet("color: #bbb; font-size: 11px; margin-top: 2px; background-color: transparent;")
+    wasd_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: 11px; margin-top: 2px; background-color: transparent;")
     wasd_label.setAlignment(Qt.AlignCenter)
     layout.addWidget(wasd_label)
     
@@ -969,7 +969,8 @@ def create_action_control_group(app):
     
     app.operation_status_label = QLabel("Status: Idle")
     app.operation_status_label.setWordWrap(True)
-    app.operation_status_label.setStyleSheet("color: #aaa; font-style: italic; background-color: transparent;")
+    app.operation_status_label.setFont(QFont("Monospace", 10))
+    app.operation_status_label.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-weight: bold; background-color: transparent;")
     layout.addWidget(app.operation_status_label)
     
     group.setLayout(layout)
@@ -1005,7 +1006,7 @@ def create_camera_control_group(app):
     layout.setSpacing(0)
     
     app.camera_pos_label = QLabel("Position: 0°")
-    app.camera_pos_label.setStyleSheet("color: #aaa; font-size: 14px; font-weight: bold; background-color: transparent; margin-top: -8px;")
+    app.camera_pos_label.setStyleSheet(f"color: {Colors.TEXT_DIM}; font-size: 14px; font-weight: bold; background-color: transparent; margin-top: -8px;")
     app.camera_pos_label.setAlignment(Qt.AlignCenter)
     app.camera_pos_label.setMaximumHeight(20)
     layout.addWidget(app.camera_pos_label)
@@ -1016,22 +1017,7 @@ def create_camera_control_group(app):
     button_row.setSpacing(8)
     
     rotate_left_btn = QPushButton("← 45°")
-    rotate_left_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 20px 15px;
-            border: none;
-        }}
-        QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-    """)
+    rotate_left_btn.setStyleSheet(Styles.camera_button())
     rotate_left_btn.clicked.connect(lambda: app.rotate_fisheye_camera(0.785398))
     button_row.addWidget(rotate_left_btn)
     
@@ -1039,64 +1025,19 @@ def create_camera_control_group(app):
     center_column.setSpacing(8)
     
     center_btn = QPushButton("Center")
-    center_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 15px;
-            border: none;
-        }}
-        QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-    """)
+    center_btn.setStyleSheet(Styles.camera_center_button())
     center_btn.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
     center_column.addWidget(center_btn)
     
     btn_180 = QPushButton("180°")
-    btn_180.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 15px;
-            border: none;
-        }}
-        QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-    """)
+    btn_180.setStyleSheet(Styles.camera_center_button())
     btn_180.clicked.connect(lambda: app.set_fisheye_camera_position(3.14159))
     center_column.addWidget(btn_180)
     
     button_row.addLayout(center_column)
     
     rotate_right_btn = QPushButton("45° →")
-    rotate_right_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 20px 15px;
-            border: none;
-        }}
-        QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-    """)
+    rotate_right_btn.setStyleSheet(Styles.camera_button())
     rotate_right_btn.clicked.connect(lambda: app.rotate_fisheye_camera(-0.785398))
     button_row.addWidget(rotate_right_btn)
     

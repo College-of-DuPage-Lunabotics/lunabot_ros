@@ -6,7 +6,7 @@ from rclpy.node import Node
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QHBoxLayout, QLabel, QPushButton, QGroupBox, QSizePolicy)
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QImage, QPixmap, QPalette, QColor
+from PyQt5.QtGui import QImage, QPixmap, QPalette, QColor, QIcon
 
 # Import refactored modules
 from ros_interface import RobotInterface
@@ -74,6 +74,17 @@ class LunabotGUI(QMainWindow):
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle('Lunabot Control Panel')
+        
+        # Set window icon
+        import os
+        from ament_index_python.packages import get_package_share_directory
+        try:
+            pkg_dir = get_package_share_directory('lunabot_gui')
+            icon_path = os.path.join(pkg_dir, 'resource', 'lunabot_icon.png')
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception as e:
+            print(f"Could not load window icon: {e}")
         
         # Get screen size and adjust window accordingly
         screen = QApplication.primaryScreen().geometry()
@@ -156,20 +167,20 @@ class LunabotGUI(QMainWindow):
         swappable_layout.addWidget(self.swappable_camera_group)
         
         self.swap_camera_btn = QPushButton("⇄  Rear Camera")
-        self.swap_camera_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1a1a1a;
-                color: #4da3f0;
+        self.swap_camera_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BG_MAIN};
+                color: {Colors.STATUS_SUCCESS};
                 border: none;
-                border-top: 2px solid #4da3f0;
+                border-top: 2px solid {Colors.STATUS_SUCCESS};
                 font-size: 13px;
                 font-weight: bold;
                 padding: 5px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #3a3a3a;
-                color: #4da3f0;
-            }
+                color: {Colors.STATUS_SUCCESS};
+            }}
         """)
         self.swap_camera_btn.setMaximumHeight(30)
         self.swap_camera_btn.clicked.connect(self.swap_camera)
@@ -286,22 +297,22 @@ class LunabotGUI(QMainWindow):
         
         # Edge tab
         self.edge_tab = QPushButton("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
-        self.edge_tab.setStyleSheet("""
-            QPushButton {
-                background-color: #1a1a1a;
-                color: #4da3f0;
+        self.edge_tab.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BG_MAIN};
+                color: {Colors.STATUS_SUCCESS};
                 border: none;
-                border-left: 2px solid #4da3f0;
+                border-left: 2px solid {Colors.STATUS_SUCCESS};
                 font-size: 12px;
                 font-weight: bold;
                 padding: 10px 5px;
                 letter-spacing: 2px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #3a3a3a;
-                color: #4da3f0;
-                border-left: 2px solid #4da3f0;
-            }
+                color: {Colors.STATUS_SUCCESS};
+                border-left: 2px solid {Colors.STATUS_SUCCESS};
+            }}
         """)
         self.edge_tab.setMaximumWidth(30)
         self.edge_tab.clicked.connect(self.toggle_sidebar)
@@ -914,6 +925,17 @@ class LunabotGUI(QMainWindow):
 def main(args=None):
     """Main entry point"""
     app = QApplication(sys.argv)
+    
+    # Set application icon (for dock/taskbar)
+    import os
+    from ament_index_python.packages import get_package_share_directory
+    try:
+        pkg_dir = get_package_share_directory('lunabot_gui')
+        icon_path = os.path.join(pkg_dir, 'resource', 'lunabot_icon.png')
+        if os.path.exists(icon_path):
+            app.setWindowIcon(QIcon(icon_path))
+    except Exception as e:
+        print(f"Could not load application icon: {e}")
     
     # Set dark theme
     app.setStyle('Fusion')
