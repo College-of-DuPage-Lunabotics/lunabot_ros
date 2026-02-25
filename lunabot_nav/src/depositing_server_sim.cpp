@@ -1,5 +1,5 @@
 /**
- * @file dumping_server_sim.cpp
+ * @file depositing_server_sim.cpp
  * @author Grayson Arendt
  * @date 02/22/2026
  */
@@ -12,7 +12,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 
-#include "lunabot_msgs/action/dumping.hpp"
+#include "lunabot_msgs/action/depositing.hpp"
 
 // ANSI color codes
 #define RESET "\033[0m"
@@ -25,24 +25,24 @@
 #define TRAVEL_POSITION -0.4
 
 /**
- * @class DumpingServerSim
- * @brief Simulation-compatible dumping server that controls bucket joint position.
+ * @class DepositingServerSim
+ * @brief Simulation-compatible depositing server that controls bucket joint position.
  */
-class DumpingServerSim : public rclcpp::Node
+class DepositingServerSim : public rclcpp::Node
 {
 public:
-  using Dumping = lunabot_msgs::action::Dumping;
-  using GoalHandleDumping = rclcpp_action::ServerGoalHandle<Dumping>;
+  using Depositing = lunabot_msgs::action::Depositing;
+  using GoalHandleDepositing = rclcpp_action::ServerGoalHandle<Depositing>;
 
   /**
-   * @brief Constructor for the DumpingServerSim class.
+   * @brief Constructor for the DepositingServerSim class.
    */
-  DumpingServerSim()
-    : Node("dumping_server")
+  DepositingServerSim()
+    : Node("depositing_server")
     , goal_active_(false)
   {
-    action_server_ = rclcpp_action::create_server<Dumping>(
-        this, "dumping_action",
+    action_server_ = rclcpp_action::create_server<Depositing>(
+        this, "depositing_action",
         [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
@@ -50,7 +50,7 @@ public:
     bucket_position_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
         "/position_controller/commands", 10);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "DUMPING SERVER (SIM) INITIALIZED" RESET);
+    RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SERVER (SIM) INITIALIZED" RESET);
   }
 
 private:
@@ -85,62 +85,62 @@ private:
   }
 
   /**
-   * @brief Executes the dumping action sequence.
+   * @brief Executes the depositing action sequence.
    * @param goal_handle Handle for the action goal.
    */
-  void execute(const std::shared_ptr<GoalHandleDumping> goal_handle)
+  void execute(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "DUMPING ALREADY IN PROGRESS" RESET);
-      auto result = std::make_shared<Dumping::Result>();
+      RCLCPP_WARN(this->get_logger(), YELLOW "DEPOSITING ALREADY IN PROGRESS" RESET);
+      auto result = std::make_shared<Depositing::Result>();
       result->success = false;
-      result->message = "Dumping already in progress";
+      result->message = "Depositing already in progress";
       goal_handle->abort(result);
       return;
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DUMPING SEQUENCE" RESET);
+    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DEPOSITING SEQUENCE" RESET);
 
-    auto feedback = std::make_shared<Dumping::Feedback>();
-    auto result = std::make_shared<Dumping::Result>();
+    auto feedback = std::make_shared<Depositing::Feedback>();
+    auto result = std::make_shared<Depositing::Result>();
 
     try
     {
-      feedback->feedback_message = "Dumping and resetting bucket";
+      feedback->feedback_message = "Depositing and resetting bucket";
       goal_handle->publish_feedback(feedback);
       lift_and_dump();
 
       result->success = true;
-      result->message = "Dumping completed successfully";
+      result->message = "Depositing completed successfully";
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "DUMPING COMPLETED SUCCESSFULLY" RESET);
+      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING COMPLETED SUCCESSFULLY" RESET);
     }
     catch (const std::exception& e)
     {
       result->success = false;
-      result->message = std::string("Dumping failed: ") + e.what();
+      result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);
-      RCLCPP_ERROR(this->get_logger(), RED "DUMPING FAILED: %s" RESET, e.what());
+      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED: %s" RESET, e.what());
     }
 
     goal_active_ = false;
   }
 
-  rclcpp_action::Server<Dumping>::SharedPtr action_server_;
+  rclcpp_action::Server<Depositing>::SharedPtr action_server_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr bucket_position_pub_;
   bool goal_active_;
 };
 
 /**
  * @brief Main function.
- * Initializes and runs the DumpingServerSim node.
+ * Initializes and runs the DepositingServerSim node.
  */
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DumpingServerSim>());
+  rclcpp::spin(std::make_shared<DepositingServerSim>());
   rclcpp::shutdown();
   return 0;
 }

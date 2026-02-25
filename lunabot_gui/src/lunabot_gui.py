@@ -265,12 +265,15 @@ class LunabotGUI(QMainWindow):
         # Sidebar content
         self.sidebar_widget = QWidget()
         self.sidebar_widget.setStyleSheet("background-color: #1a1a1a;")
-        self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.sidebar_widget.setMinimumWidth(240)  # Prevent controls from compressing
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
         sidebar_layout.setSpacing(6)  # Reduced spacing to give more room to buttons
         self.sidebar_widget.setLayout(sidebar_layout)
+        
+        # Add stretch at top to push controls toward bottom (can compress if needed)
+        sidebar_layout.addStretch(1)
         
         # Add control groups
         hardware_group = ui_widgets.create_hardware_group(self)
@@ -283,9 +286,6 @@ class LunabotGUI(QMainWindow):
         
         action_group = ui_widgets.create_action_control_group(self)
         sidebar_layout.addWidget(action_group)
-        
-        # Add stretch to push teleop down but allow it to compress
-        sidebar_layout.addStretch(1)
         
         teleop_group = ui_widgets.create_teleop_control_group(self)
         teleop_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
@@ -391,7 +391,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_excavating = True
             self.excavate_btn.setText("Cancel Excavation")
             self.operation_status_label.setText("Status: Excavating...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
             self.robot.send_excavate_goal(
                 self.excavate_goal_response_callback,
                 self.excavate_result_callback,
@@ -405,7 +405,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_excavating = False
             self.excavate_btn.setText("Excavate")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
         else:
             self.robot.node.get_logger().info('Excavate goal accepted')
     
@@ -418,11 +418,11 @@ class LunabotGUI(QMainWindow):
         if result.success:
             self.robot.node.get_logger().info('Excavation completed successfully')
             self.operation_status_label.setText("Status: Excavation completed")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
         else:
             self.robot.node.get_logger().error('Excavation failed')
             self.operation_status_label.setText("Status: Excavation failed")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
     
     def excavate_cancel_callback(self, future):
         """Handle excavation cancellation"""
@@ -430,57 +430,57 @@ class LunabotGUI(QMainWindow):
         self.robot.is_excavating = False
         self.excavate_btn.setText("Excavate")
         self.operation_status_label.setText("Status: Excavation cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
     
-    def send_dump_goal(self):
-        """Send dumping action goal or cancel"""
-        if self.robot.is_dumping:
-            self.robot.node.get_logger().info('Cancelling dump')
-            self.robot.cancel_dump_goal(self.dump_cancel_callback)
+    def send_deposit_goal(self):
+        """Send depositing action goal or cancel"""
+        if self.robot.is_depositing:
+            self.robot.node.get_logger().info('Cancelling deposit')
+            self.robot.cancel_deposit_goal(self.deposit_cancel_callback)
         else:
-            self.robot.is_dumping = True
-            self.dump_btn.setText("Cancel Dump")
-            self.operation_status_label.setText("Status: Dumping...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
-            self.robot.send_dump_goal(
-                self.dump_goal_response_callback,
-                self.dump_result_callback,
-                self.dump_cancel_callback
+            self.robot.is_depositing = True
+            self.deposit_btn.setText("Cancel Deposit")
+            self.operation_status_label.setText("Status: Depositing...")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.robot.send_deposit_goal(
+                self.deposit_goal_response_callback,
+                self.deposit_result_callback,
+                self.deposit_cancel_callback
             )
     
-    def dump_goal_response_callback(self, goal_handle):
-        """Handle dump goal response"""
+    def deposit_goal_response_callback(self, goal_handle):
+        """Handle deposit goal response"""
         if not goal_handle.accepted:
-            self.robot.node.get_logger().error('Dump goal rejected')
-            self.robot.is_dumping = False
-            self.dump_btn.setText("Dump")
+            self.robot.node.get_logger().error('Deposit goal rejected')
+            self.robot.is_depositing = False
+            self.deposit_btn.setText("Deposit")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
         else:
-            self.robot.node.get_logger().info('Dump goal accepted')
+            self.robot.node.get_logger().info('Deposit goal accepted')
     
-    def dump_result_callback(self, future):
-        """Handle dump result"""
+    def deposit_result_callback(self, future):
+        """Handle deposit result"""
         result = future.result().result
-        self.robot.is_dumping = False
-        self.dump_btn.setText("Dump")
+        self.robot.is_depositing = False
+        self.deposit_btn.setText("Deposit")
         
         if result.success:
-            self.robot.node.get_logger().info(f'Dumping completed: {result.message}')
+            self.robot.node.get_logger().info(f'Depositing completed: {result.message}')
             self.operation_status_label.setText(f"Status: {result.message}")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
         else:
-            self.robot.node.get_logger().error(f'Dumping failed: {result.message}')
+            self.robot.node.get_logger().error(f'Depositing failed: {result.message}')
             self.operation_status_label.setText(f"Status: Failed - {result.message}")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
     
-    def dump_cancel_callback(self, future):
-        """Handle dump cancellation"""
-        self.robot.node.get_logger().info('Dumping cancelled')
-        self.robot.is_dumping = False
-        self.dump_btn.setText("Dump")
-        self.operation_status_label.setText("Status: Dumping cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+    def deposit_cancel_callback(self, future):
+        """Handle deposit cancellation"""
+        self.robot.node.get_logger().info('Depositing cancelled')
+        self.robot.is_depositing = False
+        self.deposit_btn.setText("Deposit")
+        self.operation_status_label.setText("Status: Depositing cancelled")
+        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
     
     def send_home_goal(self):
         """Send homing action goal or cancel"""
@@ -491,7 +491,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_homing = True
             self.home_btn.setText("Cancel Homing")
             self.operation_status_label.setText("Status: Homing...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
             self.robot.send_home_goal(
                 self.home_goal_response_callback,
                 self.home_result_callback,
@@ -505,7 +505,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_homing = False
             self.home_btn.setText("Home Actuators")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
         else:
             self.robot.node.get_logger().info('Home goal accepted')
     
@@ -518,11 +518,11 @@ class LunabotGUI(QMainWindow):
         if result.success:
             self.robot.node.get_logger().info(f'Homing completed: {result.message}')
             self.operation_status_label.setText(f"Status: {result.message}")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
         else:
             self.robot.node.get_logger().error(f'Homing failed: {result.message}')
             self.operation_status_label.setText(f"Status: Failed - {result.message}")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
     
     def home_cancel_callback(self, future):
         """Handle home cancellation"""
@@ -530,7 +530,7 @@ class LunabotGUI(QMainWindow):
         self.robot.is_homing = False
         self.home_btn.setText("Home Actuators")
         self.operation_status_label.setText("Status: Homing cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
     
     def emergency_stop(self):
         """Toggle emergency stop state"""
@@ -544,8 +544,8 @@ class LunabotGUI(QMainWindow):
             # Cancel any active operations
             if self.robot.is_excavating:
                 self.robot.cancel_excavate_goal(lambda f: None)
-            if self.robot.is_dumping:
-                self.robot.cancel_dump_goal(lambda f: None)
+            if self.robot.is_depositing:
+                self.robot.cancel_deposit_goal(lambda f: None)
             if self.robot.is_homing:
                 self.robot.cancel_home_goal(lambda f: None)
             if self.full_auto_active:
@@ -562,7 +562,7 @@ class LunabotGUI(QMainWindow):
             self.robot.node.get_logger().info('Re-enabling robot from emergency stop')
             self.robot.publish_re_enable()
             self.operation_status_label.setText("Status: Robot re-enabled")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
             
             # Update button back to emergency stop mode
             self.emergency_stopped = False
@@ -577,10 +577,10 @@ class LunabotGUI(QMainWindow):
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
             self.operation_status_label.setText("Status: One cycle auto stopped")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
             return
         
-        if self.robot.is_excavating or self.robot.is_dumping or self.robot.is_homing:
+        if self.robot.is_excavating or self.robot.is_depositing or self.robot.is_homing:
             self.robot.node.get_logger().warning('Operation already in progress')
             return
         
@@ -588,13 +588,13 @@ class LunabotGUI(QMainWindow):
         self.full_auto_active = True
         self.auto_btn.setText("Stop One Cycle Auto")
         self.operation_status_label.setText("Status: One Cycle Auto Active...")
-        self.operation_status_label.setStyleSheet("color: #2196f3; background-color: transparent;")
+        self.operation_status_label.setStyleSheet("color: #2196f3; font-weight: bold; background-color: transparent;")
         
         if not self.robot.launch_navigation_client():
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
             self.operation_status_label.setText("Status: Failed to start")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
     
     # Camera Controls
     def rotate_fisheye_camera(self, delta_radians):
@@ -712,14 +712,14 @@ class LunabotGUI(QMainWindow):
             self.status_label.setText("Robot: DISABLED")
             self.status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
             self.excavate_btn.setEnabled(False)
-            self.dump_btn.setEnabled(False)
+            self.deposit_btn.setEnabled(False)
             self.auto_btn.setEnabled(False)
         else:
             self.status_label.setText("Active")
             self.status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
-            if not (self.robot.is_excavating or self.robot.is_dumping or self.robot.is_navigating):
+            if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
                 self.excavate_btn.setEnabled(True)
-                self.dump_btn.setEnabled(True)
+                self.deposit_btn.setEnabled(True)
                 self.auto_btn.setEnabled(True)
     
     def handle_control_state_update(self, msg):
@@ -728,26 +728,26 @@ class LunabotGUI(QMainWindow):
         if msg.is_excavating:
             self.excavate_btn.setText("Cancel Excavation")
             self.operation_status_label.setText("Status: Excavating")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
         else:
             self.excavate_btn.setText("Excavate")
         
-        if msg.is_dumping:
-            self.dump_btn.setText("Cancel Dump")
-            self.operation_status_label.setText("Status: Dumping")
-            self.operation_status_label.setStyleSheet("color: #ffa726; background-color: transparent;")
+        if msg.is_depositing:
+            self.deposit_btn.setText("Cancel Deposit")
+            self.operation_status_label.setText("Status: Depositing")
+            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
         else:
-            self.dump_btn.setText("Dump")
+            self.deposit_btn.setText("Deposit")
         
         if msg.is_navigating:
             self.operation_status_label.setText("Status: Navigating")
-            self.operation_status_label.setStyleSheet("color: #2196f3; background-color: transparent;")
-        elif msg.status_message and not (msg.is_excavating or msg.is_dumping):
+            self.operation_status_label.setStyleSheet("color: #2196f3; font-weight: bold; background-color: transparent;")
+        elif msg.status_message and not (msg.is_excavating or msg.is_depositing):
             self.operation_status_label.setText(f"Status: {msg.status_message}")
-            self.operation_status_label.setStyleSheet("color: #aaa; background-color: transparent;")
-        elif not (msg.is_excavating or msg.is_dumping or msg.is_navigating):
+            self.operation_status_label.setStyleSheet("color: #aaa; font-weight: bold; background-color: transparent;")
+        elif not (msg.is_excavating or msg.is_depositing or msg.is_navigating):
             self.operation_status_label.setText("Status: Idle")
-            self.operation_status_label.setStyleSheet("color: #aaa; background-color: transparent;")
+            self.operation_status_label.setStyleSheet("color: #aaa; font-weight: bold; background-color: transparent;")
     
     def spin_ros(self):
         """Spin ROS node to process callbacks"""

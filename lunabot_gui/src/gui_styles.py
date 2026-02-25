@@ -162,7 +162,7 @@ class Styles:
                 font-weight: bold;
                 padding: 8px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_HOVER};
@@ -174,7 +174,7 @@ class Styles:
                 background-color: #1f1f1f;
                 color: #555555;
                 border: none;
-
+                border-radius: 2px;
             }}
         """
     
@@ -190,7 +190,7 @@ class Styles:
                 font-weight: bold;
                 padding: 8px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_ORANGE_HOVER};
@@ -202,7 +202,7 @@ class Styles:
                 background-color: #1f1f1f;
                 color: #555555;
                 border: none;
-
+                border-radius: 2px;
             }}
         """
     
@@ -218,7 +218,7 @@ class Styles:
                 font-weight: bold;
                 padding: 8px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_BLUE_HOVER};
@@ -230,7 +230,7 @@ class Styles:
                 background-color: #1f1f1f;
                 color: #555555;
                 border: none;
-
+                border-radius: 2px;
             }}
         """
     
@@ -246,7 +246,7 @@ class Styles:
                 font-weight: bold;
                 padding: 8px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_RED_HOVER};
@@ -258,7 +258,7 @@ class Styles:
                 background-color: #1f1f1f;
                 color: #555555;
                 border: none;
-
+                border-radius: 2px;
             }}
         """
     
@@ -274,7 +274,7 @@ class Styles:
                 font-weight: bold;
                 padding: 6px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: #5aa3cc;
@@ -286,7 +286,7 @@ class Styles:
                 background-color: #1f1f1f;
                 color: #555555;
                 border: none;
-
+                border-radius: 2px;
             }}
         """
     
@@ -302,11 +302,10 @@ class Styles:
                 font-weight: bold;
                 padding: 20px;
                 border: none;
-
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_RED_HOVER};
-
             }}
             QPushButton:pressed {{
                 background-color: {Colors.BTN_RED_PRESSED};
@@ -325,7 +324,7 @@ class Styles:
                 font-weight: bold;
                 padding: 10px 20px;
                 border: none;
-
+                border-radius: 2px;
                 min-width: 50px;
                 min-height: 50px;
             }}
@@ -337,7 +336,6 @@ class Styles:
             }}
             QPushButton:checked {{
                 background-color: {Colors.BTN_ACTIVE};
-
             }}
         """
     
@@ -353,6 +351,7 @@ class Styles:
                 font-weight: bold;
                 padding: 20px 15px;
                 border: none;
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_HOVER};
@@ -374,6 +373,7 @@ class Styles:
                 font-weight: bold;
                 padding: 15px;
                 border: none;
+                border-radius: 2px;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_HOVER};
@@ -386,7 +386,7 @@ class Styles:
     @staticmethod
     def subbox():
         """Sub-box group style - no border for nested boxes"""
-        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 8pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
+        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 10pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
     
     @staticmethod
     def transparent_label(color=None, font_size=11, italic=False):

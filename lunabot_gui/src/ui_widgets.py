@@ -352,6 +352,7 @@ def create_network_group(app):
             font-weight: bold;
             padding: 4px 10px;
             border: none;
+            border-radius: 2px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -363,6 +364,7 @@ def create_network_group(app):
             background-color: {Colors.BTN_DISABLED};
             color: {Colors.TEXT_GRAY};
             border: none;
+            border-radius: 2px;
         }}
     """)
     app.network_apply_btn.setMinimumWidth(70)
@@ -656,6 +658,7 @@ def create_mode_group(app):
             font-weight: bold;
             padding: 4px 10px;
             border: none;
+            border-radius: 2px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -667,6 +670,7 @@ def create_mode_group(app):
             background-color: {Colors.BTN_DISABLED};
             color: {Colors.TEXT_GRAY};
             border: none;
+            border-radius: 2px;
         }}
     """)
     mode_switch_btn.clicked.connect(app.toggle_mode)
@@ -703,6 +707,7 @@ def create_teleop_control_group(app):
             background-color: {Colors.BTN_INACTIVE};
             color: white;
             border: none;
+            border-radius: 2px;
             padding: 10px;
             font-size: 14px;
             font-weight: bold;
@@ -719,6 +724,7 @@ def create_teleop_control_group(app):
             background-color: {Colors.BTN_DISABLED};
             color: {Colors.TEXT_GRAY};
             border: none;
+            border-radius: 2px;
         }}
     """
     active_button_style = f"""
@@ -726,6 +732,7 @@ def create_teleop_control_group(app):
             background-color: {Colors.BTN_ACTIVE};
             color: white;
             border: none;
+            border-radius: 2px;
             padding: 10px;
             font-size: 14px;
             font-weight: bold;
@@ -829,10 +836,11 @@ def create_launch_group(app):
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
             color: white;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             padding: 4px;
             border: none;
+            border-radius: 2px;
             text-align: center;
         }}
         QPushButton:hover {{
@@ -865,7 +873,7 @@ def create_launch_group(app):
     layout.addWidget(app.nav2_btn)
     
     rviz_btn = QPushButton("RViz2")
-    rviz_btn.setStyleSheet(Styles.light_blue_button(size=10))
+    rviz_btn.setStyleSheet(Styles.light_blue_button(size=12))
     rviz_btn.setMinimumHeight(24)
     rviz_btn.setMaximumHeight(26)
     rviz_btn.clicked.connect(app.launch_rviz)
@@ -885,14 +893,14 @@ def create_action_control_group(app):
     layout.setContentsMargins(4, 4, 4, 4)
     
     app.home_btn = QPushButton("Home Actuators")
-    app.home_btn.setStyleSheet(Styles.orange_button(size=10))
+    app.home_btn.setStyleSheet(Styles.orange_button(size=12))
     app.home_btn.setMinimumHeight(32)
     app.home_btn.setMaximumHeight(36)
     app.home_btn.clicked.connect(app.send_home_goal)
     layout.addWidget(app.home_btn)
     
     app.localize_btn = QPushButton("Localize")
-    app.localize_btn.setStyleSheet(Styles.standard_button(size=10))
+    app.localize_btn.setStyleSheet(Styles.standard_button(size=12))
     app.localize_btn.setMinimumHeight(32)
     app.localize_btn.setMaximumHeight(36)
     app.localize_btn.clicked.connect(lambda: app.launch_system('localization'))
@@ -905,10 +913,11 @@ def create_action_control_group(app):
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
             color: white;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             padding: 4px;
             border: none;
+            border-radius: 2px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -920,22 +929,24 @@ def create_action_control_group(app):
             background-color: {Colors.BTN_DISABLED};
             color: {Colors.TEXT_GRAY};
             border: none;
+            border-radius: 2px;
         }}
     """)
     app.excavate_btn.clicked.connect(app.send_excavate_goal)
     layout.addWidget(app.excavate_btn)
     
-    app.dump_btn = QPushButton("Dump")
-    app.dump_btn.setMinimumHeight(32)
-    app.dump_btn.setMaximumHeight(36)
-    app.dump_btn.setStyleSheet(f"""
+    app.deposit_btn = QPushButton("Deposit")
+    app.deposit_btn.setMinimumHeight(32)
+    app.deposit_btn.setMaximumHeight(36)
+    app.deposit_btn.setStyleSheet(f"""
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
             color: white;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             padding: 4px;
             border: none;
+            border-radius: 2px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -947,20 +958,21 @@ def create_action_control_group(app):
             background-color: {Colors.BTN_DISABLED};
             color: {Colors.TEXT_GRAY};
             border: none;
+            border-radius: 2px;
         }}
     """)
-    app.dump_btn.clicked.connect(app.send_dump_goal)
-    layout.addWidget(app.dump_btn)
+    app.deposit_btn.clicked.connect(app.send_deposit_goal)
+    layout.addWidget(app.deposit_btn)
     
     app.auto_btn = QPushButton("One Cycle Auto")
-    app.auto_btn.setStyleSheet(Styles.blue_button(size=10))
+    app.auto_btn.setStyleSheet(Styles.blue_button(size=12))
     app.auto_btn.setMinimumHeight(32)
     app.auto_btn.setMaximumHeight(36)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
-    app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=10))
+    app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=12))
     app.emergency_stop_btn.setMinimumHeight(32)
     app.emergency_stop_btn.setMaximumHeight(36)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)

@@ -1,4 +1,4 @@
-# Dumping action - performs dumping sequence
+# Depositing action - performs depositing sequence
 ---
 bool success
 string message

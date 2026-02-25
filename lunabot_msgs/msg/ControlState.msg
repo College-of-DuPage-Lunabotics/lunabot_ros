@@ -15,7 +15,7 @@ bool localization_enabled
 
 # Active operations
 bool is_excavating
-bool is_dumping
+bool is_depositing
 bool is_navigating
 bool emergency_stop
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Actions Launch
-Starts excavation and dumping action servers
+Starts excavation and depositing action servers
 """
 
 from launch import LaunchDescription
@@ -30,8 +30,8 @@ def generate_launch_description():
             ),
             Node(
                 package="lunabot_nav",
-                executable="dumping_server_sim",
-                name="dumping_server",
+                executable="depositing_server_sim",
+                name="depositing_server",
                 output="screen",
                 parameters=[{"use_sim_time": True}],
             ),
@@ -58,8 +58,8 @@ def generate_launch_description():
             ),
             Node(
                 package="lunabot_nav",
-                executable="dumping_server",
-                name="dumping_server",
+                executable="depositing_server",
+                name="depositing_server",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),

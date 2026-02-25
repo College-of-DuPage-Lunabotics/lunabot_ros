@@ -12,7 +12,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from diagnostic_msgs.msg import DiagnosticArray
 from lunabot_msgs.msg import ControlState, PowerMonitor
-from lunabot_msgs.action import Excavation, Dumping, Homing
+from lunabot_msgs.action import Excavation, Depositing, Homing
 from lunabot_msgs.srv import LaunchSystem, StopSystem
 
 try:
@@ -105,7 +105,7 @@ class RobotInterface:
         # Robot mode and operation states
         self.robot_mode = "MANUAL"
         self.is_excavating = False
-        self.is_dumping = False
+        self.is_depositing = False
         self.is_homing = False
         self.is_navigating = False
         self.robot_disabled = False
@@ -124,11 +124,11 @@ class RobotInterface:
         
         # Action clients and goal handles
         self.excavation_client = ActionClient(self.node, Excavation, 'excavation_action')
-        self.dumping_client = ActionClient(self.node, Dumping, 'dumping_action')
+        self.depositing_client = ActionClient(self.node, Depositing, 'depositing_action')
         self.homing_client = ActionClient(self.node, Homing, 'homing_action')
         
         self.excavation_goal_handle = None
-        self.dumping_goal_handle = None
+        self.depositing_goal_handle = None
         self.homing_goal_handle = None
         self.navigation_client_process = None
         
@@ -299,7 +299,7 @@ class RobotInterface:
         self.nav2_enabled = msg.nav2_enabled
         self.localization_enabled = msg.localization_enabled
         self.is_excavating = msg.is_excavating
-        self.is_dumping = msg.is_dumping
+        self.is_depositing = msg.is_depositing
         self.is_navigating = msg.is_navigating
         
         if self.on_control_state_update:
@@ -651,27 +651,27 @@ class RobotInterface:
             cancel_future = self.excavation_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
     
-    def send_dump_goal(self, response_callback, result_callback, cancel_callback):
-        """Send dumping action goal"""
-        self.node.get_logger().info('Sending dump goal')
-        goal_msg = Dumping.Goal()
-        send_goal_future = self.dumping_client.send_goal_async(goal_msg)
+    def send_deposit_goal(self, response_callback, result_callback, cancel_callback):
+        """Send depositing action goal"""
+        self.node.get_logger().info('Sending deposit goal')
+        goal_msg = Depositing.Goal()
+        send_goal_future = self.depositing_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(
-            lambda future: self._handle_dump_response(future, response_callback, result_callback))
+            lambda future: self._handle_deposit_response(future, response_callback, result_callback))
         return send_goal_future
     
-    def _handle_dump_response(self, future, response_callback, result_callback):
+    def _handle_deposit_response(self, future, response_callback, result_callback):
         goal_handle = future.result()
-        self.dumping_goal_handle = goal_handle
+        self.depositing_goal_handle = goal_handle
         response_callback(goal_handle)
         if goal_handle.accepted:
             get_result_future = goal_handle.get_result_async()
             get_result_future.add_done_callback(result_callback)
     
-    def cancel_dump_goal(self, cancel_callback):
-        """Cancel dumping action"""
-        if self.dumping_goal_handle is not None:
-            cancel_future = self.dumping_goal_handle.cancel_goal_async()
+    def cancel_deposit_goal(self, cancel_callback):
+        """Cancel depositing action"""
+        if self.depositing_goal_handle is not None:
+            cancel_future = self.depositing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
     
     def send_home_goal(self, response_callback, result_callback, cancel_callback):

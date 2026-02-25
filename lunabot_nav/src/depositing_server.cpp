@@ -1,5 +1,5 @@
 /**
- * @file dumping_server.cpp
+ * @file depositing_server.cpp
  * @author Grayson Arendt
  * @date 02/22/2026
  */
@@ -11,7 +11,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
-#include "lunabot_msgs/action/dumping.hpp"
+#include "lunabot_msgs/action/depositing.hpp"
 #include "SparkMax.hpp"
 
 // ANSI color codes
@@ -24,28 +24,28 @@
 #define LIFT_TICKS 1000.0
 
 /**
- * @class DumpingServer
- * @brief Hardware dumping server that controls bucket actuators for dumping operations.
+ * @class DepositingServer
+ * @brief Hardware depositing server that controls bucket actuators for depositing operations.
  */
-class DumpingServer : public rclcpp::Node
+class DepositingServer : public rclcpp::Node
 {
 public:
-  using Dumping = lunabot_msgs::action::Dumping;
-  using GoalHandleDumping = rclcpp_action::ServerGoalHandle<Dumping>;
+  using Depositing = lunabot_msgs::action::Depositing;
+  using GoalHandleDepositing = rclcpp_action::ServerGoalHandle<Depositing>;
 
   /**
-   * @brief Constructor for the DumpingServer class.
+   * @brief Constructor for the DepositingServer class.
    */
-  DumpingServer()
-    : Node("dumping_server")
+  DepositingServer()
+    : Node("depositing_server")
     , goal_active_(false)
     , home_offset_(0.0)
     , left_actuator_motor_("can0", 2)
     , right_actuator_motor_("can0", 1)
     , vibration_motor_("can0", 5)
   {
-    action_server_ = rclcpp_action::create_server<Dumping>(
-        this, "dumping_action",
+    action_server_ = rclcpp_action::create_server<Depositing>(
+        this, "depositing_action",
         [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
@@ -55,7 +55,7 @@ public:
     left_actuator_motor_.BurnFlash();
     right_actuator_motor_.BurnFlash();
 
-    RCLCPP_INFO(this->get_logger(), GREEN "DUMPING SERVER INITIALIZED" RESET);
+    RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SERVER INITIALIZED" RESET);
   }
 
 private:
@@ -101,7 +101,7 @@ private:
     double initial_position = get_actuator_position();
     double target_position = initial_position + LIFT_TICKS;
 
-    // Turn on vibration to help with dumping
+    // Turn on vibration to help with depositing
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
@@ -152,29 +152,29 @@ private:
   }
 
   /**
-   * @brief Executes the dumping action sequence.
+   * @brief Executes the depositing action sequence.
    * @param goal_handle Handle for the action goal.
    */
-  void execute(const std::shared_ptr<GoalHandleDumping> goal_handle)
+  void execute(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "DUMPING ALREADY IN PROGRESS" RESET);
-      auto result = std::make_shared<Dumping::Result>();
+      RCLCPP_WARN(this->get_logger(), YELLOW "DEPOSITING ALREADY IN PROGRESS" RESET);
+      auto result = std::make_shared<Depositing::Result>();
       result->success = false;
-      result->message = "Dumping already in progress";
+      result->message = "Depositing already in progress";
       goal_handle->abort(result);
       return;
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DUMPING SEQUENCE" RESET);
+    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DEPOSITING SEQUENCE" RESET);
 
     // Update home offset before starting
     update_home_offset();
 
-    auto feedback = std::make_shared<Dumping::Feedback>();
-    auto result = std::make_shared<Dumping::Result>();
+    auto feedback = std::make_shared<Depositing::Feedback>();
+    auto result = std::make_shared<Depositing::Result>();
 
     try
     {
@@ -187,22 +187,22 @@ private:
       lower_bucket();
 
       result->success = true;
-      result->message = "Dumping completed successfully";
+      result->message = "Depositing completed successfully";
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "DUMPING COMPLETED SUCCESSFULLY" RESET);
+      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING COMPLETED SUCCESSFULLY" RESET);
     }
     catch (const std::exception& e)
     {
       result->success = false;
-      result->message = std::string("Dumping failed: ") + e.what();
+      result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);
-      RCLCPP_ERROR(this->get_logger(), RED "DUMPING FAILED: %s" RESET, e.what());
+      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED: %s" RESET, e.what());
     }
 
     goal_active_ = false;
   }
 
-  rclcpp_action::Server<Dumping>::SharedPtr action_server_;
+  rclcpp_action::Server<Depositing>::SharedPtr action_server_;
 
   double home_offset_;
   SparkMax left_actuator_motor_;
@@ -213,12 +213,12 @@ private:
 
 /**
  * @brief Main function.
- * Initializes and runs the DumpingServer node.
+ * Initializes and runs the DepositingServer node.
  */
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DumpingServer>());
+  rclcpp::spin(std::make_shared<DepositingServer>());
   rclcpp::shutdown();
   return 0;
 }

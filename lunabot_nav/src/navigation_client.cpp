@@ -11,7 +11,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/excavation.hpp"
-#include "lunabot_msgs/action/dumping.hpp"
+#include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/action/localization.hpp"
 
 // ANSI color codes
@@ -23,7 +23,7 @@
 
 /**
  * @class NavigationClient
- * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and dumping actions.
+ * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and depositing actions.
  */
 class NavigationClient : public rclcpp::Node
 {
@@ -34,8 +34,8 @@ public:
   using GoalHandleLocalization = rclcpp_action::ClientGoalHandle<Localization>;
   using Excavation = lunabot_msgs::action::Excavation;
   using GoalHandleExcavation = rclcpp_action::ClientGoalHandle<Excavation>;
-  using Dumping = lunabot_msgs::action::Dumping;
-  using GoalHandleDumping = rclcpp_action::ClientGoalHandle<Dumping>;
+  using Depositing = lunabot_msgs::action::Depositing;
+  using GoalHandleDepositing = rclcpp_action::ClientGoalHandle<Depositing>;
 
   enum class State
   {
@@ -44,7 +44,7 @@ public:
     NAVIGATING_TO_EXCAVATION,
     EXCAVATING,
     NAVIGATING_TO_CONSTRUCTION,
-    DUMPING,
+    DEPOSITING,
     COMPLETE
   };
 
@@ -63,7 +63,7 @@ public:
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
     localization_client_ = rclcpp_action::create_client<Localization>(this, "localization_action");
     excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
-    dumping_client_ = rclcpp_action::create_client<Dumping>(this, "dumping_action");
+    depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
 
     execution_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
   }
@@ -94,8 +94,8 @@ private:
         request_navigation_to_construction();
         current_state_ = State::IDLE;
         break;
-      case State::DUMPING:
-        request_dumping();
+      case State::DEPOSITING:
+        request_depositing();
         current_state_ = State::IDLE;
         break;
       case State::COMPLETE:
@@ -279,7 +279,7 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    // Navigate to construction zone coordinates (rotated 180 from excavation for dumping)
+    // Navigate to construction zone coordinates (rotated 180 from excavation for depositing)
     goal_pose.position.x = -0.4;
     goal_pose.position.y = -4.5;
     goal_pose.orientation.x = 0.0;
@@ -321,7 +321,7 @@ private:
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       RCLCPP_INFO(this->get_logger(), GREEN "CONSTRUCTION ZONE REACHED. REQUESTING DUMP..." RESET);
-      current_state_ = State::DUMPING;
+      current_state_ = State::DEPOSITING;
     }
     else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
@@ -341,38 +341,38 @@ private:
   }
 
   /**
-   * @brief Sends a request to the dumping server.
+   * @brief Sends a request to the depositing server.
    */
-  void request_dumping()
+  void request_depositing()
   {
-    if (!dumping_client_->wait_for_action_server(std::chrono::seconds(1)))
+    if (!depositing_client_->wait_for_action_server(std::chrono::seconds(1)))
     {
-      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "DUMPING ACTION SERVER NOT AVAILABLE." RESET);
+      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "DEPOSITING ACTION SERVER NOT AVAILABLE." RESET);
       return;
     }
 
-    auto goal_msg = Dumping::Goal();
-    auto send_goal_options = rclcpp_action::Client<Dumping>::SendGoalOptions();
+    auto goal_msg = Depositing::Goal();
+    auto send_goal_options = rclcpp_action::Client<Depositing>::SendGoalOptions();
     send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_dumping_result, this, std::placeholders::_1);
+        std::bind(&NavigationClient::handle_depositing_result, this, std::placeholders::_1);
 
-    dumping_client_->async_send_goal(goal_msg, send_goal_options);
+    depositing_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
   /**
-   * @brief Callback for the result of the dumping action.
-   * @param result The result of the dumping action.
+   * @brief Callback for the result of the depositing action.
+   * @param result The result of the depositing action.
    */
-  void handle_dumping_result(const GoalHandleDumping::WrappedResult& result)
+  void handle_depositing_result(const GoalHandleDepositing::WrappedResult& result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "DUMPING SUCCESS! CYCLE COMPLETE!" RESET);
+      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SUCCESS! CYCLE COMPLETE!" RESET);
       current_state_ = State::COMPLETE;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), RED "DUMPING FAILED." RESET);
+      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED." RESET);
       current_state_ = State::IDLE;
     }
   }
@@ -380,7 +380,7 @@ private:
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp_action::Client<Localization>::SharedPtr localization_client_;
   rclcpp_action::Client<Excavation>::SharedPtr excavation_client_;
-  rclcpp_action::Client<Dumping>::SharedPtr dumping_client_;
+  rclcpp_action::Client<Depositing>::SharedPtr depositing_client_;
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;

@@ -34,7 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/StopSystem.srv"
   "action/Localization.action"
   "action/Excavation.action"
-  "action/Dumping.action"
+  "action/Depositing.action"
   "action/Homing.action"
   DEPENDENCIES std_msgs
 )
