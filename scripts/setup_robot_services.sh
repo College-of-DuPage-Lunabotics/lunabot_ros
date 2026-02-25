@@ -37,6 +37,16 @@ source ${WORKSPACE_DIR}/install/setup.bash
 # Pass workspace directory via environment variable
 LUNABOT_WS="${WORKSPACE_DIR}" python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0
 
+echo -e "\n------------------------ Install systemd Network Wait Override ------------------------ \n"
+# Create drop-in directory and install network-wait override
+mkdir -p /etc/systemd/system/lunabot-launch-manager.service.d
+if [ -f "${WORKSPACE_DIR}/src/lunabot_ros/lunabot_bringup/config/network-wait.conf" ]; then
+    cp "${WORKSPACE_DIR}/src/lunabot_ros/lunabot_bringup/config/network-wait.conf" /etc/systemd/system/lunabot-launch-manager.service.d/
+    echo "Installed systemd override to wait for network-online.target"
+else
+    echo "Warning: network-wait.conf not found"
+fi
+
 # Complete the installation
 systemctl daemon-reload
 systemctl enable lunabot-launch-manager
