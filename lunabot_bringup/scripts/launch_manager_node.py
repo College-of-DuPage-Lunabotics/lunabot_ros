@@ -155,13 +155,6 @@ class LaunchManagerNode(Node):
     def _launch_hardware(self):
         """Launch hardware (CAN + sensors)"""
         try:
-            # Start CAN interface
-            script_path = f'{self.workspace}/src/lunabot_ros/scripts/canable_start.sh'
-            result = subprocess.run(['bash', script_path], capture_output=True, text=True, timeout=10)
-            
-            if result.returncode != 0:
-                return False, f'CAN setup failed: {result.stderr}'
-            
             # Launch hardware
             process = subprocess.Popen(
                 ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],

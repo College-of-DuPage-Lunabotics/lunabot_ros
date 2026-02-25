@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import subprocess
+import time
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -414,9 +415,14 @@ class RobotInterface:
                     return
                 
                 future = self.launch_client.call_async(request)
-                rclpy.spin_until_future_complete(self.node, future, timeout_sec=30.0)
                 
-                if future.result() is not None:
+                # Wait for response (node is already being spun by GUI timer)
+                start_time = time.time()
+                timeout = 30.0
+                while not future.done() and (time.time() - start_time) < timeout:
+                    time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                
+                if future.done() and future.result() is not None:
                     response = future.result()
                     if response.success:
                         self.node.get_logger().info(f'Hardware launched: {response.message}')
@@ -464,9 +470,14 @@ class RobotInterface:
                     return
                 
                 future = self.launch_client.call_async(request)
-                rclpy.spin_until_future_complete(self.node, future, timeout_sec=30.0)
                 
-                if future.result() is not None:
+                # Wait for response (node is already being spun by GUI timer)
+                start_time = time.time()
+                timeout = 30.0
+                while not future.done() and (time.time() - start_time) < timeout:
+                    time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                
+                if future.done() and future.result() is not None:
                     response = future.result()
                     if response.success:
                         self.node.get_logger().info(f'{system_name} launched: {response.message}')
@@ -539,9 +550,14 @@ class RobotInterface:
                         return
                     
                     future = self.stop_client.call_async(request)
-                    rclpy.spin_until_future_complete(self.node, future, timeout_sec=10.0)
                     
-                    if future.result() is not None:
+                    # Wait for response (node is already being spun by GUI timer)
+                    start_time = time.time()
+                    timeout = 10.0
+                    while not future.done() and (time.time() - start_time) < timeout:
+                        time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                    
+                    if future.done() and future.result() is not None:
                         response = future.result()
                         if response.success:
                             self.node.get_logger().info(f'{system_name} stopped: {response.message}')
