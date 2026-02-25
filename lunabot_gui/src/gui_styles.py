@@ -3,8 +3,8 @@ class Colors:
     """Color constants for GUI theme"""
     # Background colors
     BG_MAIN = "#1a1a1a"
-    BG_BOX = "#2d2d2d"
-    BG_SUBBOX = "#3a3a3a"
+    BG_BOX = "#252525"
+    BG_SUBBOX = "#252525"
     BG_TRANSPARENT = "transparent"
     
     # Border and accent colors
@@ -25,7 +25,7 @@ class Colors:
     STATUS_INFO = "#2196f3"
     
     # Section label color
-    LABEL_SECTION = "#4da3f0"
+    LABEL_SECTION = "#888888"
     
     # Button colors
     BTN_INACTIVE = "#424242"
@@ -57,8 +57,8 @@ MAIN_STYLESHEET = f"""
     }}
     QGroupBox {{
         background-color: {Colors.BG_BOX};
-        border: 2px solid {Colors.BORDER};
-        border-radius: 5px;
+        border: none;
+        border-top: 2px solid {Colors.LABEL_SECTION};
         margin: 0px;
         font-weight: bold;
         padding-top: 18px;
@@ -69,7 +69,8 @@ MAIN_STYLESHEET = f"""
     }}
     QGroupBox:disabled {{
         background-color: #1f1f1f;
-        border-color: #333333;
+        border: none;
+        border-top: 2px solid {Colors.LABEL_SECTION};
         color: #555555;
     }}
     QGroupBox::title {{
@@ -78,7 +79,7 @@ MAIN_STYLESHEET = f"""
         padding: 0 5px;
         top: 5px;
         left: 2px;
-        color: {Colors.LABEL_SECTION};
+        color: {Colors.TEXT_MAIN};
     }}
     QGroupBox:disabled::title {{
         color: #555555;
@@ -107,7 +108,7 @@ class Styles:
     
     @staticmethod
     def camera_label():
-        return f"background-color: {Colors.BG_MAIN}; color: {Colors.TEXT_DARKER}; border: 1px solid {Colors.BORDER_DARK};"
+        return f"background-color: {Colors.BG_MAIN}; color: {Colors.TEXT_DARKER}; border: none;"
     
     @staticmethod
     def status_label(status_type='idle'):
@@ -146,8 +147,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
-                border-radius: 4px;
-                border: 2px solid {Colors.BTN_HOVER};
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_HOVER};
@@ -158,7 +159,8 @@ class Styles:
             QPushButton:disabled {{
                 background-color: #1f1f1f;
                 color: #555555;
-                border: 2px solid #333333;
+                border: none;
+
             }}
         """
     
@@ -172,8 +174,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
-                border-radius: 4px;
-                border: 2px solid {Colors.BTN_ORANGE_HOVER};
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_ORANGE_HOVER};
@@ -184,7 +186,8 @@ class Styles:
             QPushButton:disabled {{
                 background-color: #1f1f1f;
                 color: #555555;
-                border: 2px solid #333333;
+                border: none;
+
             }}
         """
     
@@ -198,8 +201,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
-                border-radius: 4px;
-                border: 2px solid {Colors.BTN_BLUE_HOVER};
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_BLUE_HOVER};
@@ -210,7 +213,8 @@ class Styles:
             QPushButton:disabled {{
                 background-color: #1f1f1f;
                 color: #555555;
-                border: 2px solid #333333;
+                border: none;
+
             }}
         """
     
@@ -224,8 +228,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 8px;
-                border-radius: 4px;
-                border: 2px solid {Colors.BTN_RED_HOVER};
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_RED_HOVER};
@@ -236,7 +240,8 @@ class Styles:
             QPushButton:disabled {{
                 background-color: #1f1f1f;
                 color: #555555;
-                border: 2px solid #333333;
+                border: none;
+
             }}
         """
     
@@ -250,8 +255,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 6px;
-                border-radius: 4px;
-                border: 2px solid #5aa3cc;
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: #5aa3cc;
@@ -262,7 +267,8 @@ class Styles:
             QPushButton:disabled {{
                 background-color: #1f1f1f;
                 color: #555555;
-                border: 2px solid #333333;
+                border: none;
+
             }}
         """
     
@@ -276,12 +282,12 @@ class Styles:
                 font-size: 16px;
                 font-weight: bold;
                 padding: 20px;
-                border-radius: 8px;
-                border: 2px solid {Colors.BTN_RED_HOVER};
+                border: none;
+
             }}
             QPushButton:hover {{
                 background-color: {Colors.BTN_RED_HOVER};
-                border: 2px solid {Colors.BTN_RED_PRESSED};
+
             }}
             QPushButton:pressed {{
                 background-color: {Colors.BTN_RED_PRESSED};
@@ -298,8 +304,8 @@ class Styles:
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 10px 20px;
-                border-radius: 5px;
-                border: 2px solid {Colors.BTN_HOVER};
+                border: none;
+
                 min-width: 50px;
                 min-height: 50px;
             }}
@@ -311,14 +317,14 @@ class Styles:
             }}
             QPushButton:checked {{
                 background-color: {Colors.BTN_ACTIVE};
-                border: 2px solid {Colors.BTN_BLUE};
+
             }}
         """
     
     @staticmethod
     def subbox():
-        """Sub-box group style"""
-        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; }}"
+        """Sub-box group style - no border for nested boxes"""
+        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 8pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; }}"
     
     @staticmethod
     def transparent_label(color=None, font_size=11, italic=False):

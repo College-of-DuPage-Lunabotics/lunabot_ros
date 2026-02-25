@@ -16,12 +16,14 @@ controller_manager:
 
 position_controller:
   ros__parameters:
-    joints: []
+    joints:
+      - base_bucket_joint
     open_loop_control: true
 
 camera_controller:
   ros__parameters:
-    joints: []
+    joints:
+      - camera_fisheye_yaw_joint
     open_loop_control: true
 
 diff_drive_controller:

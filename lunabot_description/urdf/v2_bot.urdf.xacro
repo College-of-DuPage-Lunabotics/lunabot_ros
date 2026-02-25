@@ -275,13 +275,13 @@
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="livox_frame" />
-    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 0" />
+    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 1.5708" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 0" />
+    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 1.5708" />
   </joint>
 
   <!-- ================================= -->

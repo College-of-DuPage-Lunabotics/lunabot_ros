@@ -218,25 +218,33 @@ template <typename T>
 void set_posestamp(T & out)
 {
   if (!use_imu_as_input) {
-    // Swap and negate X and Y to fix coordinate frame
-    out.position.x = -kf_output.x_.pos(1);
-    out.position.y = -kf_output.x_.pos(0);
+    out.position.x = kf_output.x_.pos(0);
+    out.position.y = kf_output.x_.pos(1);
     out.position.z = kf_output.x_.pos(2);
+    
+    // Apply 90-degree CW rotation around Z axis to quaternion
     Eigen::Quaterniond q(kf_output.x_.rot);
-    out.orientation.x = q.coeffs()[0];
-    out.orientation.y = q.coeffs()[1];
-    out.orientation.z = q.coeffs()[2];
-    out.orientation.w = q.coeffs()[3];
+    Eigen::Quaterniond rot_z(0.7071068, 0, 0, -0.7071068);  // 90 deg CW around Z
+    Eigen::Quaterniond q_rotated = rot_z * q;
+    
+    out.orientation.x = q_rotated.coeffs()[0];
+    out.orientation.y = q_rotated.coeffs()[1];
+    out.orientation.z = q_rotated.coeffs()[2];
+    out.orientation.w = q_rotated.coeffs()[3];
   } else {
-    // Swap and negate X and Y to fix coordinate frame
-    out.position.x = -kf_input.x_.pos(1);
-    out.position.y = -kf_input.x_.pos(0);
+    out.position.x = kf_input.x_.pos(0);
+    out.position.y = kf_input.x_.pos(1);
     out.position.z = kf_input.x_.pos(2);
+    
+    // Apply 90-degree CW rotation around Z axis to quaternion
     Eigen::Quaterniond q(kf_input.x_.rot);
-    out.orientation.x = q.coeffs()[0];
-    out.orientation.y = q.coeffs()[1];
-    out.orientation.z = q.coeffs()[2];
-    out.orientation.w = q.coeffs()[3];
+    Eigen::Quaterniond rot_z(0.7071068, 0, 0, -0.7071068);  // 90 deg CW around Z
+    Eigen::Quaterniond q_rotated = rot_z * q;
+    
+    out.orientation.x = q_rotated.coeffs()[0];
+    out.orientation.y = q_rotated.coeffs()[1];
+    out.orientation.z = q_rotated.coeffs()[2];
+    out.orientation.w = q_rotated.coeffs()[3];
   }
 }
 

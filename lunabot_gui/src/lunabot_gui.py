@@ -11,7 +11,7 @@ from PyQt5.QtGui import QImage, QPixmap, QPalette, QColor
 # Import refactored modules
 from ros_interface import RobotInterface
 import ui_widgets
-from gui_styles import Styles, MAIN_STYLESHEET
+from gui_styles import Colors, Styles, MAIN_STYLESHEET
 
 try:
     import cv2
@@ -144,7 +144,7 @@ class LunabotGUI(QMainWindow):
         
         self.swappable_camera_group = QGroupBox("Front Camera")
         self.swappable_camera_group.setAutoFillBackground(True)
-        self.swappable_camera_group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
+        self.swappable_camera_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
         swappable_camera_layout = QVBoxLayout()
         self.swappable_camera_label = QLabel("No camera feed")
         self.swappable_camera_label.setAlignment(Qt.AlignCenter)
@@ -158,17 +158,17 @@ class LunabotGUI(QMainWindow):
         self.swap_camera_btn = QPushButton("⇄  Rear Camera")
         self.swap_camera_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2d2d2d;
+                background-color: #1a1a1a;
                 color: #4da3f0;
                 border: none;
                 border-top: 2px solid #4da3f0;
-                font-size: 12px;
+                font-size: 13px;
+                font-weight: bold;
                 padding: 5px;
             }
             QPushButton:hover {
                 background-color: #3a3a3a;
-                color: #66bb6a;
-                border-top: 2px solid #66bb6a;
+                color: #4da3f0;
             }
         """)
         self.swap_camera_btn.setMaximumHeight(30)
@@ -180,7 +180,7 @@ class LunabotGUI(QMainWindow):
         # Fisheye camera
         fisheye_group = QGroupBox("Fisheye Camera")
         fisheye_group.setAutoFillBackground(True)
-        fisheye_group.setStyleSheet("QGroupBox { background-color: #2d2d2d; }")
+        fisheye_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
         fisheye_layout = QVBoxLayout()
         self.fisheye_camera_label = QLabel("No camera feed")
         self.fisheye_camera_label.setAlignment(Qt.AlignCenter)
@@ -288,7 +288,7 @@ class LunabotGUI(QMainWindow):
         self.edge_tab = QPushButton("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
         self.edge_tab.setStyleSheet("""
             QPushButton {
-                background-color: #2d2d2d;
+                background-color: #1a1a1a;
                 color: #4da3f0;
                 border: none;
                 border-left: 2px solid #4da3f0;
@@ -299,8 +299,8 @@ class LunabotGUI(QMainWindow):
             }
             QPushButton:hover {
                 background-color: #3a3a3a;
-                color: #66bb6a;
-                border-left: 2px solid #66bb6a;
+                color: #4da3f0;
+                border-left: 2px solid #4da3f0;
             }
         """)
         self.edge_tab.setMaximumWidth(30)
