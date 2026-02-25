@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import signal
+import rclpy
+from rclpy.node import Node
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QHBoxLayout, QLabel, QPushButton, QGroupBox, QSizePolicy)
 from PyQt5.QtCore import QTimer, Qt
@@ -24,16 +26,17 @@ class LunabotGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # Create ROS interface (network config loaded from params file)
-        mode_param = True  # Will be overridden by ROS parameter
-        self.robot = RobotInterface(mode_param=mode_param)
+        # Get mode parameter from ROS first
+        # Need to init rclpy temporarily to read parameter
+        if not rclpy.ok():
+            rclpy.init()
+        temp_node = Node('temp_param_reader')
+        temp_node.declare_parameter('mode', True)
+        mode_val = temp_node.get_parameter('mode').value
+        temp_node.destroy_node()
         
-        # Get mode parameter from ROS (set by launch file)
-        self.robot.node.declare_parameter('mode', True)
-        mode_val = self.robot.node.get_parameter('mode').value
-        
-        # Reinitialize robot interface with correct mode
-        self.robot = RobotInterface(mode_val)
+        # Create ROS interface with mode
+        self.robot = RobotInterface(mode_param=mode_val)
         
         # Setup ROS callbacks to update UI
         self.robot.on_robot_state_update = self.handle_robot_state_update
@@ -354,8 +357,15 @@ class LunabotGUI(QMainWindow):
         self.robot.launch_hardware()
     
     def launch_system(self, system_name):
-        """Launch a system (PointLIO, mapping, Nav2, localization)"""
-        self.robot.launch_system(system_name)
+        """Toggle launch/stop for a system (PointLIO, mapping, Nav2, localization)"""
+        # Check if system is already running
+        is_running = (self.robot.launch_processes.get(system_name) is not None or 
+                     self.robot.remote_pids.get(system_name) is not None)
+        
+        if is_running:
+            self.robot.stop_system(system_name)
+        else:
+            self.robot.launch_system(system_name)
     
     def launch_rviz(self):
         """Launch RViz2"""
@@ -658,6 +668,7 @@ class LunabotGUI(QMainWindow):
     # ROS and UI Update Callbacks
     def handle_robot_state_update(self):
         """Handle robot state update from ROS interface"""
+        # Update mode display
         if hasattr(self, 'mode_label') and self.robot.is_real_mode:
             is_manual = (self.robot.robot_mode == "MANUAL")
             display_text = "Manual" if is_manual else "AUTO"
@@ -670,6 +681,28 @@ class LunabotGUI(QMainWindow):
                 self.mode_label.setStyleSheet("color: #d32f2f; font-weight: bold; font-size: 14px; background-color: transparent;")
                 self.mode_switch_btn.setText("Switch to Manual")
         
+        # Update launch button text based on running state
+        if hasattr(self, 'pointlio_btn'):
+            pointlio_running = (self.robot.launch_processes.get('pointlio') is not None or 
+                               self.robot.remote_pids.get('pointlio') is not None)
+            self.pointlio_btn.setText("Stop PointLIO" if pointlio_running else "PointLIO")
+        
+        if hasattr(self, 'mapping_btn'):
+            mapping_running = (self.robot.launch_processes.get('mapping') is not None or 
+                              self.robot.remote_pids.get('mapping') is not None)
+            self.mapping_btn.setText("Stop Mapping" if mapping_running else "Mapping")
+        
+        if hasattr(self, 'nav2_btn'):
+            nav2_running = (self.robot.launch_processes.get('nav2') is not None or 
+                           self.robot.remote_pids.get('nav2') is not None)
+            self.nav2_btn.setText("Stop Nav2" if nav2_running else "Nav2")
+        
+        if hasattr(self, 'localize_btn'):
+            localize_running = (self.robot.launch_processes.get('localization') is not None or 
+                               self.robot.remote_pids.get('localization') is not None)
+            self.localize_btn.setText("Stop Localization" if localize_running else "Localize")
+        
+        # Update robot status
         if self.robot.robot_disabled:
             self.status_label.setText("Robot: DISABLED")
             self.status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
@@ -744,6 +777,14 @@ class LunabotGUI(QMainWindow):
         # Update bucket angle
         bucket_angle_deg = -self.robot.bucket_position * 180.0 / 3.14159
         self.bucket_angle_label.setText(f"{bucket_angle_deg:.1f}°")
+        
+        # Update vibration state
+        if self.robot.vibration_state:
+            self.vibration_state_label.setText("ON")
+            self.vibration_state_label.setStyleSheet("background-color: transparent; color: #66bb6a;")  # Green for ON
+        else:
+            self.vibration_state_label.setText("OFF")
+            self.vibration_state_label.setStyleSheet("background-color: transparent; color: #d32f2f;")  # Red for OFF
         
         # Update power monitoring
         self.power_voltage_label.setText(f"{self.robot.power_voltage:.2f}")

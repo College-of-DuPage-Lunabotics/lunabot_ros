@@ -11,6 +11,7 @@ from geometry_msgs.msg import Twist
 from diagnostic_msgs.msg import DiagnosticArray
 from lunabot_msgs.msg import ControlState, PowerMonitor
 from lunabot_msgs.action import Excavation, Dumping, Homing
+from lunabot_msgs.srv import LaunchSystem, StopSystem
 
 try:
     from cv_bridge import CvBridge
@@ -37,8 +38,8 @@ class RobotInterface:
         self._shutdown = False
         
         # Declare and read network parameters from config
-        self.node.declare_parameter('network.robot_host', '192.168.1.100')
-        self.node.declare_parameter('network.robot_user', 'lunabot')
+        self.node.declare_parameter('network.robot_host', '192.168.0.250')
+        self.node.declare_parameter('network.robot_user', 'codetc')
         
         # Parse mode parameter
         if isinstance(mode_param, bool):
@@ -107,9 +108,20 @@ class RobotInterface:
         self.is_homing = False
         self.is_navigating = False
         self.robot_disabled = False
+        self.vibration_state = False
         
-        # Launch process tracking
+        # Launch process tracking (local processes or SSH connections)
         self.launch_processes = {
+            'hardware': None,
+            'actions': None,
+            'pointlio': None,
+            'mapping': None,
+            'nav2': None,
+            'localization': None
+        }
+        
+        # Remote PID tracking for processes launched on robot
+        self.remote_pids = {
             'hardware': None,
             'actions': None,
             'pointlio': None,
@@ -135,6 +147,10 @@ class RobotInterface:
         self.position_cmd_pub = self.node.create_publisher(Float64MultiArray, '/position_controller/commands', 10)
         self.camera_cmd_pub = self.node.create_publisher(Float64MultiArray, '/camera_controller/commands', 10)
         self.cmd_vel_pub = self.node.create_publisher(Twist, '/cmd_vel', 10)
+        
+        # Create service clients for launch manager
+        self.launch_client = self.node.create_client(LaunchSystem, 'launch_system')
+        self.stop_client = self.node.create_client(StopSystem, 'stop_system')
         
         # Create subscriptions
         self._create_subscriptions()
@@ -205,6 +221,10 @@ class RobotInterface:
         self.node.create_subscription(
             Bool, '/robot_disabled', self._robot_disabled_callback, 10)
         
+        # Vibration state
+        self.node.create_subscription(
+            Bool, '/vibration_state', self._vibration_state_callback, 10)
+        
         # Joint states
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
@@ -265,6 +285,11 @@ class RobotInterface:
         if self.on_robot_state_update:
             self.on_robot_state_update()
     
+    def _vibration_state_callback(self, msg):
+        self.vibration_state = msg.data
+        if self.on_robot_state_update:
+            self.on_robot_state_update()
+    
     def _joint_states_callback(self, msg):
         try:
             if 'base_bucket_joint' in msg.name:
@@ -311,7 +336,7 @@ class RobotInterface:
         self.emergency_stop_pub.publish(msg)
     
     def publish_mode_switch(self):
-        """Publish mode switch command"""
+        """Publish mode switch command to toggle mode"""
         msg = Bool()
         msg.data = True
         self.mode_switch_pub.publish(msg)
@@ -344,7 +369,8 @@ class RobotInterface:
             
             if self.is_remote:
                 self.node.get_logger().info(f'Running CAN interface on {self.robot_user}@{self.robot_host}')
-                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash {script_path}']
+                # Use bash -l to ensure proper environment and sudoers is loaded
+                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
             else:
                 self.node.get_logger().info(f'Running CAN interface script: {script_path}')
                 cmd = ['bash', os.path.expanduser(script_path)]
@@ -377,87 +403,182 @@ class RobotInterface:
         
         try:
             if self.is_remote:
-                self.node.get_logger().info(f'Launching hardware on {self.robot_user}@{self.robot_host}')
+                self.node.get_logger().info('Launching hardware via launch manager service')
                 
-                hw_cmd = (
-                    f"ssh {self.robot_user}@{self.robot_host} "
-                    f"'source {self.robot_workspace}/install/setup.bash && "
-                    f"ros2 launch lunabot_bringup hardware_launch.py'"
-                )
-                self.launch_processes['hardware'] = subprocess.Popen(
-                    hw_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                request = LaunchSystem.Request()
+                request.system_name = 'hardware'
+                request.use_sim = False
                 
-                actions_cmd = (
-                    f"ssh {self.robot_user}@{self.robot_host} "
-                    f"'source {self.robot_workspace}/install/setup.bash && "
-                    f"ros2 launch lunabot_bringup actions_launch.py use_sim:=false'"
-                )
-                self.launch_processes['actions'] = subprocess.Popen(
-                    actions_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if not self.launch_client.wait_for_service(timeout_sec=2.0):
+                    self.node.get_logger().error('Launch manager service not available')
+                    return
+                
+                future = self.launch_client.call_async(request)
+                rclpy.spin_until_future_complete(self.node, future, timeout_sec=30.0)
+                
+                if future.result() is not None:
+                    response = future.result()
+                    if response.success:
+                        self.node.get_logger().info(f'Hardware launched: {response.message}')
+                        self.launch_processes['hardware'] = True  # Mark as running
+                    else:
+                        self.node.get_logger().error(f'Failed to launch hardware: {response.message}')
+                        return
+                else:
+                    self.node.get_logger().error('Service call failed for hardware launch')
+                    return
             else:
+                # Local launch
                 self.launch_processes['hardware'] = subprocess.Popen(
                     ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                
-                self.launch_processes['actions'] = subprocess.Popen(
-                    ['ros2', 'launch', 'lunabot_bringup', 'actions_launch.py', 'use_sim:=false'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             self.hardware_enabled = True
-            self.node.get_logger().info('Hardware and action servers launched')
+            self.node.get_logger().info('Hardware launched')
         except Exception as e:
             self.node.get_logger().error(f'Failed to launch hardware: {str(e)}')
     
     def launch_system(self, system_name):
-        """Launch a system (PointLIO, mapping, Nav2, localization) in a new terminal"""
+        """Launch a system (PointLIO, mapping, Nav2, localization)"""
         self.node.get_logger().info(f'Launching {system_name}')
+        
+        # Check if already running
+        if self.launch_processes[system_name] is not None or self.remote_pids[system_name] is not None:
+            self.node.get_logger().warning(f'{system_name} already running')
+            return
+        
         try:
             run_on_robot = self.is_real_mode and self.is_remote
-            use_sim_arg = 'false' if self.is_real_mode else 'true'
-            
-            launch_file = f'{system_name}_launch.py'
-            if system_name == 'nav2':
-                launch_file = 'nav2_stack_launch.py'
+            use_sim = not self.is_real_mode
             
             if run_on_robot:
-                self.node.get_logger().info(f'Launching {system_name} on {self.robot_user}@{self.robot_host}')
+                # Use service call to launch manager on robot
+                self.node.get_logger().info(f'Launching {system_name} via launch manager service')
                 
-                ssh_cmd = (
-                    f"ssh {self.robot_user}@{self.robot_host} "
-                    f"'source {self.robot_workspace}/install/setup.bash && "
-                    f"ros2 launch lunabot_bringup {launch_file} use_sim:={use_sim_arg}'"
-                )
+                request = LaunchSystem.Request()
+                request.system_name = system_name
+                request.use_sim = use_sim
                 
-                subprocess.Popen(
-                    ['gnome-terminal', '--', 'bash', '-c',
-                     f'{ssh_cmd}; read -p "Press Enter to close..."'],
-                )
-            else:
-                ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
-                if ament_prefix:
-                    install_paths = ament_prefix.split(':')
-                    workspace_install = None
-                    for path in install_paths:
-                        if 'lunabot' in path and 'install' in path:
-                            workspace_install = path.split('/install/')[0] + '/install'
-                            break
-                    
-                    if not workspace_install and install_paths:
-                        workspace_install = install_paths[0].split('/install/')[0] + '/install'
-                    
-                    setup_cmd = f'source {workspace_install}/setup.bash'
+                if not self.launch_client.wait_for_service(timeout_sec=2.0):
+                    self.node.get_logger().error('Launch manager service not available')
+                    return
+                
+                future = self.launch_client.call_async(request)
+                rclpy.spin_until_future_complete(self.node, future, timeout_sec=30.0)
+                
+                if future.result() is not None:
+                    response = future.result()
+                    if response.success:
+                        self.node.get_logger().info(f'{system_name} launched: {response.message}')
+                        # Mark as running with placeholder PID
+                        self.remote_pids[system_name] = 1
+                    else:
+                        self.node.get_logger().error(f'Failed to launch {system_name}: {response.message}')
+                        return
                 else:
-                    setup_cmd = 'source $(ros2 pkg prefix lunabot_bringup)/../setup.bash 2>/dev/null || source install/setup.bash'
+                    self.node.get_logger().error(f'Service call failed for {system_name}')
+                    return
                 
-                subprocess.Popen(
-                    ['gnome-terminal', '--', 'bash', '-c',
-                     f'{setup_cmd} && ros2 launch lunabot_bringup {launch_file} use_sim:={use_sim_arg}; read -p "Press Enter to close..."'],
+                # Set enabled flags
+                if system_name == 'pointlio':
+                    self.pointlio_enabled = True
+                elif system_name == 'mapping':
+                    self.mapping_enabled = True
+                elif system_name == 'nav2':
+                    self.nav2_enabled = True
+                elif system_name == 'localization':
+                    self.localization_enabled = True
+            else:
+                # Local launch (simulation mode)
+                use_sim_arg = 'true' if use_sim else 'false'
+                launch_file = f'{system_name}_launch.py'
+                if system_name == 'nav2':
+                    launch_file = 'nav2_stack_launch.py'
+                
+                self.launch_processes[system_name] = subprocess.Popen(
+                    ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
+                
+                # Set enabled flags
+                if system_name == 'pointlio':
+                    self.pointlio_enabled = True
+                elif system_name == 'mapping':
+                    self.mapping_enabled = True
+                elif system_name == 'nav2':
+                    self.nav2_enabled = True
+                elif system_name == 'localization':
+                    self.localization_enabled = True
             
-            location = f"on {self.robot_user}@{self.robot_host}" if run_on_robot else "locally"
-            self.node.get_logger().info(f'{system_name} launched {location} (close terminal to stop)')
+            location = "via launch manager" if run_on_robot else "locally"
+            self.node.get_logger().info(f'{system_name} launched {location}')
+            
+            # Trigger UI update
+            if self.on_robot_state_update:
+                self.on_robot_state_update()
         except Exception as e:
             self.node.get_logger().error(f'Failed to launch {system_name}: {e}')
+    
+    def stop_system(self, system_name):
+        """Stop a running system"""
+        self.node.get_logger().info(f'Stopping {system_name}')
+        
+        try:
+            run_on_robot = self.is_real_mode and self.is_remote
+            
+            # Stop remote process via service
+            if self.remote_pids[system_name] is not None:
+                if run_on_robot:
+                    self.node.get_logger().info(f'Stopping {system_name} via launch manager service')
+                    
+                    request = StopSystem.Request()
+                    request.system_name = system_name
+                    
+                    if not self.stop_client.wait_for_service(timeout_sec=2.0):
+                        self.node.get_logger().error('Stop service not available')
+                        return
+                    
+                    future = self.stop_client.call_async(request)
+                    rclpy.spin_until_future_complete(self.node, future, timeout_sec=10.0)
+                    
+                    if future.result() is not None:
+                        response = future.result()
+                        if response.success:
+                            self.node.get_logger().info(f'{system_name} stopped: {response.message}')
+                        else:
+                            self.node.get_logger().warn(f'Stop warning: {response.message}')
+                    else:
+                        self.node.get_logger().error(f'Service call failed for stopping {system_name}')
+                
+                self.remote_pids[system_name] = None
+            
+            # Terminate local process if exists
+            if self.launch_processes[system_name] is not None:
+                try:
+                    self.launch_processes[system_name].terminate()
+                    self.launch_processes[system_name].wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.launch_processes[system_name].kill()
+                self.launch_processes[system_name] = None
+            
+            # Update enabled flags
+            if system_name == 'pointlio':
+                self.pointlio_enabled = False
+            elif system_name == 'mapping':
+                self.mapping_enabled = False
+            elif system_name == 'nav2':
+                self.nav2_enabled = False
+            elif system_name == 'localization':
+                self.localization_enabled = False
+            
+            self.node.get_logger().info(f'{system_name} stopped')
+            
+            # Trigger UI update
+            if self.on_robot_state_update:
+                self.on_robot_state_update()
+        except Exception as e:
+            self.node.get_logger().error(f'Error stopping {system_name}: {e}')
+    
     
     def launch_rviz(self):
         """Launch RViz2 with robot visualization config"""
@@ -623,9 +744,18 @@ class RobotInterface:
             if process is not None:
                 try:
                     process.terminate()
+                    process.wait(timeout=3)
                     self.node.get_logger().info(f'Terminated {name} process')
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    self.node.get_logger().warn(f'Killed {name} process (force)')
                 except Exception as e:
                     self.node.get_logger().warn(f'Error terminating {name}: {e}')
+        
+        # Kill any remote processes
+        for name, pid in self.remote_pids.items():
+            if pid is not None:
+                self._kill_remote_process(pid, name)
         
         # Stop navigation client
         self.stop_navigation_client()
@@ -635,3 +765,57 @@ class RobotInterface:
             self.node.destroy_node()
         except Exception as e:
             pass
+    
+    def _kill_remote_process(self, pid, name="process"):
+        """Kill a process on the remote robot by name pattern"""
+        if not self.is_remote:
+            return
+        
+        # Map system names to launch file patterns for pkill
+        launch_patterns = {
+            'pointlio': 'pointlio_launch',
+            'mapping': 'mapping_launch',
+            'nav2': 'nav2_stack_launch',
+            'localization': 'localization_launch'
+        }
+        
+        pattern = launch_patterns.get(name, name)
+        
+        try:
+            # Use pkill to kill by process name
+            cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'pkill -9 -f "{pattern}"']
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            # pkill returns 0 if processes were killed, 1 if none found
+            if result.returncode == 0:
+                self.node.get_logger().info(f'Killed remote {name} process')
+            else:
+                self.node.get_logger().warn(f'No remote {name} process found to kill')
+        except Exception as e:
+            self.node.get_logger().error(f'Error killing remote {name}: {e}')
+    
+    def _launch_remote_command(self, command, name):
+        """Launch a command on remote robot and track PID"""
+        if not self.is_remote:
+            return None, None
+        
+        # Launch in true fire-and-forget mode - don't wait for PID
+        # The process will run, we just won't track the exact PID
+        remote_cmd = (
+            f"bash -c 'source {self.robot_workspace}/install/setup.bash && "
+            f"{command} > /tmp/{name}.log 2>&1 &' &"
+        )
+        
+        try:
+            # Launch without waiting - true fire and forget
+            subprocess.Popen(
+                ['ssh', '-f', f'{self.robot_user}@{self.robot_host}', remote_cmd],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            self.node.get_logger().info(f'Launched {name} on remote (no PID tracking)')
+            # Return a placeholder PID of 1 to indicate it's running
+            return None, 1
+        except Exception as e:
+            self.node.get_logger().error(f'Error launching {name}: {e}')
+            return None, None

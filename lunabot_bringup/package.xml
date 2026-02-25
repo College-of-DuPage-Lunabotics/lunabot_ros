@@ -23,6 +23,7 @@
   <depend>gazebo_ros_pkgs</depend>
   <depend>gazebo_ros2_control</depend>
   <depend>xacro</depend>
+  <depend>lunabot_msgs</depend>
   <depend>lunabot_config</depend>
   <depend>lunabot_description</depend>
   <depend>lunabot_nav</depend>

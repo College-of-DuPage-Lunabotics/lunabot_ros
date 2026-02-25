@@ -1,0 +1,15 @@
+[Unit]
+Description=Lunabot Launch Manager Service
+After=network.target
+
+[Service]
+Type=simple
+User=codetc
+WorkingDirectory=/home/codetc/lunabot_ws
+Environment="ROS_DOMAIN_ID=0"
+ExecStart=/bin/bash -c 'source /opt/ros/humble/setup.bash && source /home/codetc/lunabot_ws/install/setup.bash && ros2 launch lunabot_bringup launch_manager.py'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -212,6 +212,25 @@ def create_condensed_telemetry_group(app):
     bucket_group.setLayout(bucket_layout)
     main_layout.addWidget(bucket_group, 1)
     
+    # Vibration State Section
+    vibration_group = QGroupBox("Vibration State")
+    vibration_group.setAutoFillBackground(True)
+    vibration_group.setStyleSheet("QGroupBox { background-color: #3a3a3a; font-size: 8pt; } QGroupBox::title { color: #b0b0b0; }")
+    vibration_layout = QVBoxLayout()
+    vibration_layout.setSpacing(1)
+    vibration_layout.setContentsMargins(3, 2, 3, 2)
+    
+    vibration_value_container = QHBoxLayout()
+    app.vibration_state_label = QLabel("OFF")
+    app.vibration_state_label.setFont(QFont("Monospace", 9))
+    app.vibration_state_label.setStyleSheet("background-color: transparent; color: #d32f2f;")  # Red for OFF
+    vibration_value_container.addWidget(app.vibration_state_label)
+    vibration_value_container.addStretch()
+    vibration_layout.addLayout(vibration_value_container)
+    
+    vibration_group.setLayout(vibration_layout)
+    main_layout.addWidget(vibration_group, 1)
+    
     return group
 
 
@@ -370,6 +389,25 @@ def create_combined_telemetry_group(app):
     
     bucket_group.setLayout(bucket_layout)
     col1_layout.addWidget(bucket_group, 1)
+    
+    # Vibration State Section
+    vibration_group = QGroupBox("Vibration State")
+    vibration_group.setAutoFillBackground(True)
+    vibration_group.setStyleSheet("QGroupBox { background-color: #3a3a3a; }")
+    vibration_layout = QVBoxLayout()
+    vibration_layout.setSpacing(2)
+    vibration_layout.setContentsMargins(6, 6, 6, 6)
+    
+    vibration_value_container = QHBoxLayout()
+    app.vibration_state_label = QLabel("OFF")
+    app.vibration_state_label.setFont(QFont("Monospace", 10))
+    app.vibration_state_label.setStyleSheet("background-color: transparent; color: #d32f2f;")  # Red for OFF
+    vibration_value_container.addWidget(app.vibration_state_label)
+    vibration_value_container.addStretch()
+    vibration_layout.addLayout(vibration_value_container)
+    
+    vibration_group.setLayout(vibration_layout)
+    col1_layout.addWidget(vibration_group, 1)
     
     # Bandwidth Section
     bandwidth_group = QGroupBox("Bandwidth")
@@ -809,26 +847,26 @@ def create_launch_group(app):
         }
     """
     
-    pointlio_btn = QPushButton("PointLIO")
-    pointlio_btn.setStyleSheet(button_style)
-    pointlio_btn.setMinimumHeight(24)
-    pointlio_btn.setMaximumHeight(26)
-    pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
-    layout.addWidget(pointlio_btn)
+    app.pointlio_btn = QPushButton("PointLIO")
+    app.pointlio_btn.setStyleSheet(button_style)
+    app.pointlio_btn.setMinimumHeight(24)
+    app.pointlio_btn.setMaximumHeight(26)
+    app.pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
+    layout.addWidget(app.pointlio_btn)
     
-    mapping_btn = QPushButton("Mapping")
-    mapping_btn.setStyleSheet(button_style)
-    mapping_btn.setMinimumHeight(24)
-    mapping_btn.setMaximumHeight(26)
-    mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
-    layout.addWidget(mapping_btn)
+    app.mapping_btn = QPushButton("Mapping")
+    app.mapping_btn.setStyleSheet(button_style)
+    app.mapping_btn.setMinimumHeight(24)
+    app.mapping_btn.setMaximumHeight(26)
+    app.mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
+    layout.addWidget(app.mapping_btn)
     
-    nav2_btn = QPushButton("Nav2")
-    nav2_btn.setStyleSheet(button_style)
-    nav2_btn.setMinimumHeight(24)
-    nav2_btn.setMaximumHeight(26)
-    nav2_btn.clicked.connect(lambda: app.launch_system('nav2'))
-    layout.addWidget(nav2_btn)
+    app.nav2_btn = QPushButton("Nav2")
+    app.nav2_btn.setStyleSheet(button_style)
+    app.nav2_btn.setMinimumHeight(24)
+    app.nav2_btn.setMaximumHeight(26)
+    app.nav2_btn.clicked.connect(lambda: app.launch_system('nav2'))
+    layout.addWidget(app.nav2_btn)
     
     rviz_btn = QPushButton("RViz2")
     rviz_btn.setStyleSheet(Styles.light_blue_button(size=10))

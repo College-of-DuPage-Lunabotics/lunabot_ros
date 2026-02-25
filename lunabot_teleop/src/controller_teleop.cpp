@@ -57,6 +57,7 @@ public:
     // Publishers for robot state
     manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
     robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
+    vibration_state_publisher_ = create_publisher<std_msgs::msg::Bool>("vibration_state", 10);
 
     // Timer to publish state periodically
     state_timer_ = create_wall_timer(
@@ -244,7 +245,8 @@ private:
    */
   void mode_switch_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
-    manual_enabled_ = msg->data;
+    // Toggle mode when we receive the signal
+    manual_enabled_ = !manual_enabled_;
     if (manual_enabled_)
     {
       RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
@@ -268,6 +270,10 @@ private:
     auto disabled_msg = std_msgs::msg::Bool();
     disabled_msg.data = robot_disabled_;
     robot_disabled_publisher_->publish(disabled_msg);
+
+    auto vibration_msg = std_msgs::msg::Bool();
+    vibration_msg.data = vibration_enabled_;
+    vibration_state_publisher_->publish(vibration_msg);
   }
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
@@ -277,6 +283,7 @@ private:
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr vibration_state_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
 
