@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# Install script for Lunabot Launch Manager service using robot_upstart
-
+import os
 import sys
 import robot_upstart
 
@@ -22,15 +21,23 @@ if argc == 2:
 
 print('Installing Lunabot Launch Manager service. ROS_DOMAIN_ID={0}'.format(domain_id))
 
+# Get workspace path from environment or use default
+workspace_setup = os.environ.get('LUNABOT_WS', os.path.expanduser('~/lunabot_ws')) + '/install/setup.bash'
+print(f'Using workspace: {workspace_setup}')
+
 launch_manager_job = robot_upstart.Job(
     name='lunabot-launch-manager',
     rmw='rmw_cyclonedds_cpp',
-    workspace_setup='/home/codetc/lunabot_ws/install/setup.bash',
+    workspace_setup=workspace_setup,
     ros_domain_id=domain_id
 )
 
 launch_manager_job.symlink = True
 launch_manager_job.add(package='lunabot_bringup', filename='launch/launch_manager.launch.py')
+
+# Add systemd dependencies to wait for network to be fully online (WiFi connected)
+launch_manager_job.add_dependencies = ['network-online.target']
+
 launch_manager_job.install()
 
 print('')

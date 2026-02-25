@@ -34,7 +34,8 @@ echo -e "\n------------------------ Install Launch Manager Service Using robot_u
 # Source ROS and workspace, run installer directly
 source /opt/ros/humble/setup.bash
 source ${WORKSPACE_DIR}/install/setup.bash
-python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0
+# Pass workspace directory via environment variable
+LUNABOT_WS="${WORKSPACE_DIR}" python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0
 
 # Complete the installation
 systemctl daemon-reload

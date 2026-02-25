@@ -194,14 +194,21 @@ class LaunchManagerNode(Node):
         for name, process in self.processes.items():
             if process is not None:
                 try:
-                    process.terminate()
-                    process.wait(timeout=3)
-                    self.get_logger().info(f'Stopped {name}')
-                except:
+                    if process.poll() is None:  # Still running
+                        pgid = os.getpgid(process.pid)
+                        os.killpg(pgid, signal.SIGTERM)
+                        process.wait(timeout=3)
+                        self.get_logger().info(f'Stopped {name}')
+                except subprocess.TimeoutExpired:
                     try:
-                        process.kill()
+                        pgid = os.getpgid(process.pid)
+                        os.killpg(pgid, signal.SIGKILL)
+                        process.wait()
+                        self.get_logger().info(f'Force killed {name}')
                     except:
                         pass
+                except:
+                    pass
 
 
 def main(args=None):
