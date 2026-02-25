@@ -58,8 +58,7 @@ class RobotInterface:
         # Remote robot configuration from parameters
         self.robot_host = self.node.get_parameter('network.robot_host').value
         self.robot_user = self.node.get_parameter('network.robot_user').value
-        self.robot_workspace = '~/lunabot_ws'  # Fixed workspace path
-        # In real mode, always use remote execution via SSH
+        self.robot_workspace = '~/lunabot_ws'
         self.is_remote = self.is_real_mode
         
         if self.is_remote:
@@ -112,18 +111,8 @@ class RobotInterface:
         self.robot_disabled = False
         self.vibration_state = False
         
-        # Launch process tracking (local processes or SSH connections)
+        # Launch process tracking (True = remote via service, Process = local subprocess)
         self.launch_processes = {
-            'hardware': None,
-            'actions': None,
-            'pointlio': None,
-            'mapping': None,
-            'nav2': None,
-            'localization': None
-        }
-        
-        # Remote PID tracking for processes launched on robot
-        self.remote_pids = {
             'hardware': None,
             'actions': None,
             'pointlio': None,
@@ -411,24 +400,8 @@ class RobotInterface:
                 request.system_name = 'hardware'
                 request.use_sim = False
                 
-                # Check if service exists first
-                service_names = [name for name, _ in self.node.get_service_names_and_types()]
-                if '/launch_system' not in service_names:
-                    self.node.get_logger().error(f'Launch manager service not in service list. Available: {service_names}')
-                    return
-                
-                # Wait for service with retry
-                max_attempts = 3
-                for attempt in range(max_attempts):
-                    self.node.get_logger().info(f'Waiting for /launch_system service (attempt {attempt+1}/{max_attempts})...')
-                    if self.launch_client.wait_for_service(timeout_sec=5.0):
-                        self.node.get_logger().info('Service found!')
-                        break
-                    self.node.get_logger().warn(f'Service not available yet, retrying...')
-                    QCoreApplication.processEvents()
-                    time.sleep(1)
-                else:
-                    self.node.get_logger().error('Launch manager service not available after retries')
+                if not self.launch_client.wait_for_service(timeout_sec=5.0):
+                    self.node.get_logger().error('Launch manager service not available')
                     return
                 
                 future = self.launch_client.call_async(request)
@@ -437,14 +410,14 @@ class RobotInterface:
                 start_time = time.time()
                 timeout = 30.0
                 while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
+                    QCoreApplication.processEvents()
                     time.sleep(0.01)
                 
                 if future.done() and future.result() is not None:
                     response = future.result()
                     if response.success:
                         self.node.get_logger().info(f'Hardware launched: {response.message}')
-                        self.launch_processes['hardware'] = True  # Mark as running
+                        self.launch_processes['hardware'] = True
                     else:
                         self.node.get_logger().error(f'Failed to launch hardware: {response.message}')
                         return
@@ -459,6 +432,10 @@ class RobotInterface:
             
             self.hardware_enabled = True
             self.node.get_logger().info('Hardware launched')
+            
+            # Trigger UI update
+            if self.on_robot_state_update:
+                self.on_robot_state_update()
         except Exception as e:
             self.node.get_logger().error(f'Failed to launch hardware: {str(e)}')
     
@@ -467,7 +444,7 @@ class RobotInterface:
         self.node.get_logger().info(f'Launching {system_name}')
         
         # Check if already running
-        if self.launch_processes[system_name] is not None or self.remote_pids[system_name] is not None:
+        if self.launch_processes[system_name] is not None:
             self.node.get_logger().warning(f'{system_name} already running')
             return
         
@@ -500,8 +477,7 @@ class RobotInterface:
                     response = future.result()
                     if response.success:
                         self.node.get_logger().info(f'{system_name} launched: {response.message}')
-                        # Mark as running with placeholder PID
-                        self.remote_pids[system_name] = 1
+                        self.launch_processes[system_name] = True
                     else:
                         self.node.get_logger().error(f'Failed to launch {system_name}: {response.message}')
                         return
@@ -554,48 +530,48 @@ class RobotInterface:
         self.node.get_logger().info(f'Stopping {system_name}')
         
         try:
-            run_on_robot = self.is_real_mode and self.is_remote
+            if self.launch_processes[system_name] is None:
+                self.node.get_logger().warning(f'{system_name} is not running')
+                return
             
-            # Stop remote process via service
-            if self.remote_pids[system_name] is not None:
-                if run_on_robot:
-                    self.node.get_logger().info(f'Stopping {system_name} via launch manager service')
-                    
-                    request = StopSystem.Request()
-                    request.system_name = system_name
-                    
-                    if not self.stop_client.wait_for_service(timeout_sec=10.0):
-                        self.node.get_logger().error('Stop service not available')
-                        return
-                    
-                    future = self.stop_client.call_async(request)
-                    
-                    # Wait for response (process Qt events so ROS timer can spin the node)
-                    start_time = time.time()
-                    timeout = 10.0
-                    while not future.done() and (time.time() - start_time) < timeout:
-                        QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
-                        time.sleep(0.01)
-                    
-                    if future.done() and future.result() is not None:
-                        response = future.result()
-                        if response.success:
-                            self.node.get_logger().info(f'{system_name} stopped: {response.message}')
-                        else:
-                            self.node.get_logger().warn(f'Stop warning: {response.message}')
-                    else:
-                        self.node.get_logger().error(f'Service call failed for stopping {system_name}')
+            # If launch_processes is True, it's a remote process via service
+            if self.launch_processes[system_name] is True and self.is_remote:
+                self.node.get_logger().info(f'Stopping {system_name} via launch manager service')
                 
-                self.remote_pids[system_name] = None
+                request = StopSystem.Request()
+                request.system_name = system_name
+                
+                if not self.stop_client.wait_for_service(timeout_sec=5.0):
+                    self.node.get_logger().error('Stop service not available')
+                    return
+                
+                future = self.stop_client.call_async(request)
+                
+                # Wait for response
+                start_time = time.time()
+                timeout = 10.0
+                while not future.done() and (time.time() - start_time) < timeout:
+                    QCoreApplication.processEvents()
+                    time.sleep(0.01)
+                
+                if future.done() and future.result() is not None:
+                    response = future.result()
+                    if response.success:
+                        self.node.get_logger().info(f'{system_name} stopped: {response.message}')
+                    else:
+                        self.node.get_logger().warn(f'Stop warning: {response.message}')
+                else:
+                    self.node.get_logger().error(f'Service call failed for stopping {system_name}')
             
-            # Terminate local process if exists
-            if self.launch_processes[system_name] is not None:
+            # If it's a subprocess object, terminate it locally
+            elif isinstance(self.launch_processes[system_name], subprocess.Popen):
                 try:
                     self.launch_processes[system_name].terminate()
                     self.launch_processes[system_name].wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     self.launch_processes[system_name].kill()
-                self.launch_processes[system_name] = None
+            
+            self.launch_processes[system_name] = None
             
             # Update enabled flags
             if system_name == 'pointlio':
@@ -606,6 +582,8 @@ class RobotInterface:
                 self.nav2_enabled = False
             elif system_name == 'localization':
                 self.localization_enabled = False
+            elif system_name == 'hardware':
+                self.hardware_enabled = False
             
             self.node.get_logger().info(f'{system_name} stopped')
             
@@ -788,11 +766,6 @@ class RobotInterface:
                 except Exception as e:
                     self.node.get_logger().warn(f'Error terminating {name}: {e}')
         
-        # Kill any remote processes
-        for name, pid in self.remote_pids.items():
-            if pid is not None:
-                self._kill_remote_process(pid, name)
-        
         # Stop navigation client
         self.stop_navigation_client()
         
@@ -801,57 +774,3 @@ class RobotInterface:
             self.node.destroy_node()
         except Exception as e:
             pass
-    
-    def _kill_remote_process(self, pid, name="process"):
-        """Kill a process on the remote robot by name pattern"""
-        if not self.is_remote:
-            return
-        
-        # Map system names to launch file patterns for pkill
-        launch_patterns = {
-            'pointlio': 'pointlio_launch',
-            'mapping': 'mapping_launch',
-            'nav2': 'nav2_stack_launch',
-            'localization': 'localization_launch'
-        }
-        
-        pattern = launch_patterns.get(name, name)
-        
-        try:
-            # Use pkill to kill by process name
-            cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'pkill -9 -f "{pattern}"']
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-            # pkill returns 0 if processes were killed, 1 if none found
-            if result.returncode == 0:
-                self.node.get_logger().info(f'Killed remote {name} process')
-            else:
-                self.node.get_logger().warn(f'No remote {name} process found to kill')
-        except Exception as e:
-            self.node.get_logger().error(f'Error killing remote {name}: {e}')
-    
-    def _launch_remote_command(self, command, name):
-        """Launch a command on remote robot and track PID"""
-        if not self.is_remote:
-            return None, None
-        
-        # Launch in true fire-and-forget mode - don't wait for PID
-        # The process will run, we just won't track the exact PID
-        remote_cmd = (
-            f"bash -c 'source {self.robot_workspace}/install/setup.bash && "
-            f"{command} > /tmp/{name}.log 2>&1 &' &"
-        )
-        
-        try:
-            # Launch without waiting - true fire and forget
-            subprocess.Popen(
-                ['ssh', '-f', f'{self.robot_user}@{self.robot_host}', remote_cmd],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            self.node.get_logger().info(f'Launched {name} on remote (no PID tracking)')
-            # Return a placeholder PID of 1 to indicate it's running
-            return None, 1
-        except Exception as e:
-            self.node.get_logger().error(f'Error launching {name}: {e}')
-            return None, None

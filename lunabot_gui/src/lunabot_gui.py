@@ -353,16 +353,15 @@ class LunabotGUI(QMainWindow):
         self.robot.start_can_interface()
     
     def launch_hardware(self):
-        """Launch hardware"""
-        self.robot.launch_hardware()
+        """Toggle launch/stop for hardware"""
+        if self.robot.launch_processes.get('hardware') is not None:
+            self.robot.stop_system('hardware')
+        else:
+            self.robot.launch_hardware()
     
     def launch_system(self, system_name):
         """Toggle launch/stop for a system (PointLIO, mapping, Nav2, localization)"""
-        # Check if system is already running
-        is_running = (self.robot.launch_processes.get(system_name) is not None or 
-                     self.robot.remote_pids.get(system_name) is not None)
-        
-        if is_running:
+        if self.robot.launch_processes.get(system_name) is not None:
             self.robot.stop_system(system_name)
         else:
             self.robot.launch_system(system_name)
@@ -683,24 +682,19 @@ class LunabotGUI(QMainWindow):
         
         # Update launch button text based on running state
         if hasattr(self, 'pointlio_btn'):
-            pointlio_running = (self.robot.launch_processes.get('pointlio') is not None or 
-                               self.robot.remote_pids.get('pointlio') is not None)
-            self.pointlio_btn.setText("Stop PointLIO" if pointlio_running else "PointLIO")
+            self.pointlio_btn.setText("Stop PointLIO" if self.robot.launch_processes.get('pointlio') else "PointLIO")
         
         if hasattr(self, 'mapping_btn'):
-            mapping_running = (self.robot.launch_processes.get('mapping') is not None or 
-                              self.robot.remote_pids.get('mapping') is not None)
-            self.mapping_btn.setText("Stop Mapping" if mapping_running else "Mapping")
+            self.mapping_btn.setText("Stop Mapping" if self.robot.launch_processes.get('mapping') else "Mapping")
         
         if hasattr(self, 'nav2_btn'):
-            nav2_running = (self.robot.launch_processes.get('nav2') is not None or 
-                           self.robot.remote_pids.get('nav2') is not None)
-            self.nav2_btn.setText("Stop Nav2" if nav2_running else "Nav2")
+            self.nav2_btn.setText("Stop Nav2" if self.robot.launch_processes.get('nav2') else "Nav2")
         
         if hasattr(self, 'localize_btn'):
-            localize_running = (self.robot.launch_processes.get('localization') is not None or 
-                               self.robot.remote_pids.get('localization') is not None)
-            self.localize_btn.setText("Stop Localization" if localize_running else "Localize")
+            self.localize_btn.setText("Stop Localization" if self.robot.launch_processes.get('localization') else "Localize")
+        
+        if hasattr(self, 'hardware_btn'):
+            self.hardware_btn.setText("Stop Hardware" if self.robot.launch_processes.get('hardware') else "Launch Hardware")
         
         # Update robot status
         if self.robot.robot_disabled:

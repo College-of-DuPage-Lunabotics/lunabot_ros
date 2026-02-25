@@ -1133,11 +1133,11 @@ def create_hardware_group(app):
     can_btn.clicked.connect(app.start_can_interface)
     layout.addWidget(can_btn)
     
-    hardware_btn = QPushButton("Launch Hardware")
-    hardware_btn.setStyleSheet(Styles.standard_button(size=12))
-    hardware_btn.setMinimumHeight(32)
-    hardware_btn.clicked.connect(app.launch_hardware)
-    layout.addWidget(hardware_btn)
+    app.hardware_btn = QPushButton("Launch Hardware")
+    app.hardware_btn.setStyleSheet(Styles.standard_button(size=12))
+    app.hardware_btn.setMinimumHeight(32)
+    app.hardware_btn.clicked.connect(app.launch_hardware)
+    layout.addWidget(app.hardware_btn)
     
     group.setLayout(layout)
     return group
