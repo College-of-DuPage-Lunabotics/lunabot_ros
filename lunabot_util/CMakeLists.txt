@@ -40,6 +40,7 @@ install(TARGETS
 install(PROGRAMS
   src/bandwidth_monitor.py
   src/image_compressor.py
+  src/power_monitor.py
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

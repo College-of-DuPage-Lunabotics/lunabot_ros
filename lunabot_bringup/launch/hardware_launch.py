@@ -90,7 +90,7 @@ def generate_launch_description():
     # Power Monitor
     power_monitor_node = Node(
         package="lunabot_util",
-        executable="power_monitor",
+        executable="power_monitor.py",
         name="power_monitor",
         output="screen",
         parameters=[
