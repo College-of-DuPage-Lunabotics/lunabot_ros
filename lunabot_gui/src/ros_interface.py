@@ -110,6 +110,7 @@ class RobotInterface:
         self.is_navigating = False
         self.robot_disabled = False
         self.vibration_state = False
+        self.vibration_duty_cycle = 0.0
         
         # Launch process tracking (True = remote via service, Process = local subprocess)
         self.launch_processes = {
