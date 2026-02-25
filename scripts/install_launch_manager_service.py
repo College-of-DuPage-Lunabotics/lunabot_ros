@@ -32,12 +32,10 @@ print(f'CycloneDDS config: {cyclonedds_config}')
 launch_manager_job = robot_upstart.Job(
     name='lunabot-launch-manager',
     rmw='rmw_cyclonedds_cpp',
+    rmw_config=cyclonedds_config,  # This sets the rmw_config variable properly
     workspace_setup=workspace_setup,
     ros_domain_id=domain_id
 )
-
-# Configure CycloneDDS to use all network interfaces, not just localhost
-launch_manager_job.environment = {'CYCLONEDDS_URI': f'file://{cyclonedds_config}'}
 
 launch_manager_job.symlink = True
 launch_manager_job.add(package='lunabot_bringup', filename='launch/launch_manager.launch.py')
