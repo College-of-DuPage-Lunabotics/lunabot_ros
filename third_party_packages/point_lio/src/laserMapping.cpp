@@ -217,36 +217,26 @@ void publish_frame_body(
 template <typename T>
 void set_posestamp(T & out)
 {
-  // Apply coordinate transform: Point-LIO frame -> ROS frame (REP-103)
-  // Point-LIO Y -> ROS X (forward)
-  // Point-LIO -X -> ROS Y (left)
-  // Point-LIO Z -> ROS Z (up)
-  // Plus 90-degree rotation about Z-axis for orientation
-  
   if (!use_imu_as_input) {
-    out.position.x = kf_output.x_.pos(1);   // Forward from internal Y
-    out.position.y = -kf_output.x_.pos(0);  // Left from -internal X
+    // Swap and negate X and Y to fix coordinate frame
+    out.position.x = -kf_output.x_.pos(1);
+    out.position.y = -kf_output.x_.pos(0);
     out.position.z = kf_output.x_.pos(2);
-    // Rotate quaternion by -90 deg about Z-axis to align with ROS frame
     Eigen::Quaterniond q(kf_output.x_.rot);
-    Eigen::Quaterniond q_correction(Eigen::AngleAxisd(-M_PI/2, Eigen::Vector3d::UnitZ()));
-    Eigen::Quaterniond q_corrected = q_correction * q;
-    out.orientation.x = q_corrected.coeffs()[0];
-    out.orientation.y = q_corrected.coeffs()[1];
-    out.orientation.z = q_corrected.coeffs()[2];
-    out.orientation.w = q_corrected.coeffs()[3];
+    out.orientation.x = q.coeffs()[0];
+    out.orientation.y = q.coeffs()[1];
+    out.orientation.z = q.coeffs()[2];
+    out.orientation.w = q.coeffs()[3];
   } else {
-    out.position.x = kf_input.x_.pos(1);   // Forward from internal Y
-    out.position.y = -kf_input.x_.pos(0);  // Left from -internal X
+    // Swap and negate X and Y to fix coordinate frame
+    out.position.x = -kf_input.x_.pos(1);
+    out.position.y = -kf_input.x_.pos(0);
     out.position.z = kf_input.x_.pos(2);
-    // Rotate quaternion by -90 deg about Z-axis to align with ROS frame
     Eigen::Quaterniond q(kf_input.x_.rot);
-    Eigen::Quaterniond q_correction(Eigen::AngleAxisd(-M_PI/2, Eigen::Vector3d::UnitZ()));
-    Eigen::Quaterniond q_corrected = q_correction * q;
-    out.orientation.x = q_corrected.coeffs()[0];
-    out.orientation.y = q_corrected.coeffs()[1];
-    out.orientation.z = q_corrected.coeffs()[2];
-    out.orientation.w = q_corrected.coeffs()[3];
+    out.orientation.x = q.coeffs()[0];
+    out.orientation.y = q.coeffs()[1];
+    out.orientation.z = q.coeffs()[2];
+    out.orientation.w = q.coeffs()[3];
   }
 }
 
