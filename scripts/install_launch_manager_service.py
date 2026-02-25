@@ -22,8 +22,12 @@ if argc == 2:
 print('Installing Lunabot Launch Manager service. ROS_DOMAIN_ID={0}'.format(domain_id))
 
 # Get workspace path from environment or use default
-workspace_setup = os.environ.get('LUNABOT_WS', os.path.expanduser('~/lunabot_ws')) + '/install/setup.bash'
+workspace_dir = os.environ.get('LUNABOT_WS', os.path.expanduser('~/lunabot_ws'))
+workspace_setup = workspace_dir + '/install/setup.bash'
+cyclonedds_config = workspace_dir + '/src/lunabot_ros/lunabot_bringup/config/cyclonedds.xml'
+
 print(f'Using workspace: {workspace_setup}')
+print(f'CycloneDDS config: {cyclonedds_config}')
 
 launch_manager_job = robot_upstart.Job(
     name='lunabot-launch-manager',
@@ -32,11 +36,11 @@ launch_manager_job = robot_upstart.Job(
     ros_domain_id=domain_id
 )
 
+# Configure CycloneDDS to use all network interfaces, not just localhost
+launch_manager_job.environment = {'CYCLONEDDS_URI': f'file://{cyclonedds_config}'}
+
 launch_manager_job.symlink = True
 launch_manager_job.add(package='lunabot_bringup', filename='launch/launch_manager.launch.py')
-
-# Add systemd dependencies to wait for network to be fully online (WiFi connected)
-launch_manager_job.add_dependencies = ['network-online.target']
 
 launch_manager_job.install()
 
