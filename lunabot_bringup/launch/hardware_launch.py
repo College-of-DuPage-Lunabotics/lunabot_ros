@@ -87,6 +87,19 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "info"],
     )
 
+    # Power Monitor
+    power_monitor_node = Node(
+        package="lunabot_util",
+        executable="power_monitor",
+        name="power_monitor",
+        output="screen",
+        parameters=[
+            {"serial_port": "/dev/ttyACM0"},
+            {"baud_rate": 9600},
+            {"publish_rate": 10.0},
+        ],
+    )
+
     # AprilTag Detection  
     apriltag_d456_node = Node(
         package="apriltag_ros",
@@ -179,6 +192,7 @@ def generate_launch_description():
         d456_back_launch,
         d456_imu_filter,
         controller_teleop_node,
+        power_monitor_node,
         apriltag_d456_node,
         rgbd_sync_front,
         rgbd_sync_back,
