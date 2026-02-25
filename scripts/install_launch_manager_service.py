@@ -30,7 +30,7 @@ launch_manager_job = robot_upstart.Job(
 )
 
 launch_manager_job.symlink = True
-launch_manager_job.add(package='lunabot_bringup', filename='launch/launch_manager.py')
+launch_manager_job.add(package='lunabot_bringup', filename='launch/launch_manager.launch.py')
 launch_manager_job.install()
 
 print('')

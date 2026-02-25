@@ -31,12 +31,14 @@ else
 fi
 
 echo -e "\n------------------------ Install Launch Manager Service Using robot_upstart ------------------------ \n"
-# Source ROS and workspace
+# Source ROS and workspace, run installer directly
 source /opt/ros/humble/setup.bash
 source ${WORKSPACE_DIR}/install/setup.bash
+python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0
 
-# Run the robot_upstart installer as non-root user
-su - codetc -c "source /opt/ros/humble/setup.bash && source ${WORKSPACE_DIR}/install/setup.bash && python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0"
+# Complete the installation
+systemctl daemon-reload
+systemctl enable lunabot-launch-manager
 
 echo ""
 echo "Services installed and enabled."
