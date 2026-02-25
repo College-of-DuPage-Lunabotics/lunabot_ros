@@ -411,8 +411,24 @@ class RobotInterface:
                 request.system_name = 'hardware'
                 request.use_sim = False
                 
-                if not self.launch_client.wait_for_service(timeout_sec=10.0):
-                    self.node.get_logger().error('Launch manager service not available')
+                # Check if service exists first
+                service_names = [name for name, _ in self.node.get_service_names_and_types()]
+                if '/launch_system' not in service_names:
+                    self.node.get_logger().error(f'Launch manager service not in service list. Available: {service_names}')
+                    return
+                
+                # Wait for service with retry
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    self.node.get_logger().info(f'Waiting for /launch_system service (attempt {attempt+1}/{max_attempts})...')
+                    if self.launch_client.wait_for_service(timeout_sec=5.0):
+                        self.node.get_logger().info('Service found!')
+                        break
+                    self.node.get_logger().warn(f'Service not available yet, retrying...')
+                    QCoreApplication.processEvents()
+                    time.sleep(1)
+                else:
+                    self.node.get_logger().error('Launch manager service not available after retries')
                     return
                 
                 future = self.launch_client.call_async(request)
