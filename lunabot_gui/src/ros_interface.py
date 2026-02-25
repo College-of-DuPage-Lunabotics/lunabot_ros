@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 import rclpy
+from PyQt5.QtCore import QCoreApplication
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from std_msgs.msg import Float32, String, Bool, Float64MultiArray
@@ -416,11 +417,12 @@ class RobotInterface:
                 
                 future = self.launch_client.call_async(request)
                 
-                # Wait for response (node is already being spun by GUI timer)
+                # Wait for response (process Qt events so ROS timer can spin the node)
                 start_time = time.time()
                 timeout = 30.0
                 while not future.done() and (time.time() - start_time) < timeout:
-                    time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                    QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
+                    time.sleep(0.01)
                 
                 if future.done() and future.result() is not None:
                     response = future.result()
@@ -471,11 +473,12 @@ class RobotInterface:
                 
                 future = self.launch_client.call_async(request)
                 
-                # Wait for response (node is already being spun by GUI timer)
+                # Wait for response (process Qt events so ROS timer can spin the node)
                 start_time = time.time()
                 timeout = 30.0
                 while not future.done() and (time.time() - start_time) < timeout:
-                    time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                    QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
+                    time.sleep(0.01)
                 
                 if future.done() and future.result() is not None:
                     response = future.result()
@@ -551,11 +554,12 @@ class RobotInterface:
                     
                     future = self.stop_client.call_async(request)
                     
-                    # Wait for response (node is already being spun by GUI timer)
+                    # Wait for response (process Qt events so ROS timer can spin the node)
                     start_time = time.time()
                     timeout = 10.0
                     while not future.done() and (time.time() - start_time) < timeout:
-                        time.sleep(0.01)  # Just wait, node is being spun by GUI timer
+                        QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
+                        time.sleep(0.01)
                     
                     if future.done() and future.result() is not None:
                         response = future.result()

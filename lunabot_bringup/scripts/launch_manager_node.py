@@ -138,11 +138,12 @@ class LaunchManagerNode(Node):
         use_sim_arg = 'true' if use_sim else 'false'
         
         try:
-            # Launch in background
+            # Launch in background (output goes to systemd journal)
             process = subprocess.Popen(
                 ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,
+                stdout=None,  # Inherit parent's stdout (systemd journal)
+                stderr=None,  # Inherit parent's stderr (systemd journal)
                 start_new_session=True  # Detach from this process
             )
             
@@ -155,11 +156,12 @@ class LaunchManagerNode(Node):
     def _launch_hardware(self):
         """Launch hardware (CAN + sensors)"""
         try:
-            # Launch hardware
+            # Launch hardware (output goes to systemd journal)
             process = subprocess.Popen(
                 ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,
+                stdout=None,  # Inherit parent's stdout (systemd journal)
+                stderr=None,  # Inherit parent's stderr (systemd journal)
                 start_new_session=True
             )
             
