@@ -21,7 +21,7 @@ class PowerMonitorNode(Node):
         super().__init__('power_monitor')
         
         # Declare parameters
-        self.declare_parameter('serial_port', '/dev/ttyACM1')
+        self.declare_parameter('serial_port', '/dev/ttyACM0')
         self.declare_parameter('baud_rate', 9600)
         self.declare_parameter('publish_rate', 10.0)  # Hz
         
