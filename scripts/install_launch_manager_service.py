@@ -24,15 +24,11 @@ print('Installing Lunabot Launch Manager service. ROS_DOMAIN_ID={0}'.format(doma
 # Get workspace path from environment or use default
 workspace_dir = os.environ.get('LUNABOT_WS', os.path.expanduser('~/lunabot_ws'))
 workspace_setup = workspace_dir + '/install/setup.bash'
-cyclonedds_config = workspace_dir + '/src/lunabot_ros/lunabot_bringup/config/cyclonedds.xml'
 
 print(f'Using workspace: {workspace_setup}')
-print(f'CycloneDDS config: {cyclonedds_config}')
 
 launch_manager_job = robot_upstart.Job(
     name='lunabot-launch-manager',
-    rmw='rmw_cyclonedds_cpp',
-    rmw_config=cyclonedds_config,  # This sets the rmw_config variable properly
     workspace_setup=workspace_setup,
     ros_domain_id=domain_id
 )

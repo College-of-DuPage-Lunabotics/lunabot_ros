@@ -55,27 +55,12 @@ install_gui_dependencies() {
     sudo apt install -y python3-pyqt5 python3-opencv
 }
 
-install_cyclonedds() {
-    echo -e "\n------------------------ Install CycloneDDS ------------------------ \n"
-    sudo apt install -y ros-humble-rmw-cyclonedds-cpp
-    
-    # Add CycloneDDS environment variable to bashrc if not already present
-    if ! grep -q "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" ~/.bashrc; then
-        echo "" >> ~/.bashrc
-        echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc
-        echo "CycloneDDS configuration added to ~/.bashrc"
-    else
-        echo "CycloneDDS configuration already in ~/.bashrc"
-    fi
-}
-
 main() {
     install_camera_dependencies
     install_git_dependencies
     install_sparkcan
     install_livox_sdk
     install_gui_dependencies
-    install_cyclonedds
     install_ros_dependencies
 }
 
