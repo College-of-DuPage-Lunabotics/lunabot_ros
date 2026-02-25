@@ -197,13 +197,7 @@ private:
     {
       vibration_enabled_ = !vibration_enabled_;
       RCLCPP_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
-      
-      // Read back actual duty cycle from motor controller
-      float actual_duty_cycle = vibration_motor_.GetDutyCycle();
-      auto duty_msg = std_msgs::msg::Float32();
-      duty_msg.data = actual_duty_cycle;
-      vibration_duty_cycle_publisher_->publish(duty_msg);
-      RCLCPP_INFO(get_logger(), "Vibration motor duty cycle: %.2f", actual_duty_cycle);
+      publish_state();  // Publish updated duty cycle immediately
     }
 
     // Toggle speed multiplier
@@ -284,6 +278,11 @@ private:
     auto disabled_msg = std_msgs::msg::Bool();
     disabled_msg.data = robot_disabled_;
     robot_disabled_publisher_->publish(disabled_msg);
+
+    // Publish vibration duty cycle (0.0 if off, 1.0 if on)
+    auto duty_msg = std_msgs::msg::Float32();
+    duty_msg.data = vibration_enabled_ ? 1.0 : 0.0;
+    vibration_duty_cycle_publisher_->publish(duty_msg);
   }
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;

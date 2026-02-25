@@ -212,9 +212,9 @@ class RobotInterface:
         self.node.create_subscription(
             Bool, '/robot_disabled', self._robot_disabled_callback, 10)
         
-        # Vibration state
+        # Vibration duty cycle
         self.node.create_subscription(
-            Bool, '/vibration_state', self._vibration_state_callback, 10)
+            Float32, '/vibration_duty_cycle', self._vibration_duty_cycle_callback, 10)
         
         # Joint states
         self.node.create_subscription(
@@ -276,8 +276,8 @@ class RobotInterface:
         if self.on_robot_state_update:
             self.on_robot_state_update()
     
-    def _vibration_state_callback(self, msg):
-        self.vibration_state = msg.data
+    def _vibration_duty_cycle_callback(self, msg):
+        self.vibration_duty_cycle = msg.data
         if self.on_robot_state_update:
             self.on_robot_state_update()
     
@@ -329,9 +329,10 @@ class RobotInterface:
     def publish_mode_switch(self):
         """Publish mode switch command to toggle mode"""
         msg = Bool()
-        msg.data = True
+        # Toggle: if currently manual, switch to auto (False), if currently auto, switch to manual (True)
+        msg.data = not (self.robot_mode == "MANUAL")
         self.mode_switch_pub.publish(msg)
-        self.node.get_logger().info('Mode switch requested')
+        self.node.get_logger().info(f'Mode switch requested: {"MANUAL" if msg.data else "AUTO"}')
     
     def publish_velocity(self, linear_x=0.0, angular_z=0.0):
         """Publish velocity command"""

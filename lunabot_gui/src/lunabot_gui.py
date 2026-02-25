@@ -772,9 +772,9 @@ class LunabotGUI(QMainWindow):
         bucket_angle_deg = -self.robot.bucket_position * 180.0 / 3.14159
         self.bucket_angle_label.setText(f"{bucket_angle_deg:.1f}°")
         
-        # Update vibration state
-        if self.robot.vibration_state:
-            self.vibration_state_label.setText("ON")
+        # Update vibration state based on duty cycle
+        if self.robot.vibration_duty_cycle > 0.01:
+            self.vibration_state_label.setText(f"ON ({self.robot.vibration_duty_cycle:.2f})")
             self.vibration_state_label.setStyleSheet("background-color: transparent; color: #66bb6a;")  # Green for ON
         else:
             self.vibration_state_label.setText("OFF")
