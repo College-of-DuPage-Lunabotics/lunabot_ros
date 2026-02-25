@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
-"""
-Launch Manager Node
-Runs on the robot to manage launching/stopping ROS 2 systems via service calls.
-Replaces SSH-based launch management from the GUI.
-"""
-
 import os
+import signal
 import subprocess
 import rclpy
 from rclpy.node import Node
@@ -97,15 +92,19 @@ class LaunchManagerNode(Node):
         try:
             process = self.processes[system_name]
             
-            # Terminate gracefully, then force kill if needed
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-                self.get_logger().info(f'Terminated {system_name} gracefully')
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-                self.get_logger().warn(f'Force killed {system_name}')
+            # Kill the entire process group (session) since we used start_new_session=True
+            if process.poll() is None:  # Process still running
+                pgid = os.getpgid(process.pid)
+                try:
+                    # Send SIGTERM to entire process group
+                    os.killpg(pgid, signal.SIGTERM)
+                    process.wait(timeout=5)
+                    self.get_logger().info(f'Terminated {system_name} process group gracefully')
+                except subprocess.TimeoutExpired:
+                    # Force kill if still running
+                    os.killpg(pgid, signal.SIGKILL)
+                    process.wait()
+                    self.get_logger().warn(f'Force killed {system_name} process group')
             
             self.processes[system_name] = None
             response.success = True
@@ -113,6 +112,7 @@ class LaunchManagerNode(Node):
             
         except Exception as e:
             # Also try pkill as fallback
+            self.get_logger().error(f'Error stopping {system_name}: {e}')
             self._pkill_system(system_name)
             self.processes[system_name] = None
             response.success = True
