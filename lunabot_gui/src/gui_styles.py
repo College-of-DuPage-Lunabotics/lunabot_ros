@@ -244,7 +244,7 @@ class Styles:
                 font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
-                padding: 8px;
+                padding: 5px 8px;
                 border: none;
                 border-radius: 2px;
             }}

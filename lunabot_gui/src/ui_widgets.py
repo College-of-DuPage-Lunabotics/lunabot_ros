@@ -722,13 +722,13 @@ def create_teleop_control_group(app):
             color: white;
             border: none;
             border-radius: 2px;
-            padding: 8px;
-            font-size: 14px;
+            padding: 6px;
+            font-size: 13px;
             font-weight: bold;
-            min-width: 50px;
-            min-height: 50px;
-            max-width: 70px;
-            max-height: 70px;
+            min-width: 40px;
+            min-height: 40px;
+            max-width: 55px;
+            max-height: 55px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -749,13 +749,13 @@ def create_teleop_control_group(app):
             color: white;
             border: none;
             border-radius: 2px;
-            padding: 8px;
-            font-size: 14px;
+            padding: 6px;
+            font-size: 13px;
             font-weight: bold;
-            min-width: 50px;
-            min-height: 50px;
-            max-width: 70px;
-            max-height: 70px;
+            min-width: 40px;
+            min-height: 40px;
+            max-width: 55px;
+            max-height: 55px;
         }}
     """
     
@@ -912,21 +912,21 @@ def create_action_control_group(app):
     
     app.home_btn = QPushButton("Home Actuators")
     app.home_btn.setStyleSheet(Styles.orange_button(size=12))
-    app.home_btn.setMinimumHeight(32)
-    app.home_btn.setMaximumHeight(36)
+    app.home_btn.setMinimumHeight(24)
+    app.home_btn.setMaximumHeight(26)
     app.home_btn.clicked.connect(app.send_home_goal)
     layout.addWidget(app.home_btn)
     
     app.localize_btn = QPushButton("Localize")
     app.localize_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.localize_btn.setMinimumHeight(32)
-    app.localize_btn.setMaximumHeight(36)
+    app.localize_btn.setMinimumHeight(24)
+    app.localize_btn.setMaximumHeight(26)
     app.localize_btn.clicked.connect(lambda: app.launch_system('localization'))
     layout.addWidget(app.localize_btn)
     
     app.excavate_btn = QPushButton("Excavate")
-    app.excavate_btn.setMinimumHeight(32)
-    app.excavate_btn.setMaximumHeight(36)
+    app.excavate_btn.setMinimumHeight(24)
+    app.excavate_btn.setMaximumHeight(26)
     app.excavate_btn.setStyleSheet(f"""
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
@@ -954,8 +954,8 @@ def create_action_control_group(app):
     layout.addWidget(app.excavate_btn)
     
     app.deposit_btn = QPushButton("Deposit")
-    app.deposit_btn.setMinimumHeight(32)
-    app.deposit_btn.setMaximumHeight(36)
+    app.deposit_btn.setMinimumHeight(24)
+    app.deposit_btn.setMaximumHeight(26)
     app.deposit_btn.setStyleSheet(f"""
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
@@ -984,15 +984,15 @@ def create_action_control_group(app):
     
     app.auto_btn = QPushButton("One Cycle Auto")
     app.auto_btn.setStyleSheet(Styles.blue_button(size=12))
-    app.auto_btn.setMinimumHeight(32)
-    app.auto_btn.setMaximumHeight(36)
+    app.auto_btn.setMinimumHeight(24)
+    app.auto_btn.setMaximumHeight(26)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
     app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=12))
-    app.emergency_stop_btn.setMinimumHeight(32)
-    app.emergency_stop_btn.setMaximumHeight(36)
+    app.emergency_stop_btn.setMinimumHeight(28)
+    app.emergency_stop_btn.setMaximumHeight(28)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
     app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
