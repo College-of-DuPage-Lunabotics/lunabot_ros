@@ -85,7 +85,7 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "sync_queue_size": 1000,
+                "sync_queue_size": 100,
                 "wait_for_transform": 0.2,
                 "subscribe_scan_cloud": False,  # Disabled - only using cameras
                 "subscribe_scan": False,
