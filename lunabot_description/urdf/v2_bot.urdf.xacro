@@ -127,6 +127,19 @@
       <origin xyz="0 0 0" />
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001" />
     </inertial>
+    <visual>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.dae" />
+      </geometry>
+      <material name="camera_grey" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.stl" />
+      </geometry>
+    </collision>
   </link>
 
   <link name="camera_fisheye_link">
@@ -277,7 +290,7 @@
   <joint name="camera_fisheye_pitch_joint" type="fixed">
     <parent link="camera_fisheye_yaw_link" />
     <child link="camera_fisheye_link" />
-    <origin xyz="0 0 0" rpy="0 0.523599 0" />
+    <origin xyz="0.07 0 0.035" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">
@@ -348,6 +361,12 @@
   <!-- ================================= -->
 
   <xacro:if value="$(arg use_sim)">
+    <gazebo reference="base_link">
+    </gazebo>
+
+    <gazebo reference="camera_fisheye_yaw_link">
+    </gazebo>
+
     <gazebo reference="front_right_wheel_link">
       <material>Gazebo/Grey</material>
       <mu>1.0</mu>

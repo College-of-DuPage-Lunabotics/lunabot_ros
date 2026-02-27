@@ -13,12 +13,16 @@
   </material>
 
   <xacro:if value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0.015" />
+    <xacro:property name="camera_sim_link_offset" value="-0.01" />
     <xacro:property name="camera_sim_joint_offset" value="0" />
+    <xacro:property name="lidar_sim_link_offset" value="0.01" />
+    <xacro:property name="lidar_sim_joint_offset" value="0" />
   </xacro:if>
   <xacro:unless value="$(arg use_sim)">
     <xacro:property name="camera_sim_link_offset" value="0" />
     <xacro:property name="camera_sim_joint_offset" value="0" />
+    <xacro:property name="lidar_sim_link_offset" value="0" />
+    <xacro:property name="lidar_sim_joint_offset" value="0" />
   </xacro:unless>
 
   <!-- ================================= -->
@@ -57,7 +61,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
@@ -65,7 +69,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
@@ -77,7 +81,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
@@ -85,7 +89,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${camera_sim_link_offset} 0" rpy="0 0 0" />
     </collision>
   </link>
 
@@ -102,9 +106,23 @@
   <link name="camera_fisheye_yaw_link">
     <inertial>
       <mass value="0.05" />
-      <origin xyz="0 0 0" />
+      <origin xyz="0.035 0 0" rpy="0 0 1.5708" />
       <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001" />
     </inertial>
+    <visual>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_fisheye_mount.dae" />
+      </geometry>
+      <origin xyz="0.035 0 0" rpy="0 0 1.5708" />
+      <material name="camera_grey" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_fisheye_mount.stl" />
+      </geometry>
+    </collision>
   </link>
 
   <link name="camera_fisheye_link">
@@ -116,14 +134,14 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_fisheye_camera.stl" />
       </geometry>
       <material name="camera_grey" />
     </visual>
     <collision>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_fisheye_camera.stl" />
       </geometry>
     </collision>
   </link>
@@ -134,8 +152,9 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_mid360_lidar.stl" />
+          filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_mid360_lidar.dae" />
       </geometry>
+      <origin xyz="${lidar_sim_link_offset} 0 0" rpy="0 0 0" />
       <material name="camera_grey" />
     </visual>
     <collision>
@@ -143,6 +162,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v1_bot/v1_bot_mid360_lidar.stl" />
       </geometry>
+      <origin xyz="${lidar_sim_link_offset} 0 0" rpy="0 0 0" />
     </collision>
   </link>
 
@@ -159,7 +179,7 @@
       <inertia ixx="0.0255" ixy="0.0" ixz="0.0" iyy="0.0255" iyz="0.0" izz="0.0510" />
     </inertial>
     <collision>
-      <geometry>
+      <geometry>xacro
         <cylinder length="0.127" radius="0.1016" />
       </geometry>
       <origin xyz="0 0 0" rpy="1.5708 0 0" />
@@ -215,7 +235,7 @@
   <joint name="base_camera_front_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_front_link" />
-    <origin xyz="0.62 0 0.35" rpy="0 0.523599 0" />
+    <origin xyz="0.526 0 0.584" rpy="0 0.785398 0" />
   </joint>
 
   <joint name="camera_front_optical_joint" type="fixed">
@@ -227,7 +247,7 @@
   <joint name="base_camera_back_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_back_link" />
-    <origin xyz="-0.02 0 0.58" rpy="0 0.523599 3.14" />
+    <origin xyz="-0.277 0 0.602" rpy="0 0.785398 3.14" />
   </joint>
 
   <joint name="camera_back_optical_joint" type="fixed">
@@ -239,13 +259,13 @@
   <joint name="base_camera_fisheye_mount_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_fisheye_mount_link" />
-    <origin xyz="0.032 0 0.556" rpy="0 0 0" />
+    <origin xyz="-0.2 0 0.635" rpy="0 0 0" />
   </joint>
 
   <joint name="camera_fisheye_yaw_joint" type="revolute">
     <parent link="camera_fisheye_mount_link" />
     <child link="camera_fisheye_yaw_link" />
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="-0.035 0 0" rpy="0 0 0" />
     <axis xyz="0 0 1" />
     <limit effort="10" velocity="1.0" lower="-3.14159" upper="3.14159" />
     <dynamics damping="0.1" friction="0.1" />
@@ -254,7 +274,7 @@
   <joint name="camera_fisheye_pitch_joint" type="fixed">
     <parent link="camera_fisheye_yaw_link" />
     <child link="camera_fisheye_link" />
-    <origin xyz="0 0 0" rpy="0 0.523599 0" />
+    <origin xyz="0.077 0 -0.006" rpy="0 0.785398 0" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">
@@ -266,13 +286,13 @@
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="livox_frame" />
-    <origin xyz="0.032 0 0.54" rpy="3.14159 0 1.5708" />
+    <origin xyz="-0.23 0 0.59" rpy="3.14159 0 1.5708" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="0.032 0 0.54" rpy="3.14159 0 1.5708" />
+    <origin xyz="-0.23 0 0.59" rpy="3.14159 0 1.5708" />
   </joint>
 
   <!-- ================================= -->
@@ -312,6 +332,12 @@
   <!-- ================================= -->
 
   <xacro:if value="$(arg use_sim)">
+    <gazebo reference="base_link">
+    </gazebo>
+
+    <gazebo reference="camera_fisheye_yaw_link">
+    </gazebo>
+
     <gazebo reference="front_right_wheel_link">
       <material>Gazebo/Grey</material>
       <mu>1.0</mu>
