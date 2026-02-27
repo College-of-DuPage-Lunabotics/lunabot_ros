@@ -127,6 +127,7 @@ def generate_launch_description():
         parameters=[
             gui_params_file,
             {'mode': LaunchConfiguration('use_sim', default='true')},
+            {'steam_mode': LaunchConfiguration('steam_mode', default='false')},
         ],
         output="screen",
     )

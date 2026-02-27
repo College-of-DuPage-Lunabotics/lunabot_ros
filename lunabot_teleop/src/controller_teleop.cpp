@@ -162,17 +162,12 @@ private:
    */
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
-    // Safety check: ensure button indices are valid
-    auto get_button_safe = [&msg](int idx) -> bool {
-      return (idx >= 0 && idx < static_cast<int>(msg->buttons.size())) ? msg->buttons[idx] : false;
-    };
-
     // Read button and axis values
-    bool share_button = get_button_safe(get_button_index(2, 9));
-    bool menu_button = get_button_safe(get_button_index(14, 10));
-    bool home_button = get_button_safe(get_button_index(11, 8));
-    bool x_button = get_button_safe(get_button_index(5, 2)); 
-    bool y_button = get_button_safe(get_button_index(6, 3));
+    bool share_button = msg->buttons[get_button_index(2, 9)];
+    bool menu_button = msg->buttons[get_button_index(14, 10)];
+    bool home_button = msg->buttons[get_button_index(11, 8)];
+    bool x_button = msg->buttons[get_button_index(5, 2)]; 
+    bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
