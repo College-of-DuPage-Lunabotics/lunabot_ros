@@ -727,8 +727,6 @@ def create_teleop_control_group(app):
             font-weight: bold;
             min-width: 40px;
             min-height: 40px;
-            max-width: 55px;
-            max-height: 55px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -754,8 +752,6 @@ def create_teleop_control_group(app):
             font-weight: bold;
             min-width: 40px;
             min-height: 40px;
-            max-width: 55px;
-            max-height: 55px;
         }}
     """
     
@@ -984,15 +980,15 @@ def create_action_control_group(app):
     
     app.auto_btn = QPushButton("One Cycle Auto")
     app.auto_btn.setStyleSheet(Styles.blue_button(size=12))
-    app.auto_btn.setMinimumHeight(24)
-    app.auto_btn.setMaximumHeight(26)
+    app.auto_btn.setMinimumHeight(32)
+    app.auto_btn.setMaximumHeight(36)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
     app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=12))
-    app.emergency_stop_btn.setMinimumHeight(28)
-    app.emergency_stop_btn.setMaximumHeight(28)
+    app.emergency_stop_btn.setMinimumHeight(32)
+    app.emergency_stop_btn.setMaximumHeight(36)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
     app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
