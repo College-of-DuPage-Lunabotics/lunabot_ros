@@ -6,4 +6,4 @@
       robot_user: "codetc"  # SSH username for robot PC
     
     # Controller configuration
-    steam_mode: false  # Use Steam Deck controller mapping (true) or Xbox (false)
+    steam_mode: true  # Use Steam Deck controller mapping (true) or Xbox (false)

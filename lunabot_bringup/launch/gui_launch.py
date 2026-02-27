@@ -62,7 +62,7 @@ def generate_launch_description():
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
     gui_params_file = os.path.join(
-        config_dir, "params", "gui_params.yaml"
+        config_dir, "params", "gui","gui_params.yaml"
     )
 
     declare_robot_type = DeclareLaunchArgument(
