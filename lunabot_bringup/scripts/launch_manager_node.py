@@ -46,8 +46,9 @@ class LaunchManagerNode(Node):
         """Handle launch system service request"""
         system_name = request.system_name
         use_sim = request.use_sim
+        steam_mode = request.steam_mode
         
-        self.get_logger().info(f'Launch request: {system_name} (sim={use_sim})')
+        self.get_logger().info(f'Launch request: {system_name} (sim={use_sim}, steam={steam_mode})')
         
         # Check if already running
         if self.processes.get(system_name) is not None:
@@ -59,7 +60,7 @@ class LaunchManagerNode(Node):
         try:
             if system_name == 'hardware':
                 # Special case: hardware launch
-                response.success, response.message = self._launch_hardware()
+                response.success, response.message = self._launch_hardware(steam_mode)
             else:
                 # Launch standard system
                 response.success, response.message = self._launch_ros_system(system_name, use_sim)
@@ -153,12 +154,13 @@ class LaunchManagerNode(Node):
         except Exception as e:
             return False, str(e)
     
-    def _launch_hardware(self):
+    def _launch_hardware(self, steam_mode=False):
         """Launch hardware (CAN + sensors)"""
         try:
-            # Launch hardware (output goes to systemd journal)
+            # Launch hardware with steam_mode parameter (output goes to systemd journal)
+            steam_arg = 'true' if steam_mode else 'false'
             process = subprocess.Popen(
-                ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
+                ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
                 stdin=subprocess.DEVNULL,
                 stdout=None,  # Inherit parent's stdout (systemd journal)
                 stderr=None,  # Inherit parent's stderr (systemd journal)

@@ -1,6 +1,7 @@
 # Service to launch a system on the robot
 string system_name  # pointlio, mapping, nav2, localization, hardware
 bool use_sim        # true for simulation, false for real hardware
+bool steam_mode     # true for Steam Deck controller, false for Xbox
 ---
 bool success
 string message

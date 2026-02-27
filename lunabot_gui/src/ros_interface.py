@@ -405,6 +405,7 @@ class RobotInterface:
                 request = LaunchSystem.Request()
                 request.system_name = 'hardware'
                 request.use_sim = False
+                request.steam_mode = self.steam_mode
                 
                 if not self.launch_client.wait_for_service(timeout_sec=5.0):
                     self.node.get_logger().error('Launch manager service not available')
