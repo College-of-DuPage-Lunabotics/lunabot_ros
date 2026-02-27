@@ -164,14 +164,20 @@ private:
   {
     // Read button and axis values
     bool share_button = msg->buttons[get_button_index(2, 9)];
-    bool menu_button = msg->buttons[get_button_index(13, 10)];
+    bool menu_button = msg->buttons[get_button_index(14, 10)];
     bool home_button = msg->buttons[get_button_index(11, 8)];
-    bool x_button = msg->buttons[get_button_index(5, 2)];
+    bool x_button = msg->buttons[get_button_index(5, 2)]; 
     bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    right_joystick_y_ = -msg->axes[4];
+    
+    // Right joystick Y axis differs between controllers
+    if (steam_mode_) {
+      right_joystick_y_ = -msg->axes[3];
+    } else {
+      right_joystick_y_ = -msg->axes[4];
+    }
 
     // Detect button presses (rising edges)
     bool x_pressed = detect_button_press(x_button, prev_x_button_);
