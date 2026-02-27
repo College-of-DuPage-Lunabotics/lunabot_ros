@@ -755,12 +755,15 @@ class LunabotGUI(QMainWindow):
     
     def update_ui(self):
         """Update UI elements with latest data"""
-        # Show ONLY averages - what competition judges (RX Avg + TX Avg = Total Avg)
+        # Show total average bandwidth (since startup)
         self.bandwidth_total_label.setText(f"{self.robot.bandwidth_avg_total:.2f} Mbps")
-        self.bandwidth_rx_label.setText(f"{self.robot.bandwidth_avg_rx:.2f} Mbps")
-        self.bandwidth_tx_label.setText(f"{self.robot.bandwidth_avg_tx:.2f} Mbps")
         
-        # Use running average for progress bar
+        # Show current instantaneous bandwidth
+        self.bandwidth_total_current_label.setText(f"{self.robot.bandwidth_total:.2f} Mbps")
+        self.bandwidth_rx_current_label.setText(f"{self.robot.bandwidth_rx:.2f} Mbps")
+        self.bandwidth_tx_current_label.setText(f"{self.robot.bandwidth_tx:.2f} Mbps")
+        
+        # Use total average for progress bar
         bandwidth_percent = min(100, int((self.robot.bandwidth_avg_total / 4.0) * 100))
         self.bandwidth_progress.setValue(bandwidth_percent)
         

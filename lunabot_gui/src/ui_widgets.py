@@ -256,39 +256,51 @@ def create_network_group(app):
     values_container = QHBoxLayout()
     values_container.setSpacing(6)
     
-    # Total
-    total_label = QLabel("Total Avg:")
-    total_label.setFont(QFont("Monospace", 9))
-    total_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(total_label)
-    app.bandwidth_total_label = QLabel("0.0000 Mbps")
+    # Total Avg
+    total_avg_label = QLabel("Avg:")
+    total_avg_label.setFont(QFont("Monospace", 9))
+    total_avg_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(total_avg_label)
+    app.bandwidth_total_label = QLabel("0.00 Mbps")
     app.bandwidth_total_label.setFont(QFont("Monospace", 9))
     app.bandwidth_total_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
     values_container.addWidget(app.bandwidth_total_label)
     
-    values_container.addSpacing(6)
+    values_container.addSpacing(8)
     
-    # RX
-    rx_label = QLabel("RX Avg:")
-    rx_label.setFont(QFont("Monospace", 9))
-    rx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(rx_label)
-    app.bandwidth_rx_label = QLabel("0.0000 Mbps")
-    app.bandwidth_rx_label.setFont(QFont("Monospace", 9))
-    app.bandwidth_rx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(app.bandwidth_rx_label)
+    # Total Current
+    total_current_label = QLabel("Total:")
+    total_current_label.setFont(QFont("Monospace", 9))
+    total_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(total_current_label)
+    app.bandwidth_total_current_label = QLabel("0.00 Mbps")
+    app.bandwidth_total_current_label.setFont(QFont("Monospace", 9))
+    app.bandwidth_total_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(app.bandwidth_total_current_label)
     
-    values_container.addSpacing(6)
+    values_container.addSpacing(8)
     
-    # TX
-    tx_label = QLabel("TX Avg:")
-    tx_label.setFont(QFont("Monospace", 9))
-    tx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(tx_label)
-    app.bandwidth_tx_label = QLabel("0.0000 Mbps")
-    app.bandwidth_tx_label.setFont(QFont("Monospace", 9))
-    app.bandwidth_tx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(app.bandwidth_tx_label)
+    # RX Current
+    rx_current_label = QLabel("RX:")
+    rx_current_label.setFont(QFont("Monospace", 9))
+    rx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(rx_current_label)
+    app.bandwidth_rx_current_label = QLabel("0.00 Mbps")
+    app.bandwidth_rx_current_label.setFont(QFont("Monospace", 9))
+    app.bandwidth_rx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(app.bandwidth_rx_current_label)
+    
+    values_container.addSpacing(8)
+    
+    # TX Current
+    tx_current_label = QLabel("TX:")
+    tx_current_label.setFont(QFont("Monospace", 9))
+    tx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(tx_current_label)
+    app.bandwidth_tx_current_label = QLabel("0.00 Mbps")
+    app.bandwidth_tx_current_label.setFont(QFont("Monospace", 9))
+    app.bandwidth_tx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
+    values_container.addWidget(app.bandwidth_tx_current_label)
     
     values_container.addStretch()
     bandwidth_layout.addLayout(values_container)
