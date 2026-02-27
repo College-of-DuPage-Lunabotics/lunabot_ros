@@ -316,7 +316,8 @@ def create_network_group(app):
     bandwidth_layout.addWidget(app.bandwidth_progress)
     
     bandwidth_group.setLayout(bandwidth_layout)
-    main_layout.addWidget(bandwidth_group, 1)
+    bandwidth_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+    main_layout.addWidget(bandwidth_group, 0)  # Don't stretch bandwidth
     
     # Network Config Section (right)
     config_group = QGroupBox("Network Config")
@@ -385,7 +386,8 @@ def create_network_group(app):
     
     config_layout.addStretch()
     config_group.setLayout(config_layout)
-    main_layout.addWidget(config_group, 1)
+    config_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    main_layout.addWidget(config_group, 1)  # Let config stretch more
     
     return group
 
@@ -720,11 +722,13 @@ def create_teleop_control_group(app):
             color: white;
             border: none;
             border-radius: 2px;
-            padding: 10px;
+            padding: 8px;
             font-size: 14px;
             font-weight: bold;
-            min-width: 45px;
-            min-height: 45px;
+            min-width: 50px;
+            min-height: 50px;
+            max-width: 70px;
+            max-height: 70px;
         }}
         QPushButton:hover {{
             background-color: {Colors.BTN_HOVER};
@@ -745,11 +749,13 @@ def create_teleop_control_group(app):
             color: white;
             border: none;
             border-radius: 2px;
-            padding: 10px;
+            padding: 8px;
             font-size: 14px;
             font-weight: bold;
-            min-width: 45px;
-            min-height: 45px;
+            min-width: 50px;
+            min-height: 50px;
+            max-width: 70px;
+            max-height: 70px;
         }}
     """
     
@@ -796,7 +802,7 @@ def create_teleop_control_group(app):
     
     # WASD button grid
     wasd_grid = QGridLayout()
-    wasd_grid.setSpacing(8)  # Spacing for easier clicking
+    wasd_grid.setSpacing(12)  # Increased spacing for small screens
     
     app.btn_w = QPushButton("W")
     app.btn_a = QPushButton("A")
@@ -901,7 +907,7 @@ def create_action_control_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(5)  # Spacing between buttons for easier clicking
+    layout.setSpacing(4)  # Spacing between buttons
     layout.setContentsMargins(4, 4, 4, 4)
     
     app.home_btn = QPushButton("Home Actuators")
@@ -995,6 +1001,7 @@ def create_action_control_group(app):
     app.operation_status_label.setWordWrap(True)
     app.operation_status_label.setFont(QFont("Monospace", 10))
     app.operation_status_label.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-weight: bold; background-color: transparent;")
+    app.operation_status_label.setMaximumHeight(60)  # Limit status label height
     layout.addWidget(app.operation_status_label)
     
     group.setLayout(layout)

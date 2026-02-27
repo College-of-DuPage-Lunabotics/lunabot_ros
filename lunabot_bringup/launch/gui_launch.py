@@ -44,14 +44,32 @@ def set_world_file(context, *args, **kwargs):
     return [SetLaunchConfiguration("world_file", world_files.get(world_type, world_files["artemis"]))]
 
 
+def set_robot_urdf(context, *args, **kwargs):
+    description_dir = get_package_share_directory("lunabot_description")
+    robot_type = context.launch_configurations.get("robot_type")
+    urdf_file = os.path.join(description_dir, "urdf", f"{robot_type}.urdf.xacro")
+    return [SetLaunchConfiguration("urdf_file", urdf_file)]
+
+
+def set_robot_entity_name(context, *args, **kwargs):
+    robot_type = context.launch_configurations.get("robot_type")
+    return [SetLaunchConfiguration("robot_entity", robot_type)]
+
+
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     description_dir = get_package_share_directory("lunabot_description")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    urdf_file = os.path.join(description_dir, "urdf", "v1_bot.urdf.xacro")
     gui_params_file = os.path.join(
         config_dir, "params", "gui_params.yaml"
+    )
+
+    declare_robot_type = DeclareLaunchArgument(
+        "robot_type",
+        default_value="v1_bot",
+        choices=["v1_bot", "v2_bot"],
+        description="Which robot model to use (v1_bot or v2_bot)",
     )
 
     declare_use_sim = DeclareLaunchArgument(
@@ -101,7 +119,7 @@ def generate_launch_description():
         name="lunabot_gui",
         parameters=[
             gui_params_file,
-            {'mode': LaunchConfiguration('use_sim', default='true')},  # Pass use_sim as mode (true=sim, false=real)
+            {'mode': LaunchConfiguration('use_sim', default='true')},
         ],
         output="screen",
     )
@@ -116,7 +134,7 @@ def generate_launch_description():
         executable="bandwidth_monitor.py",
         name="bandwidth_monitor",
         output="screen",
-        parameters=[{'interface': 'wlo1'}],  # Force WiFi interface
+        parameters=[{'interface': 'wlo1'}],  # Force WiFi interface for now
     )
 
     robot_state_publisher = Node(
@@ -126,7 +144,7 @@ def generate_launch_description():
         parameters=[
             {
                 "robot_description": Command(
-                    ["xacro ", urdf_file, " use_sim:=", LaunchConfiguration("use_sim")]
+                    ["xacro ", LaunchConfiguration("urdf_file"), " use_sim:=", LaunchConfiguration("use_sim")]
                 ),
                 "use_sim_time": LaunchConfiguration("use_sim"),
             }
@@ -158,7 +176,7 @@ def generate_launch_description():
             "-topic",
             "robot_description",
             "-entity",
-            "v2_bot",
+            LaunchConfiguration("robot_entity"),
             "-x",
             LaunchConfiguration("spawn_x"),
             "-y",
@@ -171,7 +189,6 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Only launch action servers in sim mode - in real mode they're started with hardware
     actions_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -243,10 +260,14 @@ def generate_launch_description():
             image_compressor_node,
             joint_state_broadcaster_spawner,
             diff_drive_controller_spawner,
-            position_controller_spawner,
             camera_controller_spawner,
         ],
         condition=LaunchConfigurationEquals("use_sim", "true"),
+    )
+
+    position_controller_group = GroupAction(
+        actions=[position_controller_spawner],
+        condition=LaunchConfigurationEquals("robot_type", "v2_bot"),
     )
 
     joint_state_publisher_real = GroupAction(
@@ -254,7 +275,6 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals("use_sim", "false"),
     )
 
-    # Joy node for controller input in real mode
     joy_node = Node(
         package="joy",
         executable="joy_node",
@@ -279,12 +299,15 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
+    ld.add_action(declare_robot_type)
     ld.add_action(declare_use_sim)
     ld.add_action(declare_robot_heading)
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
     ld.add_action(declare_viz_mode)
 
+    ld.add_action(OpaqueFunction(function=set_robot_urdf))
+    ld.add_action(OpaqueFunction(function=set_robot_entity_name))
     ld.add_action(OpaqueFunction(function=set_orientation))
     ld.add_action(OpaqueFunction(function=set_world_file))
     ld.add_action(OpaqueFunction(function=set_spawn_coordinates))
@@ -294,6 +317,7 @@ def generate_launch_description():
     ld.add_action(robot_state_publisher)
     ld.add_action(bandwidth_monitor_node)
     ld.add_action(sim_group)
+    ld.add_action(position_controller_group)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
     ld.add_action(actions_launch)

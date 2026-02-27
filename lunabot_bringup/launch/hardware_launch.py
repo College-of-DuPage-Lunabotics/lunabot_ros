@@ -15,7 +15,6 @@ def generate_launch_description():
     )
     livox_params_file = os.path.join(config_dir, "params", "mid360", "mid360.json")
 
-    # RealSense D456 Front Camera
     d456_front_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
@@ -37,7 +36,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    # RealSense D456 Back Camera
     d456_back_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
@@ -58,28 +56,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    # IMU Complementary Filter
-    d456_imu_filter = Node(
-        package="imu_complementary_filter",
-        executable="complementary_filter_node",
-        name="complementary_filter_gain_node",
-        output="screen",
-        parameters=[
-            {"publish_tf": False},
-            {"fixed_frame": "odom"},
-            {"do_bias_estimation": True},
-            {"do_adaptive_gain": True},
-            {"use_mag": False},
-            {"gain_acc": 0.01},
-            {"gain_mag": 0.01},
-        ],
-        remappings=[
-            ("imu/data_raw", "/camera_front/imu/data_raw"),
-            ("imu/data", "/camera_front/imu/data"),
-        ],
-    )
-
-    # Controller Teleop
     controller_teleop_node = Node(
         package="lunabot_teleop",
         executable="controller_teleop",
@@ -87,7 +63,6 @@ def generate_launch_description():
         arguments=["--ros-args", "--log-level", "info"],
     )
 
-    # Power Monitor
     power_monitor_node = Node(
         package="lunabot_util",
         executable="power_monitor.py",
@@ -99,8 +74,7 @@ def generate_launch_description():
             {"publish_rate": 10.0},
         ],
     )
-
-    # AprilTag Detection  
+ 
     apriltag_d456_node = Node(
         package="apriltag_ros",
         executable="apriltag_node",
@@ -115,7 +89,6 @@ def generate_launch_description():
         ],
     )
 
-    # Livox Mid-360 LiDAR
     livox_driver = Node(
         package="livox_ros_driver2",
         executable="livox_ros_driver2_node",
@@ -132,7 +105,6 @@ def generate_launch_description():
         ],
     )
 
-    # Image compressor for network bandwidth reduction
     image_compressor_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -144,7 +116,6 @@ def generate_launch_description():
         ],
     )
 
-    # RGBD Sync nodes for RTAB-Map
     rgbd_sync_front = Node(
         package="rtabmap_sync",
         executable="rgbd_sync",
@@ -190,7 +161,6 @@ def generate_launch_description():
         image_compressor_node,
         d456_front_launch,
         d456_back_launch,
-        d456_imu_filter,
         controller_teleop_node,
         power_monitor_node,
         apriltag_d456_node,

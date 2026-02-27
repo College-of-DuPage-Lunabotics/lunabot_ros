@@ -295,7 +295,19 @@ class LunabotGUI(QMainWindow):
         
         sidebar_container_layout.addWidget(self.sidebar_widget)
         
-        # Edge tab
+        # Edge tab container - positions toggle button at bottom
+        edge_tab_container = QWidget()
+        edge_tab_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        edge_tab_container.setMaximumWidth(30)
+        edge_tab_layout = QVBoxLayout()
+        edge_tab_layout.setContentsMargins(0, 0, 0, 0)
+        edge_tab_layout.setSpacing(0)
+        edge_tab_container.setLayout(edge_tab_layout)
+        
+        # Add stretch at top to push button to bottom
+        edge_tab_layout.addStretch(1)
+        
+        # Edge tab button
         self.edge_tab = QPushButton("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
         self.edge_tab.setStyleSheet(f"""
             QPushButton {{
@@ -315,8 +327,11 @@ class LunabotGUI(QMainWindow):
             }}
         """)
         self.edge_tab.setMaximumWidth(30)
+        self.edge_tab.setFixedHeight(200)  # Fixed height for the button
         self.edge_tab.clicked.connect(self.toggle_sidebar)
-        sidebar_container_layout.addWidget(self.edge_tab)
+        edge_tab_layout.addWidget(self.edge_tab)
+        
+        sidebar_container_layout.addWidget(edge_tab_container)
         
         return self.sidebar_container
     

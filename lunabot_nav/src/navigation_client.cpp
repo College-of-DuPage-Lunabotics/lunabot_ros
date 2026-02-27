@@ -164,12 +164,12 @@ private:
     geometry_msgs::msg::Pose goal_pose;
 
     // Short travel out of starting zone to excavation area
-    goal_pose.position.x = 2.0;
-    goal_pose.position.y = 0.0;
+    goal_pose.position.x = 0.0;
+    goal_pose.position.y = -2.0;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
-    goal_pose.orientation.z = 0.0;
-    goal_pose.orientation.w = 1.0;
+    goal_pose.orientation.z = -0.7071068;
+    goal_pose.orientation.w = 0.7071068;
 
     goal_msg.pose.pose = goal_pose;
     goal_msg.pose.header.stamp = this->now();
@@ -181,7 +181,7 @@ private:
     send_goal_options.feedback_callback =
         std::bind(&NavigationClient::handle_navigation_feedback, this, std::placeholders::_1, std::placeholders::_2);
 
-    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE [2.0, 0.0]...\033[0m");
+    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE [0.0, -2.0]...\033[0m");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -280,12 +280,12 @@ private:
     geometry_msgs::msg::Pose goal_pose;
 
     // Navigate to construction zone coordinates (rotated 180 from excavation for depositing)
-    goal_pose.position.x = -0.4;
-    goal_pose.position.y = -4.5;
+    goal_pose.position.x = -4.5;
+    goal_pose.position.y = 0.4;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
-    goal_pose.orientation.z = 0.0;
-    goal_pose.orientation.w = 1.0;
+    goal_pose.orientation.z = -0.7071068;
+    goal_pose.orientation.w = 0.7071068;
 
     goal_msg.pose.pose = goal_pose;
     goal_msg.pose.header.stamp = this->now();
@@ -297,7 +297,7 @@ private:
     send_goal_options.feedback_callback =
         std::bind(&NavigationClient::handle_construction_feedback, this, std::placeholders::_1, std::placeholders::_2);
 
-    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE [-0.4, -4.5]...\033[0m");
+    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE [-4.5, 0.4]...\033[0m");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 

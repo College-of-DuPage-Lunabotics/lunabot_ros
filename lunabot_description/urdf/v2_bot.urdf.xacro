@@ -121,6 +121,14 @@
     </inertial>
   </link>
 
+  <link name="camera_fisheye_yaw_link">
+    <inertial>
+      <mass value="0.05" />
+      <origin xyz="0 0 0" />
+      <inertia ixx="0.00001" ixy="0.0" ixz="0.0" iyy="0.00001" iyz="0.0" izz="0.00001" />
+    </inertial>
+  </link>
+
   <link name="camera_fisheye_link">
     <inertial>
       <mass value="0.1" />
@@ -254,16 +262,22 @@
   <joint name="base_camera_fisheye_mount_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_fisheye_mount_link" />
-    <origin xyz="-0.22 0 0.564" rpy="0 0.523599 0" />
+    <origin xyz="-0.22 0 0.564" rpy="0 0 0" />
   </joint>
 
   <joint name="camera_fisheye_yaw_joint" type="revolute">
     <parent link="camera_fisheye_mount_link" />
-    <child link="camera_fisheye_link" />
+    <child link="camera_fisheye_yaw_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
     <axis xyz="0 0 1" />
     <limit effort="10" velocity="1.0" lower="-3.14159" upper="3.14159" />
     <dynamics damping="0.1" friction="0.1" />
+  </joint>
+
+  <joint name="camera_fisheye_pitch_joint" type="fixed">
+    <parent link="camera_fisheye_yaw_link" />
+    <child link="camera_fisheye_link" />
+    <origin xyz="0 0 0" rpy="0 0.523599 0" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">

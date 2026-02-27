@@ -11,7 +11,6 @@ def launch_setup(context, *args, **kwargs):
     config_dir = get_package_share_directory("lunabot_config")
     use_sim = LaunchConfiguration("use_sim").perform(context)
     
-    # Select the appropriate config file based on use_sim parameter
     if use_sim.lower() == "true":
         point_lio_config = os.path.join(
             config_dir, "params", "point_lio", "mid360_sim.yaml"
