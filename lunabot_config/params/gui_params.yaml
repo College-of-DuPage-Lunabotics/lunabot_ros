@@ -4,3 +4,6 @@
     network:
       robot_host: "192.168.0.250"  # Robot PC IP address
       robot_user: "codetc"  # SSH username for robot PC
+    
+    # Controller configuration
+    steam_mode: false  # Use Steam Deck controller mapping (true) or Xbox (false)

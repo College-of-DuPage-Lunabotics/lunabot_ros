@@ -106,6 +106,13 @@ def generate_launch_description():
         description="Choose visualization mode: 'rviz' for RViz2 or 'gui' for custom PyQt GUI.",
     )
 
+    declare_steam_mode = DeclareLaunchArgument(
+        "steam_mode",
+        default_value="false",
+        choices=["true", "false"],
+        description="Use Steam Deck controller mapping (true) or Xbox controller mapping (false).",
+    )
+
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
@@ -305,6 +312,7 @@ def generate_launch_description():
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
     ld.add_action(declare_viz_mode)
+    ld.add_action(declare_steam_mode)
 
     ld.add_action(OpaqueFunction(function=set_robot_urdf))
     ld.add_action(OpaqueFunction(function=set_robot_entity_name))

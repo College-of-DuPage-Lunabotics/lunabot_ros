@@ -42,6 +42,12 @@ public:
     , left_wheel_motor_("can0", 4)
     , vibration_motor_("can0", 5)
   {
+    // Declare and get controller mode parameter
+    declare_parameter("steam_mode", false);
+    get_parameter("steam_mode", steam_mode_);
+    
+    RCLCPP_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "STEAM DECK" : "XBOX");
+
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
 
@@ -101,6 +107,17 @@ private:
   }
 
   /**
+   * @brief Get button index based on controller mode.
+   * @param steam_idx Button index for Steam Deck controller.
+   * @param xbox_idx Button index for Xbox controller.
+   * @return The correct button index for current mode.
+   */
+  int get_button_index(int steam_idx, int xbox_idx) const
+  {
+    return steam_mode_ ? steam_idx : xbox_idx;
+  }
+
+  /**
    * @brief Control loop at fixed rate
    */
   void control_loop()
@@ -146,11 +163,11 @@ private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
     // Read button and axis values
-    bool share_button = msg->buttons[9];  // View button
-    bool menu_button = msg->buttons[10];  // Menu button
-    bool home_button = msg->buttons[8];   // Xbox button
-    bool x_button = msg->buttons[2];      // X button
-    bool y_button = msg->buttons[3];      // Y button
+    bool share_button = msg->buttons[get_button_index(2, 9)];
+    bool menu_button = msg->buttons[get_button_index(13, 10)];
+    bool home_button = msg->buttons[get_button_index(11, 8)];
+    bool x_button = msg->buttons[get_button_index(5, 2)];
+    bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
@@ -306,6 +323,7 @@ private:
   bool manual_enabled_ = true;
   bool robot_disabled_ = false;
   bool vibration_enabled_ = false;
+  bool steam_mode_ = false;
 
   // Button states
   bool prev_x_button_ = false;

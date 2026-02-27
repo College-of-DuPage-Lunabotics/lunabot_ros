@@ -42,6 +42,7 @@ class RobotInterface:
         # Declare and read network parameters from config
         self.node.declare_parameter('network.robot_host', '192.168.0.250')
         self.node.declare_parameter('network.robot_user', 'codetc')
+        self.node.declare_parameter('steam_mode', False)
         
         # Parse mode parameter
         if isinstance(mode_param, bool):
@@ -60,6 +61,9 @@ class RobotInterface:
         self.robot_user = self.node.get_parameter('network.robot_user').value
         self.robot_workspace = '~/lunabot_ws'
         self.is_remote = self.is_real_mode
+        self.steam_mode = self.node.get_parameter('steam_mode').value
+        
+        self.node.get_logger().info(f'Controller mode: {"Steam Deck" if self.steam_mode else "Xbox"}')
         
         if self.is_remote:
             self.node.get_logger().info(f'Remote robot: {self.robot_user}@{self.robot_host}:{self.robot_workspace}')
@@ -428,8 +432,9 @@ class RobotInterface:
                     return
             else:
                 # Local launch
+                steam_arg = 'true' if self.steam_mode else 'false'
                 self.launch_processes['hardware'] = subprocess.Popen(
-                    ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
+                    ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             self.hardware_enabled = True

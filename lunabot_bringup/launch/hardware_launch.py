@@ -3,7 +3,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -14,6 +15,13 @@ def generate_launch_description():
         config_dir, "params", "apriltag", "tag_params.yaml"
     )
     livox_params_file = os.path.join(config_dir, "params", "mid360", "mid360.json")
+
+    declare_steam_mode = DeclareLaunchArgument(
+        "steam_mode",
+        default_value="false",
+        choices=["true", "false"],
+        description="Use Steam Deck controller mapping (true) or Xbox controller mapping (false).",
+    )
 
     d456_front_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -60,6 +68,7 @@ def generate_launch_description():
         package="lunabot_teleop",
         executable="controller_teleop",
         name="controller_teleop",
+        parameters=[{'steam_mode': LaunchConfiguration('steam_mode')}],
         arguments=["--ros-args", "--log-level", "info"],
     )
 
@@ -157,6 +166,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        declare_steam_mode,
         livox_driver,
         image_compressor_node,
         d456_front_launch,
