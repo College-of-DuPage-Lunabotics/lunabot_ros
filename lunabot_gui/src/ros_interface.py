@@ -238,7 +238,7 @@ class RobotInterface:
             if self.on_camera_update:
                 self.on_camera_update(camera_name, cv_image)
         except Exception as e:
-            self.log.error(f'{camera_name.capitalize()} camera error: {e}')
+            self.log.failure(f'{camera_name.capitalize()} camera error: {e}')
     
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x

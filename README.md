@@ -24,6 +24,7 @@ This repository contains the software developed by the College of DuPage team fo
 - [lunabot_config](lunabot_config/README.md): Configuration files for Nav2, SLAM, sensors, and RViz2.
 - [lunabot_description](lunabot_description/README.md): Robot URDF descriptions and meshes.
 - [lunabot_gui](lunabot_gui/README.md): PyQt5 GUI for robot control and monitoring.
+- [lunabot_logger](lunabot_logger/README.md): Shared logging library with colored output for C++ and Python nodes.
 - [lunabot_msgs](lunabot_msgs/README.md): Custom ROS messages, actions, and services.
 - [lunabot_nav](lunabot_nav/README.md): Autonomy action servers and navigation client.
 - [lunabot_sim](lunabot_sim/README.md): Gazebo simulation models and world files.
