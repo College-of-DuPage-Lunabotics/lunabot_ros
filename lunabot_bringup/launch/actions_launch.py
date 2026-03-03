@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Actions Launch
-Starts excavation and depositing action servers
-"""
-
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, GroupAction

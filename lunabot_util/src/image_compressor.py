@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import Image, CompressedImage
-from cv_bridge import CvBridge
 import cv2
 import numpy as np
+
+import rclpy
+from cv_bridge import CvBridge
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage, Image
+
+from lunabot_logger import Logger
 
 
 class ImageCompressor(Node):
     def __init__(self):
         super().__init__('image_compressor')
-        
-        # Declare parameters
+        self.log = Logger(self)
+
         self.declare_parameter('jpeg_quality', 40)  # Lower = more compression
         self.declare_parameter('scale', 1.0)  # Additional downscaling if needed
         
@@ -53,30 +56,26 @@ class ImageCompressor(Node):
             '/camera_fisheye/color/image_compressed',
             10)
         
-        self.get_logger().info(
+        self.log.success(
             f'Image compressor started: quality={self.jpeg_quality}, scale={self.scale}')
     
     def compress_image(self, msg):
         """Convert and compress image with configurable quality"""
         try:
-            # Convert ROS Image to OpenCV
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            
-            # Optional downscaling
+
             if self.scale != 1.0:
                 new_width = int(cv_image.shape[1] * self.scale)
                 new_height = int(cv_image.shape[0] * self.scale)
                 cv_image = cv2.resize(cv_image, (new_width, new_height))
-            
-            # Compress with custom quality
+
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality]
             result, encoded = cv2.imencode('.jpg', cv_image, encode_param)
-            
+
             if not result:
-                self.get_logger().error('Failed to encode image')
+                self.log.failure('Failed to encode image')
                 return None
-            
-            # Create CompressedImage message
+
             compressed_msg = CompressedImage()
             compressed_msg.header = msg.header
             compressed_msg.format = "jpeg"
@@ -85,7 +84,7 @@ class ImageCompressor(Node):
             return compressed_msg
             
         except Exception as e:
-            self.get_logger().error(f'Compression error: {e}')
+            self.log.failure(f'Compression error: {e}')
             return None
     
     def front_callback(self, msg):

@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 import math
-from PyQt5.QtWidgets import (QGroupBox, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QGridLayout, QProgressBar, QSizePolicy, QLineEdit)
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (QGridLayout, QGroupBox, QHBoxLayout, QLabel,
+                              QLineEdit, QProgressBar, QPushButton, QSizePolicy,
+                              QVBoxLayout)
+
 from gui_styles import Colors, Styles
 
-# Font size constants (pt) for Monospace labels throughout widget creation
+# Font size constants (pt) for Monospace labels
 _FONT_SM = 9    # dense telemetry values
 _FONT_MD = 10   # subbox data values / status labels
 
+# All create_* functions take "app" (LunabotGUI instance) and attach
+# live-update labels as attributes (e.g. app.power_voltage_label).
+
 
 def create_condensed_telemetry_group(app):
-    """Create condensed telemetry display in one row"""
     group = QGroupBox("Telemetry")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; padding-top: 16px; }}")
@@ -21,7 +26,6 @@ def create_condensed_telemetry_group(app):
     main_layout.setSpacing(4)
     group.setLayout(main_layout)
     
-    # Power Section
     power_group = QGroupBox("Power")
     power_group.setAutoFillBackground(True)
     power_group.setStyleSheet(Styles.subbox())
@@ -35,7 +39,6 @@ def create_condensed_telemetry_group(app):
     power_grid.setColumnStretch(1, 0)
     power_grid.setColumnStretch(4, 0)
     
-    # Left column: Voltage and Current
     voltage_label = QLabel("V:")
     voltage_label.setFont(QFont("Monospace", _FONT_SM))
     voltage_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -62,10 +65,8 @@ def create_condensed_telemetry_group(app):
     current_unit_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
     power_grid.addWidget(current_unit_label, 1, 2)
     
-    # Add spacing column
     power_grid.setColumnMinimumWidth(3, 8)
-    
-    # Right column: Power and Energy
+
     power_label = QLabel("P:")
     power_label.setFont(QFont("Monospace", _FONT_SM))
     power_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -100,14 +101,13 @@ def create_condensed_telemetry_group(app):
     power_group.setLayout(power_layout)
     main_layout.addWidget(power_group, 1)
     
-    # Velocity Section
     velocity_group = QGroupBox("Velocity")
     velocity_group.setAutoFillBackground(True)
     velocity_group.setStyleSheet(Styles.subbox())
     velocity_layout = QVBoxLayout()
     velocity_layout.setSpacing(1)
     velocity_layout.setContentsMargins(3, 2, 3, 2)
-    
+
     vel_layout = QGridLayout()
     vel_layout.setSpacing(1)
     vel_layout.setHorizontalSpacing(2)
@@ -149,14 +149,13 @@ def create_condensed_telemetry_group(app):
     velocity_group.setLayout(velocity_layout)
     main_layout.addWidget(velocity_group, 1)
     
-    # Position Section
     position_group = QGroupBox("Position")
     position_group.setAutoFillBackground(True)
     position_group.setStyleSheet(Styles.subbox())
     position_layout = QVBoxLayout()
     position_layout.setSpacing(1)
     position_layout.setContentsMargins(3, 2, 3, 2)
-    
+
     pos_layout = QGridLayout()
     pos_layout.setSpacing(1)
     pos_layout.setHorizontalSpacing(2)
@@ -198,14 +197,13 @@ def create_condensed_telemetry_group(app):
     position_group.setLayout(position_layout)
     main_layout.addWidget(position_group, 1)
     
-    # Bucket Angle Section
     bucket_group = QGroupBox("Bucket Angle")
     bucket_group.setAutoFillBackground(True)
     bucket_group.setStyleSheet(Styles.subbox())
     bucket_layout = QVBoxLayout()
     bucket_layout.setSpacing(1)
     bucket_layout.setContentsMargins(3, 2, 3, 2)
-    
+
     bucket_value_container = QHBoxLayout()
     app.bucket_angle_label = QLabel("0.0°")
     app.bucket_angle_label.setFont(QFont("Monospace", _FONT_SM))
@@ -217,14 +215,13 @@ def create_condensed_telemetry_group(app):
     bucket_group.setLayout(bucket_layout)
     main_layout.addWidget(bucket_group, 1)
     
-    # Vibration State Section
     vibration_group = QGroupBox("Vibration State")
     vibration_group.setAutoFillBackground(True)
     vibration_group.setStyleSheet(Styles.subbox())
     vibration_layout = QVBoxLayout()
     vibration_layout.setSpacing(1)
     vibration_layout.setContentsMargins(3, 2, 3, 2)
-    
+
     vibration_value_container = QHBoxLayout()
     app.vibration_state_label = QLabel("OFF")
     app.vibration_state_label.setFont(QFont("Monospace", _FONT_SM))
@@ -240,7 +237,6 @@ def create_condensed_telemetry_group(app):
 
 
 def create_network_group(app):
-    """Create network monitoring and configuration display"""
     group = QGroupBox("Network")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; padding-top: 16px; }}")
@@ -249,7 +245,6 @@ def create_network_group(app):
     main_layout.setSpacing(4)
     group.setLayout(main_layout)
     
-    # Bandwidth Section (left)
     bandwidth_group = QGroupBox("Bandwidth")
     bandwidth_group.setAutoFillBackground(True)
     bandwidth_group.setStyleSheet(Styles.subbox())
@@ -257,11 +252,9 @@ def create_network_group(app):
     bandwidth_layout.setSpacing(1)
     bandwidth_layout.setContentsMargins(3, 2, 3, 2)
     
-    # All bandwidth values on one line
     values_container = QHBoxLayout()
     values_container.setSpacing(6)
-    
-    # Total Avg
+
     total_avg_label = QLabel("Avg:")
     total_avg_label.setFont(QFont("Monospace", _FONT_SM))
     total_avg_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -272,8 +265,7 @@ def create_network_group(app):
     values_container.addWidget(app.bandwidth_total_label)
     
     values_container.addSpacing(8)
-    
-    # Total Current
+
     total_current_label = QLabel("Total:")
     total_current_label.setFont(QFont("Monospace", _FONT_SM))
     total_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -284,8 +276,7 @@ def create_network_group(app):
     values_container.addWidget(app.bandwidth_total_current_label)
     
     values_container.addSpacing(8)
-    
-    # RX Current
+
     rx_current_label = QLabel("RX:")
     rx_current_label.setFont(QFont("Monospace", _FONT_SM))
     rx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -296,8 +287,7 @@ def create_network_group(app):
     values_container.addWidget(app.bandwidth_rx_current_label)
     
     values_container.addSpacing(8)
-    
-    # TX Current
+
     tx_current_label = QLabel("TX:")
     tx_current_label.setFont(QFont("Monospace", _FONT_SM))
     tx_current_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -311,20 +301,18 @@ def create_network_group(app):
     bandwidth_layout.addLayout(values_container)
     
     bandwidth_layout.addSpacing(2)
-    
-    # Progress bar for bandwidth
+
     app.bandwidth_progress = QProgressBar()
     app.bandwidth_progress.setMaximum(100)
     app.bandwidth_progress.setValue(0)
     app.bandwidth_progress.setTextVisible(False)
     app.bandwidth_progress.setMaximumHeight(8)
     bandwidth_layout.addWidget(app.bandwidth_progress)
-    
+
     bandwidth_group.setLayout(bandwidth_layout)
     bandwidth_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
     main_layout.addWidget(bandwidth_group, 0)  # Don't stretch bandwidth
     
-    # Network Config Section (right)
     config_group = QGroupBox("Network Config")
     config_group.setAutoFillBackground(True)
     config_group.setStyleSheet(Styles.subbox())
@@ -332,7 +320,6 @@ def create_network_group(app):
     config_layout.setSpacing(5)
     config_layout.setContentsMargins(3, 2, 3, 2)
     
-    # Robot Host
     host_label = QLabel("Host:")
     host_label.setFont(QFont("Monospace", _FONT_SM))
     host_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -345,8 +332,7 @@ def create_network_group(app):
     config_layout.addWidget(app.robot_host_edit)
     
     config_layout.addSpacing(6)
-    
-    # Robot User
+
     user_label = QLabel("User:")
     user_label.setFont(QFont("Monospace", _FONT_SM))
     user_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -359,8 +345,7 @@ def create_network_group(app):
     config_layout.addWidget(app.robot_user_edit)
     
     config_layout.addSpacing(6)
-    
-    # Apply button
+
     app.network_apply_btn = QPushButton("Apply")
     app.network_apply_btn.setStyleSheet(f"""
         QPushButton {{
@@ -398,7 +383,6 @@ def create_network_group(app):
 
 
 def create_combined_telemetry_group(app):
-    """Create telemetry display with sectioned layout"""
     group = QGroupBox("Telemetry")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -410,8 +394,7 @@ def create_combined_telemetry_group(app):
     # Column 1: Bucket Angle and Bandwidth
     col1_layout = QVBoxLayout()
     col1_layout.setSpacing(7)
-    
-    # Bucket Angle Section
+
     bucket_group = QGroupBox("Bucket Angle")
     bucket_group.setAutoFillBackground(True)
     bucket_group.setStyleSheet(Styles.subbox())
@@ -429,8 +412,7 @@ def create_combined_telemetry_group(app):
     
     bucket_group.setLayout(bucket_layout)
     col1_layout.addWidget(bucket_group, 1)
-    
-    # Vibration State Section
+
     vibration_group = QGroupBox("Vibration State")
     vibration_group.setAutoFillBackground(True)
     vibration_group.setStyleSheet(Styles.subbox())
@@ -448,8 +430,7 @@ def create_combined_telemetry_group(app):
     
     vibration_group.setLayout(vibration_layout)
     col1_layout.addWidget(vibration_group, 1)
-    
-    # Bandwidth Section
+
     bandwidth_group = QGroupBox("Bandwidth")
     bandwidth_group.setAutoFillBackground(True)
     bandwidth_group.setStyleSheet(Styles.subbox())
@@ -457,11 +438,9 @@ def create_combined_telemetry_group(app):
     bandwidth_layout.setSpacing(2)
     bandwidth_layout.setContentsMargins(6, 6, 6, 6)
     
-    # All bandwidth values on one line
     values_container = QHBoxLayout()
     values_container.setSpacing(10)
-    
-    # Total
+
     total_label = QLabel("Total:")
     total_label.setFont(QFont("Monospace", _FONT_MD))
     total_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -472,8 +451,7 @@ def create_combined_telemetry_group(app):
     values_container.addWidget(app.bandwidth_total_label)
     
     values_container.addSpacing(10)
-    
-    # RX
+
     rx_label = QLabel("RX:")
     rx_label.setFont(QFont("Monospace", _FONT_MD))
     rx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -484,8 +462,7 @@ def create_combined_telemetry_group(app):
     values_container.addWidget(app.bandwidth_rx_label)
     
     values_container.addSpacing(10)
-    
-    # TX
+
     tx_label = QLabel("TX:")
     tx_label.setFont(QFont("Monospace", _FONT_MD))
     tx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
@@ -500,24 +477,22 @@ def create_combined_telemetry_group(app):
     
     bandwidth_layout.addSpacing(4)
     
-    # Progress bar for bandwidth
     app.bandwidth_progress = QProgressBar()
     app.bandwidth_progress.setMaximum(100)
     app.bandwidth_progress.setValue(0)
     app.bandwidth_progress.setTextVisible(False)
     app.bandwidth_progress.setMaximumHeight(10)
     bandwidth_layout.addWidget(app.bandwidth_progress)
-    
+
     bandwidth_group.setLayout(bandwidth_layout)
     col1_layout.addWidget(bandwidth_group, 1)
-    
+
     main_layout.addLayout(col1_layout, 1)
-    
+
     # Column 2: Velocity and Position
     col2_layout = QVBoxLayout()
     col2_layout.setSpacing(7)
-    
-    # Velocity Section
+
     velocity_group = QGroupBox("Velocity")
     velocity_group.setAutoFillBackground(True)
     velocity_group.setStyleSheet(Styles.subbox())
@@ -565,8 +540,7 @@ def create_combined_telemetry_group(app):
     
     velocity_group.setLayout(velocity_layout)
     col2_layout.addWidget(velocity_group, 1)
-    
-    # Position Section
+
     position_group = QGroupBox("Position")
     position_group.setAutoFillBackground(True)
     position_group.setStyleSheet(Styles.subbox())
@@ -621,7 +595,6 @@ def create_combined_telemetry_group(app):
 
 
 def create_status_group(app):
-    """Create robot status display"""
     group = QGroupBox("Robot Status")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -637,7 +610,6 @@ def create_status_group(app):
 
 
 def create_mode_group(app):
-    """Create mode display and switcher"""
     group = QGroupBox("Robot Mode")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -667,7 +639,6 @@ def create_mode_group(app):
     app.mode_label.setStyleSheet(f"color: {mode_color}; font-weight: bold; font-size: 13px; background-color: transparent;")
     layout.addWidget(app.mode_label, 1)
     
-    # Mode switch button
     mode_switch_btn = QPushButton(button_text)
     mode_switch_btn.setStyleSheet(f"""
         QPushButton {{
@@ -700,7 +671,6 @@ def create_mode_group(app):
     return group
 
 def create_teleop_control_group(app):
-    """Create keyboard teleop control buttons"""
     group = QGroupBox("Keyboard Teleop")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -720,7 +690,6 @@ def create_teleop_control_group(app):
     arrow_label.setAlignment(Qt.AlignCenter)
     bucket_section.addWidget(arrow_label)
     
-    # Button styles
     button_style = f"""
         QPushButton {{
             background-color: {Colors.BTN_INACTIVE};
@@ -760,7 +729,6 @@ def create_teleop_control_group(app):
         }}
     """
     
-    # Arrow buttons for bucket control
     arrow_button_layout = QHBoxLayout()
     arrow_button_layout.setSpacing(4)
     app.btn_up = QPushButton("↑")
@@ -795,13 +763,11 @@ def create_teleop_control_group(app):
     top_row.addLayout(speed_section)
     layout.addLayout(top_row)
     
-    # WASD Movement Controls
     wasd_label = QLabel("Movement")
     wasd_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; font-size: 11px; margin-top: 2px; background-color: transparent;")
     wasd_label.setAlignment(Qt.AlignCenter)
     layout.addWidget(wasd_label)
     
-    # WASD button grid
     wasd_grid = QGridLayout()
     wasd_grid.setSpacing(12)  # Increased spacing for small screens
     
@@ -830,7 +796,6 @@ def create_teleop_control_group(app):
     
     layout.addLayout(wasd_grid)
     
-    # Store button references
     app.teleop_buttons = {
         'w': app.btn_w, 'a': app.btn_a, 's': app.btn_s, 'd': app.btn_d,
         'up': app.btn_up, 'down': app.btn_down
@@ -843,7 +808,6 @@ def create_teleop_control_group(app):
 
 
 def create_launch_group(app):
-    """Create system launch controls"""
     group = QGroupBox("Launch")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -851,21 +815,21 @@ def create_launch_group(app):
     layout.setSpacing(4)  # Spacing between buttons
     layout.setContentsMargins(4, 4, 4, 4)
     
-    app.pointlio_btn = QPushButton("PointLIO")
+    app.pointlio_btn = QPushButton("Point-LIO")
     app.pointlio_btn.setStyleSheet(Styles.standard_button(size=12))
     app.pointlio_btn.setMinimumHeight(24)
     app.pointlio_btn.setMaximumHeight(26)
     app.pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
     layout.addWidget(app.pointlio_btn)
 
-    app.mapping_btn = QPushButton("Mapping")
+    app.mapping_btn = QPushButton("RTAB-Map")
     app.mapping_btn.setStyleSheet(Styles.standard_button(size=12))
     app.mapping_btn.setMinimumHeight(24)
     app.mapping_btn.setMaximumHeight(26)
     app.mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
     layout.addWidget(app.mapping_btn)
 
-    app.nav2_btn = QPushButton("Nav2")
+    app.nav2_btn = QPushButton("Navigation2")
     app.nav2_btn.setStyleSheet(Styles.standard_button(size=12))
     app.nav2_btn.setMinimumHeight(24)
     app.nav2_btn.setMaximumHeight(26)
@@ -884,7 +848,6 @@ def create_launch_group(app):
 
 
 def create_action_control_group(app):
-    """Create action control buttons"""
     group = QGroupBox("Actions")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -899,7 +862,7 @@ def create_action_control_group(app):
     app.home_btn.clicked.connect(app.send_home_goal)
     layout.addWidget(app.home_btn)
     
-    app.localize_btn = QPushButton("Localize")
+    app.localize_btn = QPushButton("Localization")
     app.localize_btn.setStyleSheet(Styles.standard_button(size=12))
     app.localize_btn.setMinimumHeight(24)
     app.localize_btn.setMaximumHeight(26)
@@ -992,7 +955,6 @@ def create_action_control_group(app):
 
 
 def create_camera_control_group(app):
-    """Create fisheye camera rotation controls"""
     group = QGroupBox("Fisheye Camera Rotation")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"""
@@ -1062,7 +1024,6 @@ def create_camera_control_group(app):
 
 
 def create_hardware_group(app):
-    """Create hardware control buttons"""
     group = QGroupBox("Hardware")
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
