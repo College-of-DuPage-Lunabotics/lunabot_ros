@@ -30,7 +30,7 @@ This repository contains the software developed by the College of DuPage team fo
 - [lunabot_sim](lunabot_sim/README.md): Gazebo simulation models and world files.
 - [lunabot_teleop](lunabot_teleop/README.md): Keyboard and controller teleop nodes.
 - [lunabot_util](lunabot_util/README.md): Utility nodes for monitoring and image compression.
-- [third_party_packages](third_party_packages/README.md): Vendored third-party ROS packages (Livox, Point-LIO, RTAB-Map).
+- [third_party_packages](third_party_packages/README.md): Third-party ROS packages (Livox, Point-LIO, RTAB-Map).
 
 ## Installation
 

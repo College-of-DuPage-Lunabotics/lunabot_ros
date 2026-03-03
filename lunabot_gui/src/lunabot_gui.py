@@ -387,7 +387,7 @@ class LunabotGUI(QMainWindow):
 
     def send_excavate_goal(self):
         if self.robot.is_excavating:
-            self.robot.node.get_logger().info('Cancelling excavation')
+            self.robot.node.get_logger().info('Canceling excavation')
             self.robot.cancel_excavate_goal(self.excavate_cancel_callback)
         else:
             self.robot.is_excavating = True
@@ -425,15 +425,15 @@ class LunabotGUI(QMainWindow):
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def excavate_cancel_callback(self, future):
-        self.robot.node.get_logger().info('Excavation cancelled')
+        self.robot.node.get_logger().info('Excavation canceled')
         self.robot.is_excavating = False
         self.excavate_btn.setText("Excavate")
-        self.operation_status_label.setText("Status: Excavation cancelled")
+        self.operation_status_label.setText("Status: Excavation canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def send_deposit_goal(self):
         if self.robot.is_depositing:
-            self.robot.node.get_logger().info('Cancelling deposit')
+            self.robot.node.get_logger().info('Canceling deposit')
             self.robot.cancel_deposit_goal(self.deposit_cancel_callback)
         else:
             self.robot.is_depositing = True
@@ -471,15 +471,15 @@ class LunabotGUI(QMainWindow):
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def deposit_cancel_callback(self, future):
-        self.robot.node.get_logger().info('Depositing cancelled')
+        self.robot.node.get_logger().info('Depositing canceled')
         self.robot.is_depositing = False
         self.deposit_btn.setText("Deposit")
-        self.operation_status_label.setText("Status: Depositing cancelled")
+        self.operation_status_label.setText("Status: Depositing canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def send_home_goal(self):
         if self.robot.is_homing:
-            self.robot.node.get_logger().info('Cancelling homing')
+            self.robot.node.get_logger().info('Canceling homing')
             self.robot.cancel_home_goal(self.home_cancel_callback)
         else:
             self.robot.is_homing = True
@@ -517,10 +517,10 @@ class LunabotGUI(QMainWindow):
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def home_cancel_callback(self, future):
-        self.robot.node.get_logger().info('Homing cancelled')
+        self.robot.node.get_logger().info('Homing canceled')
         self.robot.is_homing = False
         self.home_btn.setText("Home Actuators")
-        self.operation_status_label.setText("Status: Homing cancelled")
+        self.operation_status_label.setText("Status: Homing canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def emergency_stop(self):

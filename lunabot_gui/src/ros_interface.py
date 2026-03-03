@@ -578,8 +578,9 @@ class RobotInterface:
             config_path = '$(ros2 pkg prefix lunabot_config)/share/lunabot_config/rviz/robot_view.rviz'
             
             subprocess.Popen(
-                ['gnome-terminal', '--', 'bash', '-c',
-                 f'{setup_cmd} && rviz2 -d {config_path}; read -p "Press Enter to close..."'],
+                f'{setup_cmd} && rviz2 -d {config_path}',
+                shell=True,
+                executable='/bin/bash'
             )
             
             self.log.success('RViz2 launched')
@@ -605,9 +606,14 @@ class RobotInterface:
     
     def cancel_excavate_goal(self, cancel_callback):
         """Cancel excavation action"""
-        if self.excavation_goal_handle is not None:
+        if self.excavation_goal_handle is not None and self.excavation_goal_handle.accepted:
+            self.log.action('Canceling excavation goal')
             cancel_future = self.excavation_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active excavation goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def send_deposit_goal(self, response_callback, result_callback, cancel_callback):
         """Send depositing action goal"""
@@ -628,9 +634,14 @@ class RobotInterface:
     
     def cancel_deposit_goal(self, cancel_callback):
         """Cancel depositing action"""
-        if self.depositing_goal_handle is not None:
+        if self.depositing_goal_handle is not None and self.depositing_goal_handle.accepted:
+            self.log.action('Canceling depositing goal')
             cancel_future = self.depositing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active depositing goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def send_home_goal(self, response_callback, result_callback, cancel_callback):
         """Send homing action goal"""
@@ -651,9 +662,14 @@ class RobotInterface:
     
     def cancel_home_goal(self, cancel_callback):
         """Cancel homing action"""
-        if self.homing_goal_handle is not None:
+        if self.homing_goal_handle is not None and self.homing_goal_handle.accepted:
+            self.log.action('Canceling homing goal')
             cancel_future = self.homing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active homing goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def launch_navigation_client(self):
         """Launch navigation client for one cycle auto"""
@@ -679,8 +695,10 @@ class RobotInterface:
             use_localization_arg = 'false'
             
             self.navigation_client_process = subprocess.Popen(
-                ['gnome-terminal', '--', 'bash', '-c',
-                 f'{setup_cmd} && ros2 run lunabot_nav navigation_client --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:={use_localization_arg}; read -p "Press Enter to close..."'],
+                f'{setup_cmd} && ros2 run lunabot_nav navigation_client --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:={use_localization_arg}',
+                shell=True,
+                executable='/bin/bash',
+                preexec_fn=os.setsid
             )
             
             self.log.success('Navigation client launched')
@@ -693,7 +711,7 @@ class RobotInterface:
         """Stop navigation client process"""
         if self.navigation_client_process:
             try:
-                self.navigation_client_process.terminate()
+                os.killpg(os.getpgid(self.navigation_client_process.pid), signal.SIGTERM)
                 self.navigation_client_process = None
                 self.log.success('Navigation client stopped')
             except Exception as e:
