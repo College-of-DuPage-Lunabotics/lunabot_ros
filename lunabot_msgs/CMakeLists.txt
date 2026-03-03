@@ -24,10 +24,20 @@ endif()
 
 # Find required packages
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Generate interfaces
-rosidl_generate_interfaces(${PROJECT_NAME} "action/Localization.action"
-                           "action/Excavation.action")
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ControlState.msg"
+  "msg/PowerMonitor.msg"
+  "srv/LaunchSystem.srv"
+  "srv/StopSystem.srv"
+  "action/Localization.action"
+  "action/Excavation.action"
+  "action/Depositing.action"
+  "action/Homing.action"
+  DEPENDENCIES std_msgs
+)
 
 # Export the package
 ament_package()

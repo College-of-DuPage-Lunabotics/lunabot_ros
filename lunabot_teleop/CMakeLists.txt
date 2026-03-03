@@ -24,6 +24,7 @@ endif()
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(sparkcan REQUIRED)
 
 # Define executables
@@ -31,7 +32,7 @@ add_executable(controller_teleop src/controller_teleop.cpp)
 
 # Set target dependencies
 ament_target_dependencies(controller_teleop rclcpp sensor_msgs geometry_msgs
-                          sparkcan)
+                          std_msgs sparkcan)
 
 # Install targets
 install(TARGETS controller_teleop DESTINATION lib/${PROJECT_NAME})

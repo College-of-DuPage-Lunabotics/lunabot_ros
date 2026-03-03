@@ -9,6 +9,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float32.hpp>
 
 #include "SparkMax.hpp"
 
@@ -40,11 +42,39 @@ public:
     , left_wheel_motor_("can0", 4)
     , vibration_motor_("can0", 5)
   {
+    // Declare and get controller mode parameter
+    declare_parameter("steam_mode", false);
+    get_parameter("steam_mode", steam_mode_);
+    
+    RCLCPP_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "STEAM DECK" : "XBOX");
+
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
 
     joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
         "joy", 10, std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
+
+    emergency_stop_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+        "emergency_stop", 10, std::bind(&ControllerTeleop::emergency_stop_callback, this, std::placeholders::_1));
+
+    // Subscribe to mode switch commands from GUI
+    mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+        "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
+
+    // Publishers for robot state
+    manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
+    robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
+    vibration_duty_cycle_publisher_ = create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
+
+    // Timer to publish state periodically
+    state_timer_ = create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&ControllerTeleop::publish_state, this));
+
+    // Timer for motor control at fixed rate 
+    control_timer_ = create_wall_timer(
+        std::chrono::milliseconds(50),
+        std::bind(&ControllerTeleop::control_loop, this));
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
@@ -77,14 +107,53 @@ private:
   }
 
   /**
-   * @brief Drive the robot with the given left and right speeds.
-   * @param left_speed Left wheel speed.
-   * @param right_speed Right wheel speed.
+   * @brief Get button index based on controller mode.
+   * @param steam_idx Button index for Steam Deck controller.
+   * @param xbox_idx Button index for Xbox controller.
+   * @return The correct button index for current mode.
    */
-  void drive(double left_speed, double right_speed)
+  int get_button_index(int steam_idx, int xbox_idx) const
   {
-    left_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(left_speed));
-    right_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(-right_speed));
+    return steam_mode_ ? steam_idx : xbox_idx;
+  }
+
+  /**
+   * @brief Control loop at fixed rate
+   */
+  void control_loop()
+  {
+    // Send heartbeats
+    left_actuator_motor_.Heartbeat();
+    right_actuator_motor_.Heartbeat();
+    vibration_motor_.Heartbeat();
+    left_wheel_motor_.Heartbeat();
+    right_wheel_motor_.Heartbeat();
+
+    if (robot_disabled_)
+    {
+      // Stop all motors if robot is disabled
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
+    }
+    else if (manual_enabled_)
+    {
+      // Control wheel motors with left joystick
+      double left_speed = left_joystick_y_ - left_joystick_x_;
+      double right_speed = left_joystick_y_ + left_joystick_x_;
+      left_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(left_speed));
+      right_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(-right_speed));
+
+      // Control actuators with right joystick
+      double actuator_speed = clamp(right_joystick_y_);
+      left_actuator_motor_.SetDutyCycle(actuator_speed);
+      right_actuator_motor_.SetDutyCycle(actuator_speed);
+
+      // Control vibration motor
+      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 1.0 : 0.0);
+    }
   }
 
   /**
@@ -94,15 +163,21 @@ private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
     // Read button and axis values
-    bool share_button = msg->buttons[9];  // View button
-    bool menu_button = msg->buttons[10];  // Menu button
-    bool home_button = msg->buttons[8];   // Xbox button
-    bool x_button = msg->buttons[2];      // X button
-    bool y_button = msg->buttons[3];      // Y button
+    bool share_button = msg->buttons[get_button_index(2, 9)];
+    bool menu_button = msg->buttons[get_button_index(14, 10)];
+    bool home_button = msg->buttons[get_button_index(11, 8)];
+    bool x_button = msg->buttons[get_button_index(5, 2)]; 
+    bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    right_joystick_y_ = -msg->axes[4];
+    
+    // Right joystick Y axis differs between controllers
+    if (steam_mode_) {
+      right_joystick_y_ = -msg->axes[3];
+    } else {
+      right_joystick_y_ = -msg->axes[4];
+    }
 
     // Detect button presses (rising edges)
     bool x_pressed = detect_button_press(x_button, prev_x_button_);
@@ -116,12 +191,16 @@ private:
     {
       manual_enabled_ = true;
       RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      publish_state();
     }
 
     if (menu_pressed)
     {
       manual_enabled_ = false;
+      // Clear vibration state when switching to auto mode (GUI update only)
+      vibration_enabled_ = false;
       RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      publish_state();
     }
 
     if (home_pressed)
@@ -135,13 +214,15 @@ private:
       {
         RCLCPP_INFO(get_logger(), GREEN "ROBOT ENABLED" RESET);
       }
+      publish_state();
     }
 
-    // Toggle vibration motor
-    if (x_pressed)
+    // Toggle vibration motor and read back duty cycle (manual mode only)
+    if (x_pressed && manual_enabled_)
     {
       vibration_enabled_ = !vibration_enabled_;
       RCLCPP_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
+      publish_state();  // Publish updated duty cycle immediately
     }
 
     // Toggle speed multiplier
@@ -151,30 +232,6 @@ private:
       const char* speed_label = (speed_multiplier_ >= 0.5) ? "FAST" : "SLOW";
       RCLCPP_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
     }
-
-    // Early return if not in manual mode or robot is disabled
-    if (!manual_enabled_ || robot_disabled_)
-    {
-      return;
-    }
-
-    // Send heartbeat and control motors
-    left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
-    vibration_motor_.Heartbeat();
-
-    // Drive wheels with tank drive
-    double left_speed = left_joystick_y_ - left_joystick_x_;
-    double right_speed = left_joystick_y_ + left_joystick_x_;
-    drive(left_speed, right_speed);
-
-    // Control actuators with right joystick
-    double actuator_speed = clamp(right_joystick_y_);
-    left_actuator_motor_.SetDutyCycle(actuator_speed);
-    right_actuator_motor_.SetDutyCycle(actuator_speed);
-
-    // Control vibration motor
-    vibration_motor_.SetDutyCycle(vibration_enabled_ ? 1.0 : 0.0);
   }
 
   /**
@@ -187,27 +244,92 @@ private:
       return;
     }
 
-    // Send heartbeat
-    left_actuator_motor_.Heartbeat();
-
     // Calculate left and right wheel speeds based on linear and angular velocities
     double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
     double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
 
     RCLCPP_INFO(get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
-    // Drive the motors
-    drive(left_cmd, right_cmd);
+    // Send motor commands directly in autonomous mode
+    left_wheel_motor_.SetDutyCycle(clamp(left_cmd));
+    right_wheel_motor_.SetDutyCycle(clamp(-right_cmd));
+  }
+
+  /**
+   * @brief Process emergency stop command.
+   */
+  void emergency_stop_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    if (msg->data)
+    {
+      robot_disabled_ = true;
+      RCLCPP_ERROR(get_logger(), RED "EMERGENCY STOP ACTIVATED!" RESET);
+      // Stop all motors immediately
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
+      publish_state();
+    }
+  }
+
+  /**
+   * @brief Process mode switch command from GUI.
+   */
+  void mode_switch_callback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    manual_enabled_ = msg->data;
+    if (manual_enabled_)
+    {
+      RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+    }
+    else
+    {
+      RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      // Clear vibration state when switching to auto mode
+      vibration_enabled_ = false;
+    }
+    publish_state();
+  }
+
+  /**
+   * @brief Publish robot state (manual mode and disabled status).
+   */
+  void publish_state()
+  {
+    auto manual_msg = std_msgs::msg::Bool();
+    manual_msg.data = manual_enabled_;
+    manual_mode_publisher_->publish(manual_msg);
+
+    auto disabled_msg = std_msgs::msg::Bool();
+    disabled_msg.data = robot_disabled_;
+    robot_disabled_publisher_->publish(disabled_msg);
+
+    // Publish vibration duty cycle (0.0 if off, 1.0 if on)
+    auto duty_msg = std_msgs::msg::Float32();
+    duty_msg.data = vibration_enabled_ ? 1.0 : 0.0;
+    vibration_duty_cycle_publisher_->publish(duty_msg);
   }
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
+
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
+
+  rclcpp::TimerBase::SharedPtr state_timer_;
+  rclcpp::TimerBase::SharedPtr control_timer_;
 
   SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_, vibration_motor_;
 
   bool manual_enabled_ = true;
   bool robot_disabled_ = false;
   bool vibration_enabled_ = false;
+  bool steam_mode_ = false;
 
   // Button states
   bool prev_x_button_ = false;
@@ -220,7 +342,9 @@ private:
   double speed_multiplier_ = 0.3;
 
   // Joystick axes
-  double left_joystick_x_, left_joystick_y_, right_joystick_y_;
+  double left_joystick_x_ = 0.0;
+  double left_joystick_y_ = 0.0;
+  double right_joystick_y_ = 0.0;
 };
 
 /**

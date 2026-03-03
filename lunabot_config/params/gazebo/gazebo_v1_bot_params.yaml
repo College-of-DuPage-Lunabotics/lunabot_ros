@@ -4,9 +4,18 @@ controller_manager:
 
     diff_drive_controller:
       type: diff_drive_controller/DiffDriveController
+    
+    camera_controller:
+      type: position_controllers/JointGroupPositionController
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
+
+camera_controller:
+  ros__parameters:
+    joints:
+      - camera_fisheye_yaw_joint
+    open_loop_control: true
 
 diff_drive_controller:
   ros__parameters:

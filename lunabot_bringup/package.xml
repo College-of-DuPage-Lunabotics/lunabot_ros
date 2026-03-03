@@ -23,12 +23,14 @@
   <depend>gazebo_ros_pkgs</depend>
   <depend>gazebo_ros2_control</depend>
   <depend>xacro</depend>
+  <depend>lunabot_msgs</depend>
   <depend>lunabot_config</depend>
   <depend>lunabot_description</depend>
   <depend>lunabot_nav</depend>
   <depend>lunabot_sim</depend>
   <depend>lunabot_teleop</depend>
   <depend>lunabot_util</depend>
+  <depend>lunabot_gui</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -1,0 +1,13 @@
+[Unit]
+Description=CANable CAN Interface Setup
+After=network.target
+Before=lunabot-launch-manager.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /home/codetc/lunabot_ws/src/lunabot_ros/scripts/canable_start.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

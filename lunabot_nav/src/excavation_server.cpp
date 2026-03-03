@@ -1,7 +1,7 @@
 /**
  * @file excavation_server.cpp
  * @author Grayson Arendt
- * @date 02/15/2025
+ * @date 02/22/2026
  */
 
 #include <chrono>
@@ -31,9 +31,13 @@
 #define YELLOW "\033[1;33m"
 #define CYAN "\033[1;36m"
 
-#define EXCAVATION_TICKS 1000.0  // Number of encoder ticks to lower the bucket
-#define LIFT_TICKS 1000.0        // Number of encoder ticks to lift the bucket up to dump
+#define EXCAVATION_TICKS 1000.0
+#define LIFT_TICKS 1000.0
 
+/**
+ * @class ExcavationServer
+ * @brief Hardware excavation server that controls bucket actuators and manages excavation workflow.
+ */
 class ExcavationServer : public rclcpp::Node
 {
 public:
@@ -42,9 +46,13 @@ public:
   using NavigateToPose = nav2_msgs::action::NavigateToPose;
   using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
+  /**
+   * @brief Constructor for the ExcavationServer class.
+   */
   ExcavationServer()
     : Node("excavation_server")
     , goal_active_(false)
+    , home_offset_(0.0)
     , left_actuator_motor_("can0", 2)
     , right_actuator_motor_("can0", 1)
     , vibration_motor_("can0", 5)
@@ -62,7 +70,6 @@ public:
     planner_publisher_ = this->create_publisher<std_msgs::msg::String>("/planner_selector", selector_qos);
     controller_publisher_ = this->create_publisher<std_msgs::msg::String>("/controller_selector", selector_qos);
 
-    // Configure actuator motors to use encoder feedback
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
     left_actuator_motor_.BurnFlash();
@@ -72,16 +79,41 @@ public:
   }
 
 private:
+  /**
+   * @brief Gets the average position of both bucket actuators.
+   * @return Average encoder position in ticks.
+   */
   double get_actuator_position()
   {
-    // Return average position of both actuators
     left_actuator_motor_.Heartbeat();
     right_actuator_motor_.Heartbeat();
     double left_pos = left_actuator_motor_.GetPosition();
     double right_pos = right_actuator_motor_.GetPosition();
-    return (left_pos + right_pos) / 2.0;
+    // Subtract home offset to get position relative to home
+    return (left_pos + right_pos) / 2.0 - home_offset_;
   }
 
+  /**
+   * @brief Updates the home offset from homing server parameter.
+   */
+  void update_home_offset()
+  {
+    auto homing_node = std::make_shared<rclcpp::Node>("homing_offset_reader");
+    auto param_client = std::make_shared<rclcpp::SyncParametersClient>(homing_node, "/homing_server");
+    if (param_client->wait_for_service(std::chrono::seconds(1)))
+    {
+      auto params = param_client->get_parameters({"actuator_home_offset"});
+      if (!params.empty())
+      {
+        home_offset_ = params[0].as_double();
+        RCLCPP_INFO(this->get_logger(), CYAN "Home offset updated: %.2f ticks" RESET, home_offset_);
+      }
+    }
+  }
+
+  /**
+   * @brief Lowers bucket for excavation.
+   */
   void lower_bucket()
   {
     RCLCPP_INFO(this->get_logger(), CYAN "LOWERING BUCKET..." RESET);
@@ -89,7 +121,7 @@ private:
     double initial_position = get_actuator_position();
     double target_position = initial_position + EXCAVATION_TICKS;
 
-    // Turn on vibration motor during excavation
+    // Turn on vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
@@ -117,6 +149,9 @@ private:
                 initial_position, final_position, final_position - initial_position);
   }
 
+  /**
+   * @brief Lifts bucket up after excavation.
+   */
   void lift_bucket()
   {
     RCLCPP_INFO(this->get_logger(), CYAN "LIFTING BUCKET..." RESET);
@@ -124,7 +159,7 @@ private:
     double initial_position = get_actuator_position();
     double target_position = initial_position - LIFT_TICKS;
 
-    // Turn on vibration motor during lift
+    // Turn on vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
@@ -144,6 +179,7 @@ private:
     right_actuator_motor_.SetDutyCycle(0.0);
 
     // Turn off vibration motor
+    // Turn off vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.0);
 
@@ -152,17 +188,24 @@ private:
                 initial_position, final_position, final_position - initial_position);
   }
 
+  /**
+   * @brief Executes the excavation action sequence.
+   * @param goal_handle Handle for the action goal.
+   */
   void execute(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
     auto result = std::make_shared<Excavation::Result>();
     bool excavation_success = false;
+
+    // Update home offset before starting
+    update_home_offset();
 
     lift_bucket();
     lower_bucket();
 
     try
     {
-      // Switch to GridBased planner for obstacle zone traversal
+      // Switch to GridBased planner for obstacle traversal
       auto planner_msg = std_msgs::msg::String();
       planner_msg.data = "GridBased";
       planner_publisher_->publish(planner_msg);
@@ -191,6 +234,7 @@ private:
       auto goal_msg = NavigateToPose::Goal();
       geometry_msgs::msg::Pose goal_pose;
 
+      // Target coordinates for construction zone
       // 4.3, -0.2 for KSC
       // 6.1, 0.5 for UCF
       goal_pose.position.x = 4.3;
@@ -259,12 +303,17 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
 
+  double home_offset_;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
   SparkMax vibration_motor_;
   bool goal_active_;
 };
 
+/**
+ * @brief Main function.
+ * Initializes and runs the ExcavationServer node.
+ */
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);

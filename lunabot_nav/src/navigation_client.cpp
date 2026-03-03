@@ -1,19 +1,17 @@
 /**
  * @file navigation_client.cpp
  * @author Grayson Arendt
- * @date 12/19/2024
+ * @date 02/22/2026
  */
 
 #include <chrono>
 
 #include "nav2_msgs/action/navigate_to_pose.hpp"
-#include "rclcpp/qos.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "rmw/qos_profiles.h"
-#include "std_msgs/msg/string.hpp"
 
 #include "lunabot_msgs/action/excavation.hpp"
+#include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/action/localization.hpp"
 
 // ANSI color codes
@@ -25,7 +23,7 @@
 
 /**
  * @class NavigationClient
- * @brief Handles localization responses and sends navigation and excavation requests.
+ * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and depositing actions.
  */
 class NavigationClient : public rclcpp::Node
 {
@@ -36,6 +34,8 @@ public:
   using GoalHandleLocalization = rclcpp_action::ClientGoalHandle<Localization>;
   using Excavation = lunabot_msgs::action::Excavation;
   using GoalHandleExcavation = rclcpp_action::ClientGoalHandle<Excavation>;
+  using Depositing = lunabot_msgs::action::Depositing;
+  using GoalHandleDepositing = rclcpp_action::ClientGoalHandle<Depositing>;
 
   enum class State
   {
@@ -43,6 +43,8 @@ public:
     LOCALIZATION,
     NAVIGATING_TO_EXCAVATION,
     EXCAVATING,
+    NAVIGATING_TO_CONSTRUCTION,
+    DEPOSITING,
     COMPLETE
   };
 
@@ -61,12 +63,7 @@ public:
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
     localization_client_ = rclcpp_action::create_client<Localization>(this, "localization_action");
     excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
-
-    auto selector_qos =
-        rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-
-    planner_publisher_ = this->create_publisher<std_msgs::msg::String>("/planner_selector", selector_qos);
-    controller_publisher_ = this->create_publisher<std_msgs::msg::String>("/controller_selector", selector_qos);
+    depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
 
     execution_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
   }
@@ -91,6 +88,14 @@ private:
         break;
       case State::EXCAVATING:
         request_excavation();
+        current_state_ = State::IDLE;
+        break;
+      case State::NAVIGATING_TO_CONSTRUCTION:
+        request_navigation_to_construction();
+        current_state_ = State::IDLE;
+        break;
+      case State::DEPOSITING:
+        request_depositing();
         current_state_ = State::IDLE;
         break;
       case State::COMPLETE:
@@ -155,23 +160,16 @@ private:
 
     RCLCPP_INFO(this->get_logger(), "Nav2 action server ready!");
 
-    // Use StraightLine planner for clear path to excavation zone
-    auto planner_msg = std_msgs::msg::String();
-    planner_msg.data = "StraightLine";
-    planner_publisher_->publish(planner_msg);
-
-    auto controller_msg = std_msgs::msg::String();
-    controller_msg.data = "PurePursuit";
-    controller_publisher_->publish(controller_msg);
-
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
     // Short travel out of starting zone to excavation area
-    goal_pose.position.x = 3.0;
-    goal_pose.position.y = 1.6;
-    goal_pose.orientation.z = 0.707;
-    goal_pose.orientation.w = 0.707;
+    goal_pose.position.x = 0.0;
+    goal_pose.position.y = -2.0;
+    goal_pose.orientation.x = 0.0;
+    goal_pose.orientation.y = 0.0;
+    goal_pose.orientation.z = -0.7071068;
+    goal_pose.orientation.w = 0.7071068;
 
     goal_msg.pose.pose = goal_pose;
     goal_msg.pose.header.stamp = this->now();
@@ -180,9 +178,22 @@ private:
     auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
     send_goal_options.result_callback =
         std::bind(&NavigationClient::handle_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback =
+        std::bind(&NavigationClient::handle_navigation_feedback, this, std::placeholders::_1, std::placeholders::_2);
 
-    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE...\033[0m");
+    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE [0.0, -2.0]...\033[0m");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+  /**
+   * @brief Callback for navigation feedback (distance to goal updates).
+   * @param goal_handle The goal handle.
+   * @param feedback The feedback message containing distance remaining.
+   */
+  void handle_navigation_feedback(GoalHandleNavigate::SharedPtr,
+                                   const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+  {
+    RCLCPP_INFO(this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
   }
 
   /**
@@ -199,6 +210,16 @@ private:
     else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
       RCLCPP_ERROR(this->get_logger(), RED "GOAL ABORTED, UNABLE TO REACH EXCAVATION ZONE" RESET);
+      current_state_ = State::IDLE;
+    }
+    else if (result.code == rclcpp_action::ResultCode::CANCELED)
+    {
+      RCLCPP_WARN(this->get_logger(), YELLOW "NAVIGATION TO EXCAVATION ZONE CANCELED" RESET);
+      current_state_ = State::IDLE;
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION TO EXCAVATION ZONE FAILED WITH UNKNOWN RESULT" RESET);
       current_state_ = State::IDLE;
     }
   }
@@ -230,8 +251,8 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION SUCCESS!" RESET);
-      current_state_ = State::COMPLETE;
+      RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION SUCCESS! NAVIGATING TO CONSTRUCTION ZONE..." RESET);
+      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
     }
     else
     {
@@ -240,12 +261,127 @@ private:
     }
   }
 
+  /**
+   * @brief Sends goal request to navigation server for construction zone.
+   */
+  void request_navigation_to_construction()
+  {
+    // Wait for Nav2 action server to be ready
+    RCLCPP_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
+    if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
+    {
+      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION ACTION SERVER NOT AVAILABLE AFTER 30s." RESET);
+      return;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Nav2 action server ready!");
+
+    auto goal_msg = NavigateToPose::Goal();
+    geometry_msgs::msg::Pose goal_pose;
+
+    // Navigate to construction zone coordinates (rotated 180 from excavation for depositing)
+    goal_pose.position.x = -4.5;
+    goal_pose.position.y = 0.4;
+    goal_pose.orientation.x = 0.0;
+    goal_pose.orientation.y = 0.0;
+    goal_pose.orientation.z = -0.7071068;
+    goal_pose.orientation.w = 0.7071068;
+
+    goal_msg.pose.pose = goal_pose;
+    goal_msg.pose.header.stamp = this->now();
+    goal_msg.pose.header.frame_id = "map";
+
+    auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
+    send_goal_options.result_callback =
+        std::bind(&NavigationClient::handle_construction_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback =
+        std::bind(&NavigationClient::handle_construction_feedback, this, std::placeholders::_1, std::placeholders::_2);
+
+    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE [-4.5, 0.4]...\033[0m");
+    navigation_client_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+  /**
+   * @brief Callback for navigation feedback to construction zone.
+   * @param goal_handle The goal handle.
+   * @param feedback The feedback message containing distance remaining.
+   */
+  void handle_construction_feedback(GoalHandleNavigate::SharedPtr,
+                                     const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+  {
+    RCLCPP_INFO(this->get_logger(), "Distance to construction zone: %.2f meters", feedback->distance_remaining);
+  }
+
+  /**
+   * @brief Callback for the result of navigation to construction zone.
+   * @param result The result of the goal execution.
+   */
+  void handle_construction_navigation_result(const GoalHandleNavigate::WrappedResult& result)
+  {
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      RCLCPP_INFO(this->get_logger(), GREEN "CONSTRUCTION ZONE REACHED. REQUESTING DUMP..." RESET);
+      current_state_ = State::DEPOSITING;
+    }
+    else if (result.code == rclcpp_action::ResultCode::ABORTED)
+    {
+      RCLCPP_ERROR(this->get_logger(), RED "GOAL ABORTED, UNABLE TO REACH CONSTRUCTION ZONE" RESET);
+      current_state_ = State::IDLE;
+    }
+    else if (result.code == rclcpp_action::ResultCode::CANCELED)
+    {
+      RCLCPP_WARN(this->get_logger(), YELLOW "NAVIGATION TO CONSTRUCTION ZONE CANCELED" RESET);
+      current_state_ = State::IDLE;
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION TO CONSTRUCTION ZONE FAILED WITH UNKNOWN RESULT" RESET);
+      current_state_ = State::IDLE;
+    }
+  }
+
+  /**
+   * @brief Sends a request to the depositing server.
+   */
+  void request_depositing()
+  {
+    if (!depositing_client_->wait_for_action_server(std::chrono::seconds(1)))
+    {
+      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "DEPOSITING ACTION SERVER NOT AVAILABLE." RESET);
+      return;
+    }
+
+    auto goal_msg = Depositing::Goal();
+    auto send_goal_options = rclcpp_action::Client<Depositing>::SendGoalOptions();
+    send_goal_options.result_callback =
+        std::bind(&NavigationClient::handle_depositing_result, this, std::placeholders::_1);
+
+    depositing_client_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+  /**
+   * @brief Callback for the result of the depositing action.
+   * @param result The result of the depositing action.
+   */
+  void handle_depositing_result(const GoalHandleDepositing::WrappedResult& result)
+  {
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SUCCESS! CYCLE COMPLETE!" RESET);
+      current_state_ = State::COMPLETE;
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED." RESET);
+      current_state_ = State::IDLE;
+    }
+  }
+
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp_action::Client<Localization>::SharedPtr localization_client_;
   rclcpp_action::Client<Excavation>::SharedPtr excavation_client_;
+  rclcpp_action::Client<Depositing>::SharedPtr depositing_client_;
   rclcpp::TimerBase::SharedPtr execution_timer_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
 
   State current_state_;
   double initial_x_, initial_y_;

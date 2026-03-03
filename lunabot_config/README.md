@@ -17,8 +17,11 @@ This package contains configuration files for Nav2 behavior trees, RViz2 configu
 - **nav2**
   - **nav2_v1_bot_params.yaml**: Nav2 parameters for simulation.
   - **nav2_real_bot_params.yaml**: Nav2 parameters for physical robot.
+- **gui**
+  - **gui_params.yaml**: GUI parameter defaults.
 - **point_lio**
-  - **mid360.yaml**: Point-LIO configuration for Mid-360 LiDAR.
+  - **mid360_real.yaml**: Point-LIO configuration for physical Mid-360 LiDAR.
+  - **mid360_sim.yaml**: Point-LIO configuration for simulated Mid-360 LiDAR.
 - **robot_localization**
   - **ukf_params.yaml**: Unscented Kalman Filter (UKF) parameters.
 - **rtabmap**

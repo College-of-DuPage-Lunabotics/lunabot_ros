@@ -22,4 +22,10 @@ find_package(ament_cmake REQUIRED)
 # Install launch
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 
+# Install scripts
+install(PROGRAMS
+  scripts/launch_manager_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

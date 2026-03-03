@@ -1,0 +1,6 @@
+# Depositing action - performs depositing sequence
+---
+bool success
+string message
+---
+string feedback_message
