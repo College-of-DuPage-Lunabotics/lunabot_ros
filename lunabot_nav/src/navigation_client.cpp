@@ -191,7 +191,7 @@ private:
    * @param feedback The feedback message containing distance remaining.
    */
   void handle_navigation_feedback(GoalHandleNavigate::SharedPtr,
-                                   const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+                                  const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
     RCLCPP_INFO(this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
   }
@@ -307,7 +307,7 @@ private:
    * @param feedback The feedback message containing distance remaining.
    */
   void handle_construction_feedback(GoalHandleNavigate::SharedPtr,
-                                     const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+                                    const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
     RCLCPP_INFO(this->get_logger(), "Distance to construction zone: %.2f meters", feedback->distance_remaining);
   }

@@ -37,9 +37,7 @@ public:
   /**
    * @brief Constructor for the HomingServerSim class.
    */
-  HomingServerSim()
-    : Node("homing_server")
-    , goal_active_(false)
+  HomingServerSim() : Node("homing_server"), goal_active_(false)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
         this, "homing_action",
@@ -47,8 +45,8 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    bucket_position_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
-        "/position_controller/commands", 10);
+    bucket_position_pub_ =
+        this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
 
     RCLCPP_INFO(this->get_logger(), GREEN "HOMING SERVER (SIM) INITIALIZED" RESET);
   }

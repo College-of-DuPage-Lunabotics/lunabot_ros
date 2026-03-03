@@ -39,10 +39,7 @@ public:
    * @brief Constructor for the HomingServer class.
    */
   HomingServer()
-    : Node("homing_server")
-    , goal_active_(false)
-    , left_actuator_motor_("can0", 2)
-    , right_actuator_motor_("can0", 1)
+    : Node("homing_server"), goal_active_(false), left_actuator_motor_("can0", 2), right_actuator_motor_("can0", 1)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
         this, "homing_action",
@@ -97,7 +94,7 @@ private:
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
       double current_position = get_actuator_position();
-      
+
       // Check if position has changed significantly
       if (std::abs(current_position - previous_position) < POSITION_THRESHOLD)
       {
@@ -107,7 +104,7 @@ private:
       {
         stall_count = 0;
       }
-      
+
       previous_position = current_position;
     }
 

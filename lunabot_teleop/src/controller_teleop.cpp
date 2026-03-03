@@ -45,7 +45,7 @@ public:
     // Declare and get controller mode parameter
     declare_parameter("steam_mode", false);
     get_parameter("steam_mode", steam_mode_);
-    
+
     RCLCPP_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "STEAM DECK" : "XBOX");
 
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
@@ -67,14 +67,10 @@ public:
     vibration_duty_cycle_publisher_ = create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
 
     // Timer to publish state periodically
-    state_timer_ = create_wall_timer(
-        std::chrono::milliseconds(100),
-        std::bind(&ControllerTeleop::publish_state, this));
+    state_timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
 
-    // Timer for motor control at fixed rate 
-    control_timer_ = create_wall_timer(
-        std::chrono::milliseconds(50),
-        std::bind(&ControllerTeleop::control_loop, this));
+    // Timer for motor control at fixed rate
+    control_timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&ControllerTeleop::control_loop, this));
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
@@ -166,16 +162,19 @@ private:
     bool share_button = msg->buttons[get_button_index(2, 9)];
     bool menu_button = msg->buttons[get_button_index(14, 10)];
     bool home_button = msg->buttons[get_button_index(11, 8)];
-    bool x_button = msg->buttons[get_button_index(5, 2)]; 
+    bool x_button = msg->buttons[get_button_index(5, 2)];
     bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    
+
     // Right joystick Y axis differs between controllers
-    if (steam_mode_) {
+    if (steam_mode_)
+    {
       right_joystick_y_ = -msg->axes[3];
-    } else {
+    }
+    else
+    {
       right_joystick_y_ = -msg->axes[4];
     }
 

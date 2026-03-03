@@ -102,7 +102,7 @@ private:
     auto param_client = std::make_shared<rclcpp::SyncParametersClient>(homing_node, "/homing_server");
     if (param_client->wait_for_service(std::chrono::seconds(1)))
     {
-      auto params = param_client->get_parameters({"actuator_home_offset"});
+      auto params = param_client->get_parameters({ "actuator_home_offset" });
       if (!params.empty())
       {
         home_offset_ = params[0].as_double();
