@@ -18,9 +18,18 @@ from lunabot_msgs.srv import LaunchSystem, StopSystem
 try:
     from cv_bridge import CvBridge
     import cv2
+    import numpy as np
     CV_AVAILABLE = True
 except ImportError:
     CV_AVAILABLE = False
+
+
+# Service / process timeout constants (seconds)
+_TIMEOUT_SERVICE_WAIT = 5.0
+_TIMEOUT_SERVICE_WAIT_LONG = 10.0
+_TIMEOUT_SERVICE_RESPONSE = 30.0
+_TIMEOUT_STOP_RESPONSE = 10.0
+_TIMEOUT_PROCESS_TERMINATE = 5
 
 
 class RobotInterface:
@@ -42,6 +51,7 @@ class RobotInterface:
         # Declare and read network parameters from config
         self.node.declare_parameter('network.robot_host', '192.168.0.250')
         self.node.declare_parameter('network.robot_user', 'codetc')
+        self.node.declare_parameter('network.robot_workspace', '~/lunabot_ws')
         self.node.declare_parameter('steam_mode', False)
         
         # Parse mode parameter
@@ -59,7 +69,7 @@ class RobotInterface:
         # Remote robot configuration from parameters
         self.robot_host = self.node.get_parameter('network.robot_host').value
         self.robot_user = self.node.get_parameter('network.robot_user').value
-        self.robot_workspace = '~/lunabot_ws'
+        self.robot_workspace = self.node.get_parameter('network.robot_workspace').value
         self.is_remote = self.is_real_mode
         self.steam_mode = self.node.get_parameter('steam_mode').value
         
@@ -185,22 +195,18 @@ class RobotInterface:
         if CV_AVAILABLE:
             self.node.create_subscription(
                 CompressedImage, '/camera_front/color/image_compressed',
-                self._front_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
             self.node.create_subscription(
                 CompressedImage, '/camera_back/color/image_compressed',
-                self._rear_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
             self.node.create_subscription(
                 CompressedImage, '/camera_fisheye/color/image_compressed',
-                self._fisheye_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 10)
         
         # Robot odometry
         self.node.create_subscription(
             Odometry, '/odometry/filtered', self._odom_callback, 10)
-        
-        # Velocity commands
-        self.node.create_subscription(
-            Twist, '/cmd_vel', self._cmd_vel_callback, 10)
-        
+
         # Control state
         self.node.create_subscription(
             ControlState, '/control_state', self._control_state_callback, 10)
@@ -226,38 +232,16 @@ class RobotInterface:
             JointState, '/joint_states', self._joint_states_callback, 10)
     
     # Camera callbacks
-    def _front_camera_callback(self, msg):
+    def _camera_callback(self, msg, camera_name, attr_name):
+        """Generic handler for compressed camera image messages"""
         try:
-            import numpy as np
             np_arr = np.frombuffer(msg.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.front_camera_image = cv_image
+            setattr(self, attr_name, cv_image)
             if self.on_camera_update:
-                self.on_camera_update('front', cv_image)
+                self.on_camera_update(camera_name, cv_image)
         except Exception as e:
-            self.node.get_logger().error(f'Front camera error: {e}')
-    
-    def _rear_camera_callback(self, msg):
-        try:
-            import numpy as np
-            np_arr = np.frombuffer(msg.data, np.uint8)
-            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.rear_camera_image = cv_image
-            if self.on_camera_update:
-                self.on_camera_update('rear', cv_image)
-        except Exception as e:
-            self.node.get_logger().error(f'Rear camera error: {e}')
-    
-    def _fisheye_camera_callback(self, msg):
-        try:
-            import numpy as np
-            np_arr = np.frombuffer(msg.data, np.uint8)
-            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.fisheye_camera_image = cv_image
-            if self.on_camera_update:
-                self.on_camera_update('fisheye', cv_image)
-        except Exception as e:
-            self.node.get_logger().error(f'Fisheye camera error: {e}')
+            self.node.get_logger().error(f'{camera_name.capitalize()} camera error: {e}')
     
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x
@@ -266,9 +250,6 @@ class RobotInterface:
         self.angular_velocity = msg.twist.twist.angular.z
         if self.on_robot_state_update:
             self.on_robot_state_update()
-    
-    def _cmd_vel_callback(self, msg):
-        pass  # Use odom for actual velocity display
     
     def _manual_mode_callback(self, msg):
         is_manual = msg.data
@@ -372,7 +353,7 @@ class RobotInterface:
                 self.node.get_logger().info(f'Running CAN interface script: {script_path}')
                 cmd = ['bash', os.path.expanduser(script_path)]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=int(_TIMEOUT_SERVICE_WAIT_LONG))
             
             if result.stdout:
                 for line in result.stdout.strip().split('\n'):
@@ -392,6 +373,29 @@ class RobotInterface:
         except Exception as e:
             self.node.get_logger().error(f'Failed to start CAN interface: {str(e)}')
     
+    def _wait_for_service_response(self, future, timeout_sec):
+        """Block (processing Qt events) until the future completes or times out. Returns response or None."""
+        start_time = time.time()
+        while not future.done() and (time.time() - start_time) < timeout_sec:
+            QCoreApplication.processEvents()
+            time.sleep(0.01)
+        if future.done() and future.result() is not None:
+            return future.result()
+        return None
+
+    def _set_system_enabled(self, system_name, value):
+        """Set the enabled flag for a named system"""
+        flag_map = {
+            'pointlio':     'pointlio_enabled',
+            'mapping':      'mapping_enabled',
+            'nav2':         'nav2_enabled',
+            'localization': 'localization_enabled',
+            'hardware':     'hardware_enabled',
+        }
+        attr = flag_map.get(system_name)
+        if attr is not None:
+            setattr(self, attr, value)
+
     def launch_hardware(self):
         """Launch hardware system for real robot"""
         if self.launch_processes['hardware'] is not None:
@@ -407,21 +411,13 @@ class RobotInterface:
                 request.use_sim = False
                 request.steam_mode = self.steam_mode
                 
-                if not self.launch_client.wait_for_service(timeout_sec=5.0):
+                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
                     self.node.get_logger().error('Launch manager service not available')
                     return
-                
+
                 future = self.launch_client.call_async(request)
-                
-                # Wait for response (process Qt events so ROS timer can spin the node)
-                start_time = time.time()
-                timeout = 30.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
+                if response is not None:
                     if response.success:
                         self.node.get_logger().info(f'Hardware launched: {response.message}')
                         self.launch_processes['hardware'] = True
@@ -468,21 +464,13 @@ class RobotInterface:
                 request.system_name = system_name
                 request.use_sim = use_sim
                 
-                if not self.launch_client.wait_for_service(timeout_sec=10.0):
+                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT_LONG):
                     self.node.get_logger().error('Launch manager service not available')
                     return
-                
+
                 future = self.launch_client.call_async(request)
-                
-                # Wait for response (process Qt events so ROS timer can spin the node)
-                start_time = time.time()
-                timeout = 30.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
+                if response is not None:
                     if response.success:
                         self.node.get_logger().info(f'{system_name} launched: {response.message}')
                         self.launch_processes[system_name] = True
@@ -492,37 +480,20 @@ class RobotInterface:
                 else:
                     self.node.get_logger().error(f'Service call failed for {system_name}')
                     return
-                
-                # Set enabled flags
-                if system_name == 'pointlio':
-                    self.pointlio_enabled = True
-                elif system_name == 'mapping':
-                    self.mapping_enabled = True
-                elif system_name == 'nav2':
-                    self.nav2_enabled = True
-                elif system_name == 'localization':
-                    self.localization_enabled = True
+
+                self._set_system_enabled(system_name, True)
             else:
                 # Local launch (simulation mode)
                 use_sim_arg = 'true' if use_sim else 'false'
                 launch_file = f'{system_name}_launch.py'
                 if system_name == 'nav2':
                     launch_file = 'nav2_stack_launch.py'
-                
+
                 self.launch_processes[system_name] = subprocess.Popen(
                     ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
-                
-                # Set enabled flags
-                if system_name == 'pointlio':
-                    self.pointlio_enabled = True
-                elif system_name == 'mapping':
-                    self.mapping_enabled = True
-                elif system_name == 'nav2':
-                    self.nav2_enabled = True
-                elif system_name == 'localization':
-                    self.localization_enabled = True
+                self._set_system_enabled(system_name, True)
             
             location = "via launch manager" if run_on_robot else "locally"
             self.node.get_logger().info(f'{system_name} launched {location}')
@@ -549,21 +520,13 @@ class RobotInterface:
                 request = StopSystem.Request()
                 request.system_name = system_name
                 
-                if not self.stop_client.wait_for_service(timeout_sec=5.0):
+                if not self.stop_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
                     self.node.get_logger().error('Stop service not available')
                     return
-                
+
                 future = self.stop_client.call_async(request)
-                
-                # Wait for response
-                start_time = time.time()
-                timeout = 10.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_STOP_RESPONSE)
+                if response is not None:
                     if response.success:
                         self.node.get_logger().info(f'{system_name} stopped: {response.message}')
                     else:
@@ -575,23 +538,12 @@ class RobotInterface:
             elif isinstance(self.launch_processes[system_name], subprocess.Popen):
                 try:
                     self.launch_processes[system_name].terminate()
-                    self.launch_processes[system_name].wait(timeout=5)
+                    self.launch_processes[system_name].wait(timeout=_TIMEOUT_PROCESS_TERMINATE)
                 except subprocess.TimeoutExpired:
                     self.launch_processes[system_name].kill()
-            
+
             self.launch_processes[system_name] = None
-            
-            # Update enabled flags
-            if system_name == 'pointlio':
-                self.pointlio_enabled = False
-            elif system_name == 'mapping':
-                self.mapping_enabled = False
-            elif system_name == 'nav2':
-                self.nav2_enabled = False
-            elif system_name == 'localization':
-                self.localization_enabled = False
-            elif system_name == 'hardware':
-                self.hardware_enabled = False
+            self._set_system_enabled(system_name, False)
             
             self.node.get_logger().info(f'{system_name} stopped')
             
@@ -766,7 +718,7 @@ class RobotInterface:
             if process is not None:
                 try:
                     process.terminate()
-                    process.wait(timeout=3)
+                    process.wait(timeout=_TIMEOUT_PROCESS_TERMINATE)
                     self.node.get_logger().info(f'Terminated {name} process')
                 except subprocess.TimeoutExpired:
                     process.kill()

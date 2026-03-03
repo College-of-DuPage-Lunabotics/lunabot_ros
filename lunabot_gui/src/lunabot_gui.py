@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import signal
+import math
 import rclpy
 from rclpy.node import Node
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -18,6 +19,37 @@ try:
     CV_AVAILABLE = True
 except ImportError:
     CV_AVAILABLE = False
+
+
+# --- GUI Layout Constants ---
+WINDOW_DEFAULT_WIDTH   = 1600
+WINDOW_DEFAULT_HEIGHT  = 900
+WINDOW_MIN_WIDTH       = 1000
+WINDOW_MIN_HEIGHT      = 650
+SIDEBAR_MIN_WIDTH      = 250
+SIDEBAR_COLLAPSED_WIDTH = 30
+CAMERA_MIN_WIDTH       = 320
+CAMERA_MIN_HEIGHT      = 240
+
+# --- Teleop Constants ---
+TELEOP_LINEAR_SPEED_DEFAULT  = 0.35   # m/s
+TELEOP_ANGULAR_SPEED_DEFAULT = 0.25   # rad/s
+TELEOP_MAX_LINEAR_SPEED      = 0.75   # m/s
+TELEOP_MAX_ANGULAR_SPEED     = 0.75   # rad/s
+TELEOP_SPEED_INCREMENT       = 1.1
+TELEOP_SPEED_DECREMENT       = 0.9
+TELEOP_BUCKET_SPEED          = 0.05   # rad per update
+TELEOP_BUCKET_LIMIT_MIN      = -1.57  # rad (down)
+TELEOP_BUCKET_LIMIT_MAX      = 0.1    # rad (up)
+
+# --- Timer Intervals ---
+ROS_SPIN_INTERVAL_MS = 10    # 100 Hz
+UI_UPDATE_INTERVAL_MS = 100  # 10 Hz
+
+# --- Bandwidth Thresholds ---
+BANDWIDTH_MAX_MBPS           = 4.0
+BANDWIDTH_WARN_THRESHOLD     = 0.75   # fraction of max
+BANDWIDTH_CRITICAL_THRESHOLD = 0.90   # fraction of max
 
 
 class LunabotGUI(QMainWindow):
@@ -54,10 +86,10 @@ class LunabotGUI(QMainWindow):
             'w': False, 'a': False, 's': False, 'd': False,
             'up': False, 'down': False
         }
-        self.linear_speed = 0.35
-        self.angular_speed = 0.25
-        self.max_linear_speed = 0.75
-        self.max_angular_speed = 0.75
+        self.linear_speed = TELEOP_LINEAR_SPEED_DEFAULT
+        self.angular_speed = TELEOP_ANGULAR_SPEED_DEFAULT
+        self.max_linear_speed = TELEOP_MAX_LINEAR_SPEED
+        self.max_angular_speed = TELEOP_MAX_ANGULAR_SPEED
         
         # Setup UI
         self.init_ui()
@@ -65,11 +97,11 @@ class LunabotGUI(QMainWindow):
         # Setup timers
         self.ros_timer = QTimer()
         self.ros_timer.timeout.connect(self.spin_ros)
-        self.ros_timer.start(10)  # 100 Hz
-        
+        self.ros_timer.start(ROS_SPIN_INTERVAL_MS)
+
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
-        self.ui_timer.start(100)  # 10 Hz
+        self.ui_timer.start(UI_UPDATE_INTERVAL_MS)
     
     def init_ui(self):
         """Initialize the user interface"""
@@ -88,9 +120,9 @@ class LunabotGUI(QMainWindow):
         
         # Get screen size and adjust window accordingly
         screen = QApplication.primaryScreen().geometry()
-        # Use 90% of screen size, or target size (1600x900), whichever is smaller
-        window_width = min(1600, int(screen.width() * 0.9))
-        window_height = min(900, int(screen.height() * 0.9))
+        # Use 90% of screen size, or target size, whichever is smaller
+        window_width = min(WINDOW_DEFAULT_WIDTH, int(screen.width() * 0.9))
+        window_height = min(WINDOW_DEFAULT_HEIGHT, int(screen.height() * 0.9))
         # Center the window
         x = (screen.width() - window_width) // 2
         y = (screen.height() - window_height) // 2
@@ -98,7 +130,7 @@ class LunabotGUI(QMainWindow):
         
         # Set reasonable size constraints (allows resizing)
         # Minimum size ensures text remains readable
-        self.setMinimumSize(1000, 650)
+        self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
         self.setStyleSheet(MAIN_STYLESHEET)
         
@@ -118,7 +150,7 @@ class LunabotGUI(QMainWindow):
         
         # Right sidebar (fixed width, no stretch)
         sidebar_container = self.create_sidebar()
-        sidebar_container.setMinimumWidth(250)
+        sidebar_container.setMinimumWidth(SIDEBAR_MIN_WIDTH)
         main_layout.addWidget(sidebar_container, 0)
     
     def create_content_area(self):
@@ -159,7 +191,7 @@ class LunabotGUI(QMainWindow):
         swappable_camera_layout = QVBoxLayout()
         self.swappable_camera_label = QLabel("No camera feed")
         self.swappable_camera_label.setAlignment(Qt.AlignCenter)
-        self.swappable_camera_label.setMinimumSize(320, 240)
+        self.swappable_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
         self.swappable_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.swappable_camera_label.setStyleSheet(Styles.camera_label())
         swappable_camera_layout.addWidget(self.swappable_camera_label)
@@ -195,7 +227,7 @@ class LunabotGUI(QMainWindow):
         fisheye_layout = QVBoxLayout()
         self.fisheye_camera_label = QLabel("No camera feed")
         self.fisheye_camera_label.setAlignment(Qt.AlignCenter)
-        self.fisheye_camera_label.setMinimumSize(320, 240)
+        self.fisheye_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
         self.fisheye_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.fisheye_camera_label.setStyleSheet(Styles.camera_label())
         fisheye_layout.addWidget(self.fisheye_camera_label)
@@ -361,12 +393,12 @@ class LunabotGUI(QMainWindow):
         if self.sidebar_collapsed:
             self.sidebar_widget.hide()
             self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
-            self.sidebar_container.setMinimumWidth(30)
-            self.sidebar_container.setMaximumWidth(30)
+            self.sidebar_container.setMinimumWidth(SIDEBAR_COLLAPSED_WIDTH)
+            self.sidebar_container.setMaximumWidth(SIDEBAR_COLLAPSED_WIDTH)
         else:
             self.sidebar_widget.show()
             self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
-            self.sidebar_container.setMinimumWidth(250)
+            self.sidebar_container.setMinimumWidth(SIDEBAR_MIN_WIDTH)
             self.sidebar_container.setMaximumWidth(16777215)
     
     def toggle_mode(self):
@@ -406,7 +438,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_excavating = True
             self.excavate_btn.setText("Cancel Excavation")
             self.operation_status_label.setText("Status: Excavating...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_excavate_goal(
                 self.excavate_goal_response_callback,
                 self.excavate_result_callback,
@@ -420,7 +452,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_excavating = False
             self.excavate_btn.setText("Excavate")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().info('Excavate goal accepted')
     
@@ -433,11 +465,11 @@ class LunabotGUI(QMainWindow):
         if result.success:
             self.robot.node.get_logger().info('Excavation completed successfully')
             self.operation_status_label.setText("Status: Excavation completed")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().error('Excavation failed')
             self.operation_status_label.setText("Status: Excavation failed")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def excavate_cancel_callback(self, future):
         """Handle excavation cancellation"""
@@ -445,7 +477,7 @@ class LunabotGUI(QMainWindow):
         self.robot.is_excavating = False
         self.excavate_btn.setText("Excavate")
         self.operation_status_label.setText("Status: Excavation cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+        self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def send_deposit_goal(self):
         """Send depositing action goal or cancel"""
@@ -456,7 +488,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_depositing = True
             self.deposit_btn.setText("Cancel Deposit")
             self.operation_status_label.setText("Status: Depositing...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_deposit_goal(
                 self.deposit_goal_response_callback,
                 self.deposit_result_callback,
@@ -470,7 +502,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_depositing = False
             self.deposit_btn.setText("Deposit")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().info('Deposit goal accepted')
     
@@ -483,11 +515,11 @@ class LunabotGUI(QMainWindow):
         if result.success:
             self.robot.node.get_logger().info(f'Depositing completed: {result.message}')
             self.operation_status_label.setText(f"Status: {result.message}")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().error(f'Depositing failed: {result.message}')
             self.operation_status_label.setText(f"Status: Failed - {result.message}")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def deposit_cancel_callback(self, future):
         """Handle deposit cancellation"""
@@ -495,7 +527,7 @@ class LunabotGUI(QMainWindow):
         self.robot.is_depositing = False
         self.deposit_btn.setText("Deposit")
         self.operation_status_label.setText("Status: Depositing cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+        self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def send_home_goal(self):
         """Send homing action goal or cancel"""
@@ -506,7 +538,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_homing = True
             self.home_btn.setText("Cancel Homing")
             self.operation_status_label.setText("Status: Homing...")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_home_goal(
                 self.home_goal_response_callback,
                 self.home_result_callback,
@@ -520,7 +552,7 @@ class LunabotGUI(QMainWindow):
             self.robot.is_homing = False
             self.home_btn.setText("Home Actuators")
             self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().info('Home goal accepted')
     
@@ -533,11 +565,11 @@ class LunabotGUI(QMainWindow):
         if result.success:
             self.robot.node.get_logger().info(f'Homing completed: {result.message}')
             self.operation_status_label.setText(f"Status: {result.message}")
-            self.operation_status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
         else:
             self.robot.node.get_logger().error(f'Homing failed: {result.message}')
             self.operation_status_label.setText(f"Status: Failed - {result.message}")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     def home_cancel_callback(self, future):
         """Handle home cancellation"""
@@ -545,7 +577,7 @@ class LunabotGUI(QMainWindow):
         self.robot.is_homing = False
         self.home_btn.setText("Home Actuators")
         self.operation_status_label.setText("Status: Homing cancelled")
-        self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+        self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def emergency_stop(self):
         """Toggle emergency stop state"""
@@ -554,7 +586,7 @@ class LunabotGUI(QMainWindow):
             self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED FROM GUI!')
             self.robot.publish_emergency_stop()
             self.operation_status_label.setText("Status: EMERGENCY STOP")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
             
             # Cancel any active operations
             if self.robot.is_excavating:
@@ -577,7 +609,7 @@ class LunabotGUI(QMainWindow):
             self.robot.node.get_logger().info('Re-enabling robot from emergency stop')
             self.robot.publish_re_enable()
             self.operation_status_label.setText("Status: Robot re-enabled")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             
             # Update button back to emergency stop mode
             self.emergency_stopped = False
@@ -592,7 +624,7 @@ class LunabotGUI(QMainWindow):
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
             self.operation_status_label.setText("Status: One cycle auto stopped")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             return
         
         if self.robot.is_excavating or self.robot.is_depositing or self.robot.is_homing:
@@ -603,22 +635,22 @@ class LunabotGUI(QMainWindow):
         self.full_auto_active = True
         self.auto_btn.setText("Stop One Cycle Auto")
         self.operation_status_label.setText("Status: One Cycle Auto Active...")
-        self.operation_status_label.setStyleSheet("color: #2196f3; font-weight: bold; background-color: transparent;")
+        self.operation_status_label.setStyleSheet(Styles.status_label('info') + " font-weight: bold;")
         
         if not self.robot.launch_navigation_client():
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
             self.operation_status_label.setText("Status: Failed to start")
-            self.operation_status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
     # Camera Controls
     def rotate_fisheye_camera(self, delta_radians):
         """Rotate fisheye camera by delta angle"""
         new_position = self.fisheye_camera_position + delta_radians
-        while new_position > 3.14159:
-            new_position -= 6.28318
-        while new_position < -3.14159:
-            new_position += 6.28318
+        while new_position > math.pi:
+            new_position -= 2 * math.pi
+        while new_position < -math.pi:
+            new_position += 2 * math.pi
         self.set_fisheye_camera_position(new_position)
     
     def set_fisheye_camera_position(self, position_radians):
@@ -626,7 +658,7 @@ class LunabotGUI(QMainWindow):
         self.fisheye_camera_position = position_radians
         self.robot.publish_camera_position(position_radians)
         
-        degrees = position_radians * 180.0 / 3.14159
+        degrees = math.degrees(position_radians)
         self.camera_pos_label.setText(f"Position: {degrees:.0f}°")
         self.robot.node.get_logger().info(f'Fisheye camera position set to {degrees:.1f}°')
     
@@ -680,13 +712,12 @@ class LunabotGUI(QMainWindow):
         self.robot.publish_velocity(linear_x, angular_z)
         
         # Handle bucket control
-        bucket_speed = 0.05
         if self.teleop_keys['up']:
-            new_position = max(self.robot.bucket_position - bucket_speed, -1.57)
+            new_position = max(self.robot.bucket_position - TELEOP_BUCKET_SPEED, TELEOP_BUCKET_LIMIT_MIN)
             self.robot.publish_bucket_position(new_position)
             self.robot.bucket_position = new_position
         elif self.teleop_keys['down']:
-            new_position = min(self.robot.bucket_position + bucket_speed, 0.1)
+            new_position = min(self.robot.bucket_position + TELEOP_BUCKET_SPEED, TELEOP_BUCKET_LIMIT_MAX)
             self.robot.publish_bucket_position(new_position)
             self.robot.bucket_position = new_position
     
@@ -700,10 +731,10 @@ class LunabotGUI(QMainWindow):
             self.mode_label.setText(display_text)
             
             if is_manual:
-                self.mode_label.setStyleSheet("color: #66bb6a; font-weight: bold; font-size: 14px; background-color: transparent;")
+                self.mode_label.setStyleSheet(f"color: {Colors.STATUS_SUCCESS}; font-weight: bold; font-size: 14px; background-color: transparent;")
                 self.mode_switch_btn.setText("Switch to Auto")
             else:
-                self.mode_label.setStyleSheet("color: #d32f2f; font-weight: bold; font-size: 14px; background-color: transparent;")
+                self.mode_label.setStyleSheet(f"color: {Colors.STATUS_ERROR}; font-weight: bold; font-size: 14px; background-color: transparent;")
                 self.mode_switch_btn.setText("Switch to Manual")
         
         # Update launch button text based on running state
@@ -725,13 +756,13 @@ class LunabotGUI(QMainWindow):
         # Update robot status
         if self.robot.robot_disabled:
             self.status_label.setText("Robot: DISABLED")
-            self.status_label.setStyleSheet("color: #d32f2f; font-weight: bold; background-color: transparent;")
+            self.status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
             self.excavate_btn.setEnabled(False)
             self.deposit_btn.setEnabled(False)
             self.auto_btn.setEnabled(False)
         else:
             self.status_label.setText("Active")
-            self.status_label.setStyleSheet("color: #66bb6a; font-weight: bold; background-color: transparent;")
+            self.status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
             if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
                 self.excavate_btn.setEnabled(True)
                 self.deposit_btn.setEnabled(True)
@@ -743,26 +774,26 @@ class LunabotGUI(QMainWindow):
         if msg.is_excavating:
             self.excavate_btn.setText("Cancel Excavation")
             self.operation_status_label.setText("Status: Excavating")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
         else:
             self.excavate_btn.setText("Excavate")
         
         if msg.is_depositing:
             self.deposit_btn.setText("Cancel Deposit")
             self.operation_status_label.setText("Status: Depositing")
-            self.operation_status_label.setStyleSheet("color: #ffa726; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
         else:
             self.deposit_btn.setText("Deposit")
         
         if msg.is_navigating:
             self.operation_status_label.setText("Status: Navigating")
-            self.operation_status_label.setStyleSheet("color: #2196f3; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('info') + " font-weight: bold;")
         elif msg.status_message and not (msg.is_excavating or msg.is_depositing):
             self.operation_status_label.setText(f"Status: {msg.status_message}")
-            self.operation_status_label.setStyleSheet("color: #aaa; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('idle') + " font-weight: bold;")
         elif not (msg.is_excavating or msg.is_depositing or msg.is_navigating):
             self.operation_status_label.setText("Status: Idle")
-            self.operation_status_label.setStyleSheet("color: #aaa; font-weight: bold; background-color: transparent;")
+            self.operation_status_label.setStyleSheet(Styles.status_label('idle') + " font-weight: bold;")
     
     def spin_ros(self):
         """Spin ROS node to process callbacks"""
@@ -779,15 +810,15 @@ class LunabotGUI(QMainWindow):
         self.bandwidth_tx_current_label.setText(f"{self.robot.bandwidth_tx:.2f} Mbps")
         
         # Use total average for progress bar
-        bandwidth_percent = min(100, int((self.robot.bandwidth_avg_total / 4.0) * 100))
+        bandwidth_percent = min(100, int((self.robot.bandwidth_avg_total / BANDWIDTH_MAX_MBPS) * 100))
         self.bandwidth_progress.setValue(bandwidth_percent)
-        
-        if bandwidth_percent >= 90:
-            self.bandwidth_progress.setStyleSheet("QProgressBar::chunk { background-color: #e53935; }")
-        elif bandwidth_percent >= 75:
-            self.bandwidth_progress.setStyleSheet("QProgressBar::chunk { background-color: #fb8c00; }")
+
+        if bandwidth_percent >= int(BANDWIDTH_CRITICAL_THRESHOLD * 100):
+            self.bandwidth_progress.setStyleSheet(f"QProgressBar::chunk {{ background-color: {Colors.STATUS_ERROR}; }}")
+        elif bandwidth_percent >= int(BANDWIDTH_WARN_THRESHOLD * 100):
+            self.bandwidth_progress.setStyleSheet(f"QProgressBar::chunk {{ background-color: {Colors.STATUS_WARNING}; }}")
         else:
-            self.bandwidth_progress.setStyleSheet("QProgressBar::chunk { background-color: #66bb6a; }")
+            self.bandwidth_progress.setStyleSheet(f"QProgressBar::chunk {{ background-color: {Colors.STATUS_SUCCESS}; }}")
         
         # Update velocity
         self.linear_vel_label.setText(f"{self.robot.linear_velocity:.2f}")
@@ -798,16 +829,16 @@ class LunabotGUI(QMainWindow):
         self.position_y_label.setText(f"{self.robot.position_y:.2f}")
         
         # Update bucket angle
-        bucket_angle_deg = -self.robot.bucket_position * 180.0 / 3.14159
+        bucket_angle_deg = -math.degrees(self.robot.bucket_position)
         self.bucket_angle_label.setText(f"{bucket_angle_deg:.1f}°")
         
         # Update vibration state based on duty cycle
         if self.robot.vibration_duty_cycle > 0.01:
             self.vibration_state_label.setText(f"ON ({self.robot.vibration_duty_cycle:.2f})")
-            self.vibration_state_label.setStyleSheet("background-color: transparent; color: #66bb6a;")  # Green for ON
+            self.vibration_state_label.setStyleSheet(f"background-color: transparent; color: {Colors.STATUS_SUCCESS};")
         else:
             self.vibration_state_label.setText("OFF")
-            self.vibration_state_label.setStyleSheet("background-color: transparent; color: #d32f2f;")  # Red for OFF
+            self.vibration_state_label.setStyleSheet(f"background-color: transparent; color: {Colors.STATUS_ERROR};")
         
         # Update power monitoring
         self.power_voltage_label.setText(f"{self.robot.power_voltage:.2f}")
@@ -883,16 +914,16 @@ class LunabotGUI(QMainWindow):
                 self.teleop_key_press('down')
                 handled = True
             elif event.key() == Qt.Key_Q:
-                self.adjust_speed('linear', 1.1)
+                self.adjust_speed('linear', TELEOP_SPEED_INCREMENT)
                 handled = True
             elif event.key() == Qt.Key_Z:
-                self.adjust_speed('linear', 0.9)
+                self.adjust_speed('linear', TELEOP_SPEED_DECREMENT)
                 handled = True
             elif event.key() == Qt.Key_E:
-                self.adjust_speed('angular', 1.1)
+                self.adjust_speed('angular', TELEOP_SPEED_INCREMENT)
                 handled = True
             elif event.key() == Qt.Key_C:
-                self.adjust_speed('angular', 0.9)
+                self.adjust_speed('angular', TELEOP_SPEED_DECREMENT)
                 handled = True
             
             if handled:
@@ -959,18 +990,18 @@ def main(args=None):
     app.setStyle('Fusion')
     
     dark_palette = QPalette()
-    dark_palette.setColor(QPalette.Window, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
-    dark_palette.setColor(QPalette.Base, QColor(35, 35, 35))
-    dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
-    dark_palette.setColor(QPalette.ToolTipText, QColor(255, 255, 255))
-    dark_palette.setColor(QPalette.Text, QColor(255, 255, 255))
-    dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
-    dark_palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
-    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+    dark_palette.setColor(QPalette.Window,          QColor(*Colors.PALETTE_WINDOW))
+    dark_palette.setColor(QPalette.WindowText,      QColor(255, 255, 255))
+    dark_palette.setColor(QPalette.Base,            QColor(*Colors.PALETTE_BASE))
+    dark_palette.setColor(QPalette.AlternateBase,   QColor(*Colors.PALETTE_WINDOW))
+    dark_palette.setColor(QPalette.ToolTipBase,     QColor(*Colors.PALETTE_TOOLTIP_BASE))
+    dark_palette.setColor(QPalette.ToolTipText,     QColor(255, 255, 255))
+    dark_palette.setColor(QPalette.Text,            QColor(255, 255, 255))
+    dark_palette.setColor(QPalette.Button,          QColor(*Colors.PALETTE_WINDOW))
+    dark_palette.setColor(QPalette.ButtonText,      QColor(255, 255, 255))
+    dark_palette.setColor(QPalette.BrightText,      QColor(255, 0, 0))
+    dark_palette.setColor(QPalette.Link,            QColor(*Colors.PALETTE_LINK))
+    dark_palette.setColor(QPalette.Highlight,       QColor(*Colors.PALETTE_HIGHLIGHT))
     dark_palette.setColor(QPalette.HighlightedText, QColor(0, 0, 0))
     
     app.setPalette(dark_palette)

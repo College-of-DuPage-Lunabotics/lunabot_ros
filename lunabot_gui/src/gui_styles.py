@@ -4,29 +4,29 @@ class Colors:
     # Background colors
     BG_MAIN = "#1a1a1a"
     BG_BOX = "#252525"
-    BG_SUBBOX = "#252525"
     BG_TRANSPARENT = "transparent"
-    
+    BG_DISABLED = "#1f1f1f"
+
     # Border and accent colors
     BORDER = "#505050"
     BORDER_DARK = "#404040"
-    
+    BORDER_DISABLED = "#333333"
+
     # Text colors
     TEXT_MAIN = "#e0e0e0"
     TEXT_SECONDARY = "#bbb"
     TEXT_DIM = "#aaa"
-    TEXT_DARKER = "#888"
+    TEXT_DARKER = "#888888"
     TEXT_GRAY = "#666"
-    
+    TEXT_DISABLED = "#555555"
+    LABEL_SECTION = TEXT_DARKER
+
     # Status colors
     STATUS_ERROR = "#d32f2f"
     STATUS_SUCCESS = "#66bb6a"
     STATUS_WARNING = "#ffa726"
     STATUS_INFO = "#2196f3"
-    
-    # Section label color
-    LABEL_SECTION = "#888888"
-    
+
     # Button colors
     BTN_INACTIVE = "#424242"
     BTN_HOVER = "#616161"
@@ -45,6 +45,16 @@ class Colors:
     BTN_RED = "#d32f2f"
     BTN_RED_HOVER = "#b71c1c"
     BTN_RED_PRESSED = "#9a0007"
+    BTN_LIGHT_BLUE = "#3a8fbf"
+    BTN_LIGHT_BLUE_HOVER = "#5aa3cc"
+    BTN_LIGHT_BLUE_PRESSED = "#2a7fa8"
+
+    # Qt QPalette colors (RGB tuples for QColor)
+    PALETTE_WINDOW = (53, 53, 53)
+    PALETTE_BASE = (35, 35, 35)
+    PALETTE_TOOLTIP_BASE = (25, 25, 25)
+    PALETTE_LINK = (42, 130, 218)
+    PALETTE_HIGHLIGHT = (42, 130, 218)
 
 
 # Global Application Stylesheet
@@ -68,10 +78,10 @@ MAIN_STYLESHEET = f"""
         color: {Colors.TEXT_MAIN};
     }}
     QGroupBox:disabled {{
-        background-color: #1f1f1f;
+        background-color: {Colors.BG_DISABLED};
         border: none;
         border-top: 2px solid {Colors.LABEL_SECTION};
-        color: #555555;
+        color: {Colors.TEXT_DISABLED};
     }}
     QGroupBox::title {{
         subcontrol-origin: margin;
@@ -82,22 +92,22 @@ MAIN_STYLESHEET = f"""
         color: {Colors.TEXT_MAIN};
     }}
     QGroupBox:disabled::title {{
-        color: #555555;
+        color: {Colors.TEXT_DISABLED};
     }}
     QLabel {{
         background-color: {Colors.BG_TRANSPARENT};
         color: {Colors.TEXT_MAIN};
     }}
     QLabel:disabled {{
-        color: #555555;
+        color: {Colors.TEXT_DISABLED};
     }}
     QPushButton {{
         font-weight: bold;
     }}
     QPushButton:disabled {{
-        background-color: #1f1f1f;
-        color: #555555;
-        border-color: #333333;
+        background-color: {Colors.BG_DISABLED};
+        color: {Colors.TEXT_DISABLED};
+        border-color: {Colors.BORDER_DISABLED};
     }}
     QProgressBar {{
         background-color: {Colors.BG_MAIN};
@@ -118,7 +128,16 @@ MAIN_STYLESHEET = f"""
 # Common Widget Styles
 class Styles:
     """Common stylesheet patterns"""
-    
+
+    _DISABLED_BTN_CSS = f"""
+        QPushButton:disabled {{
+            background-color: {Colors.BG_DISABLED};
+            color: {Colors.TEXT_DISABLED};
+            border: none;
+            border-radius: 2px;
+        }}
+    """
+
     @staticmethod
     def camera_label():
         return f"background-color: {Colors.BG_MAIN}; color: {Colors.TEXT_DARKER}; border: none;"
@@ -151,144 +170,52 @@ class Styles:
         return f"color: {Colors.STATUS_INFO}; padding: 10px;"
     
     @staticmethod
-    def standard_button(size=12):
-        """Standard button style"""
+    def _make_button(bg, hover, pressed, size, padding="4px"):
+        """Build a standard colored button stylesheet"""
         return f"""
             QPushButton {{
-                background-color: {Colors.BTN_INACTIVE};
+                background-color: {bg};
                 color: white;
                 font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
-                padding: 4px;
+                padding: {padding};
                 border: none;
                 border-radius: 2px;
             }}
             QPushButton:hover {{
-                background-color: {Colors.BTN_HOVER};
+                background-color: {hover};
             }}
             QPushButton:pressed {{
-                background-color: {Colors.BTN_PRESSED};
+                background-color: {pressed};
             }}
-            QPushButton:disabled {{
-                background-color: #1f1f1f;
-                color: #555555;
-                border: none;
-                border-radius: 2px;
-            }}
+            {Styles._DISABLED_BTN_CSS}
         """
-    
+
+    @staticmethod
+    def standard_button(size=12):
+        """Standard button style"""
+        return Styles._make_button(Colors.BTN_INACTIVE, Colors.BTN_HOVER, Colors.BTN_PRESSED, size)
+
     @staticmethod
     def orange_button(size=12):
         """Orange action button style (e.g., Home)"""
-        return f"""
-            QPushButton {{
-                background-color: {Colors.BTN_ORANGE};
-                color: white;
-                font-family: Monospace;
-                font-size: {size}px;
-                font-weight: bold;
-                padding: 4px;
-                border: none;
-                border-radius: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.BTN_ORANGE_HOVER};
-            }}
-            QPushButton:pressed {{
-                background-color: {Colors.BTN_ORANGE_PRESSED};
-            }}
-            QPushButton:disabled {{
-                background-color: #1f1f1f;
-                color: #555555;
-                border: none;
-                border-radius: 2px;
-            }}
-        """
-    
+        return Styles._make_button(Colors.BTN_ORANGE, Colors.BTN_ORANGE_HOVER, Colors.BTN_ORANGE_PRESSED, size)
+
     @staticmethod
     def blue_button(size=12):
         """Blue action button style (e.g., Auto)"""
-        return f"""
-            QPushButton {{
-                background-color: {Colors.BTN_BLUE};
-                color: white;
-                font-family: Monospace;
-                font-size: {size}px;
-                font-weight: bold;
-                padding: 4px;
-                border: none;
-                border-radius: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.BTN_BLUE_HOVER};
-            }}
-            QPushButton:pressed {{
-                background-color: {Colors.BTN_BLUE_PRESSED};
-            }}
-            QPushButton:disabled {{
-                background-color: #1f1f1f;
-                color: #555555;
-                border: none;
-                border-radius: 2px;
-            }}
-        """
-    
+        return Styles._make_button(Colors.BTN_BLUE, Colors.BTN_BLUE_HOVER, Colors.BTN_BLUE_PRESSED, size)
+
     @staticmethod
     def red_button(size=12):
         """Red action button style (e.g., Emergency Stop)"""
-        return f"""
-            QPushButton {{
-                background-color: {Colors.BTN_RED};
-                color: white;
-                font-family: Monospace;
-                font-size: {size}px;
-                font-weight: bold;
-                padding: 4px;
-                border: none;
-                border-radius: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.BTN_RED_HOVER};
-            }}
-            QPushButton:pressed {{
-                background-color: {Colors.BTN_RED_PRESSED};
-            }}
-            QPushButton:disabled {{
-                background-color: #1f1f1f;
-                color: #555555;
-                border: none;
-                border-radius: 2px;
-            }}
-        """
-    
+        return Styles._make_button(Colors.BTN_RED, Colors.BTN_RED_HOVER, Colors.BTN_RED_PRESSED, size)
+
     @staticmethod
     def light_blue_button(size=11):
         """Light blue button style (e.g., RViz2)"""
-        return f"""
-            QPushButton {{
-                background-color: #3a8fbf;
-                color: white;
-                font-family: Monospace;
-                font-size: {size}px;
-                font-weight: bold;
-                padding: 6px;
-                border: none;
-                border-radius: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: #5aa3cc;
-            }}
-            QPushButton:pressed {{
-                background-color: #2a7fa8;
-            }}
-            QPushButton:disabled {{
-                background-color: #1f1f1f;
-                color: #555555;
-                border: none;
-                border-radius: 2px;
-            }}
-        """
+        return Styles._make_button(Colors.BTN_LIGHT_BLUE, Colors.BTN_LIGHT_BLUE_HOVER, Colors.BTN_LIGHT_BLUE_PRESSED, size, padding="6px")
     
     @staticmethod
     def emergency_button():
@@ -340,7 +267,7 @@ class Styles:
         """
     
     @staticmethod
-    def camera_button(size=14):
+    def camera_button(size=14, padding="20px 15px"):
         """Camera control button style"""
         return f"""
             QPushButton {{
@@ -349,29 +276,7 @@ class Styles:
                 font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
-                padding: 20px 15px;
-                border: none;
-                border-radius: 2px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.BTN_HOVER};
-            }}
-            QPushButton:pressed {{
-                background-color: {Colors.BTN_PRESSED};
-            }}
-        """
-    
-    @staticmethod
-    def camera_center_button(size=14):
-        """Camera center/preset button style (smaller padding)"""
-        return f"""
-            QPushButton {{
-                background-color: {Colors.BTN_INACTIVE};
-                color: white;
-                font-family: Monospace;
-                font-size: {size}px;
-                font-weight: bold;
-                padding: 15px;
+                padding: {padding};
                 border: none;
                 border-radius: 2px;
             }}
@@ -386,7 +291,7 @@ class Styles:
     @staticmethod
     def subbox():
         """Sub-box group style - no border for nested boxes"""
-        return f"QGroupBox {{ background-color: {Colors.BG_SUBBOX}; border: none; font-size: 10pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
+        return f"QGroupBox {{ background-color: {Colors.BG_BOX}; border: none; font-size: 10pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
     
     @staticmethod
     def transparent_label(color=None, font_size=11, italic=False):
