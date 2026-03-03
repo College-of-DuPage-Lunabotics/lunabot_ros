@@ -22,14 +22,9 @@
 #include "tf2/LinearMath/Quaternion.h"
 
 #include "lunabot_msgs/action/excavation.hpp"
-#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
 
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "SparkMax.hpp"
 
 #define EXCAVATION_TICKS 1000.0
 #define LIFT_TICKS 1000.0
@@ -75,7 +70,7 @@ public:
     left_actuator_motor_.BurnFlash();
     right_actuator_motor_.BurnFlash();
 
-    RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION SERVER INITIALIZED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
   }
 
 private:
@@ -102,11 +97,11 @@ private:
     auto param_client = std::make_shared<rclcpp::SyncParametersClient>(homing_node, "/homing_server");
     if (param_client->wait_for_service(std::chrono::seconds(1)))
     {
-      auto params = param_client->get_parameters({"actuator_home_offset"});
+      auto params = param_client->get_parameters({ "actuator_home_offset" });
       if (!params.empty())
       {
         home_offset_ = params[0].as_double();
-        RCLCPP_INFO(this->get_logger(), CYAN "Home offset updated: %.2f ticks" RESET, home_offset_);
+        LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f ticks", home_offset_);
       }
     }
   }
@@ -116,7 +111,7 @@ private:
    */
   void lower_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LOWERING BUCKET..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lowering bucket...");
 
     double initial_position = get_actuator_position();
     double target_position = initial_position + EXCAVATION_TICKS;
@@ -145,8 +140,8 @@ private:
     vibration_motor_.SetDutyCycle(0.0);
 
     double final_position = get_actuator_position();
-    RCLCPP_INFO(this->get_logger(), GREEN "BUCKET LOWERED. Position: %.2f -> %.2f (delta: %.2f ticks)" RESET,
-                initial_position, final_position, final_position - initial_position);
+    LOGGER_SUCCESS(this->get_logger(), "Bucket lowered. Position: %.2f -> %.2f (delta: %.2f ticks)", initial_position,
+                   final_position, final_position - initial_position);
   }
 
   /**
@@ -154,7 +149,7 @@ private:
    */
   void lift_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LIFTING BUCKET..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket...");
 
     double initial_position = get_actuator_position();
     double target_position = initial_position - LIFT_TICKS;
@@ -179,13 +174,12 @@ private:
     right_actuator_motor_.SetDutyCycle(0.0);
 
     // Turn off vibration motor
-    // Turn off vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.0);
 
     double final_position = get_actuator_position();
-    RCLCPP_INFO(this->get_logger(), GREEN "BUCKET LIFTED. Position: %.2f -> %.2f (delta: %.2f ticks)" RESET,
-                initial_position, final_position, final_position - initial_position);
+    LOGGER_SUCCESS(this->get_logger(), "Bucket lifted. Position: %.2f -> %.2f (delta: %.2f ticks)", initial_position,
+                   final_position, final_position - initial_position);
   }
 
   /**
@@ -226,10 +220,10 @@ private:
 
       if (executor.spin_until_future_complete(results) != rclcpp::FutureReturnCode::SUCCESS)
       {
-        throw std::runtime_error(RED "FAILED TO SET TOLERANCE PARAMETERS" RESET);
+        throw std::runtime_error(RED "Failed to set tolerance parameters" RESET);
       }
 
-      RCLCPP_INFO(this->get_logger(), CYAN "SENDING NAVIGATION GOAL TO CONSTRUCTION ZONE..." RESET);
+      LOGGER_ACTION(this->get_logger(), "Sending navigation goal to construction zone...");
 
       auto goal_msg = NavigateToPose::Goal();
       geometry_msgs::msg::Pose goal_pose;
@@ -268,22 +262,22 @@ private:
 
       if (excavation_goal.wait_for(std::chrono::seconds(2)) != std::future_status::ready)
       {
-        throw std::runtime_error(RED "FAILED TO SEND CONSTRUCTION GOAL" RESET);
+        throw std::runtime_error(RED "Failed to send construction goal" RESET);
       }
       auto goal_handle = excavation_goal.get();
       if (!goal_handle)
       {
-        throw std::runtime_error(RED "CONSTRUCTION GOAL REJECTED BY SERVER" RESET);
+        throw std::runtime_error(RED "Construction goal rejected by server" RESET);
       }
 
       if (nav_future.wait_for(std::chrono::seconds(360)) != std::future_status::ready)
       {
-        throw std::runtime_error(RED "EXCAVATION TIMED OUT" RESET);
+        throw std::runtime_error(RED "Excavation timed out" RESET);
       }
     }
     catch (const std::exception& e)
     {
-      RCLCPP_ERROR(this->get_logger(), RED "EXCAVATION FAILED: %s" RESET, e.what());
+      LOGGER_FAILURE(this->get_logger(), "Excavation failed: %s", e.what());
       excavation_success = false;
     }
 

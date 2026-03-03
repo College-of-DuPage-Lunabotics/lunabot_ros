@@ -6,23 +6,18 @@
 
 #include <algorithm>
 
+#include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
-#include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32.hpp>
+
+#include "lunabot_logger/logger.hpp"
 
 #include "SparkMax.hpp"
 
 #define WHEEL_RADIUS 0.095  // In meters
 #define WHEEL_BASE 0.53
-
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define MAGENTA "\033[1;35m"
 
 /**
  * @class ControllerTeleop
@@ -45,8 +40,8 @@ public:
     // Declare and get controller mode parameter
     declare_parameter("steam_mode", false);
     get_parameter("steam_mode", steam_mode_);
-    
-    RCLCPP_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "STEAM DECK" : "XBOX");
+
+    LOGGER_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "Steam Deck" : "Xbox");
 
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
         "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
@@ -67,21 +62,17 @@ public:
     vibration_duty_cycle_publisher_ = create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
 
     // Timer to publish state periodically
-    state_timer_ = create_wall_timer(
-        std::chrono::milliseconds(100),
-        std::bind(&ControllerTeleop::publish_state, this));
+    state_timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
 
-    // Timer for motor control at fixed rate 
-    control_timer_ = create_wall_timer(
-        std::chrono::milliseconds(50),
-        std::bind(&ControllerTeleop::control_loop, this));
+    // Timer for motor control at fixed rate
+    control_timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&ControllerTeleop::control_loop, this));
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
     left_actuator_motor_.BurnFlash();
     right_actuator_motor_.BurnFlash();
-    RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
-    RCLCPP_INFO(get_logger(), "Speed: " YELLOW "SLOW" RESET " (%.1fx)", speed_multiplier_);
+    LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
+    LOGGER_INFO(get_logger(), "Speed: " YELLOW "Slow" RESET " (%.1fx)", speed_multiplier_);
   }
 
 private:
@@ -166,16 +157,19 @@ private:
     bool share_button = msg->buttons[get_button_index(2, 9)];
     bool menu_button = msg->buttons[get_button_index(14, 10)];
     bool home_button = msg->buttons[get_button_index(11, 8)];
-    bool x_button = msg->buttons[get_button_index(5, 2)]; 
+    bool x_button = msg->buttons[get_button_index(5, 2)];
     bool y_button = msg->buttons[get_button_index(6, 3)];
 
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    
+
     // Right joystick Y axis differs between controllers
-    if (steam_mode_) {
+    if (steam_mode_)
+    {
       right_joystick_y_ = -msg->axes[3];
-    } else {
+    }
+    else
+    {
       right_joystick_y_ = -msg->axes[4];
     }
 
@@ -190,7 +184,7 @@ private:
     if (share_pressed)
     {
       manual_enabled_ = true;
-      RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
       publish_state();
     }
 
@@ -199,7 +193,7 @@ private:
       manual_enabled_ = false;
       // Clear vibration state when switching to auto mode (GUI update only)
       vibration_enabled_ = false;
-      RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
       publish_state();
     }
 
@@ -208,11 +202,11 @@ private:
       robot_disabled_ = !robot_disabled_;
       if (robot_disabled_)
       {
-        RCLCPP_ERROR(get_logger(), RED "ROBOT DISABLED" RESET);
+        LOGGER_FAILURE(get_logger(), "Robot disabled");
       }
       else
       {
-        RCLCPP_INFO(get_logger(), GREEN "ROBOT ENABLED" RESET);
+        LOGGER_SUCCESS(get_logger(), "Robot enabled");
       }
       publish_state();
     }
@@ -221,7 +215,7 @@ private:
     if (x_pressed && manual_enabled_)
     {
       vibration_enabled_ = !vibration_enabled_;
-      RCLCPP_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
+      LOGGER_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
       publish_state();  // Publish updated duty cycle immediately
     }
 
@@ -229,8 +223,8 @@ private:
     if (y_pressed)
     {
       speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.7 : 0.3;
-      const char* speed_label = (speed_multiplier_ >= 0.5) ? "FAST" : "SLOW";
-      RCLCPP_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
+      const char* speed_label = (speed_multiplier_ >= 0.5) ? "Fast" : "Slow";
+      LOGGER_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
     }
   }
 
@@ -248,7 +242,7 @@ private:
     double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
     double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
 
-    RCLCPP_INFO(get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
+    LOGGER_INFO(get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
     // Send motor commands directly in autonomous mode
     left_wheel_motor_.SetDutyCycle(clamp(left_cmd));
@@ -263,7 +257,7 @@ private:
     if (msg->data)
     {
       robot_disabled_ = true;
-      RCLCPP_ERROR(get_logger(), RED "EMERGENCY STOP ACTIVATED!" RESET);
+      LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
       // Stop all motors immediately
       left_wheel_motor_.SetDutyCycle(0.0);
       right_wheel_motor_.SetDutyCycle(0.0);
@@ -282,11 +276,11 @@ private:
     manual_enabled_ = msg->data;
     if (manual_enabled_)
     {
-      RCLCPP_INFO(get_logger(), MAGENTA "MANUAL CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
     }
     else
     {
-      RCLCPP_INFO(get_logger(), YELLOW "AUTONOMOUS CONTROL:" RESET " " GREEN "ENABLED" RESET);
+      LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
       // Clear vibration state when switching to auto mode
       vibration_enabled_ = false;
     }

@@ -11,7 +11,6 @@
 #include <thread>
 
 #include "geometry_msgs/msg/twist.hpp"
-#include "lunabot_msgs/action/localization.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "tf2/utils.h"
@@ -19,12 +18,8 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "lunabot_msgs/action/localization.hpp"
+#include "lunabot_logger/logger.hpp"
 
 /**
  * @class LocalizationServer
@@ -98,7 +93,7 @@ private:
     // Timeout check
     if ((now() - start_time_).seconds() >= 30.0)
     {
-      RCLCPP_ERROR(get_logger(), RED "LOCALIZATION TIMED OUT." RESET);
+      LOGGER_FAILURE(get_logger(), "Localization timed out.");
       cmd_vel_publisher_->publish(geometry_msgs::msg::Twist{});
       current_state_ = State::COMPLETE;
       return;
@@ -125,14 +120,14 @@ private:
       // Tag is visible - switch to alignment mode
       if (current_state_ == State::SEARCHING)
       {
-        RCLCPP_INFO(get_logger(), CYAN "TAG 7 DETECTED. SWITCHING TO ALIGNMENT MODE." RESET);
+        LOGGER_ACTION(get_logger(), "Tag 7 detected. Switching to alignment mode.");
         current_state_ = State::ALIGNING;
       }
 
       // Check if aligned (within 0.05 rad = ~3 degrees)
       if (yaw_error < 0.05)
       {
-        RCLCPP_INFO(get_logger(), GREEN "TAG 7 ALIGNED. LOCALIZATION SUCCESS!" RESET);
+        LOGGER_SUCCESS(get_logger(), "Tag 7 aligned. Localization success!");
         success_ = true;
         current_state_ = State::COMPLETE;
         cmd_vel_publisher_->publish(geometry_msgs::msg::Twist{});
@@ -143,7 +138,7 @@ private:
       double angular_speed = std::clamp(yaw_error * 1.5, 0.1, 0.5);
       twist.angular.z = (yaw < 1.57) ? angular_speed : -angular_speed;
 
-      RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Aligning... Yaw error: %.3f rad, Speed: %.2f", yaw_error,
+      LOGGER_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Aligning... Yaw error: %.3f rad, Speed: %.2f", yaw_error,
                            twist.angular.z);
     }
     catch (tf2::TransformException& ex)
@@ -151,13 +146,13 @@ private:
       // Tag not visible
       if (current_state_ == State::ALIGNING)
       {
-        RCLCPP_WARN(get_logger(), YELLOW "LOST TAG 7. RETURNING TO SEARCH MODE." RESET);
+        LOGGER_WARN(get_logger(), "Lost tag 7. Returning to search mode.");
         current_state_ = State::SEARCHING;
       }
 
       // Fast search rotation
       twist.angular.z = 0.5;
-      RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 2000, "Searching for tag 7...");
+      LOGGER_INFO_THROTTLE(get_logger(), *get_clock(), 2000, "Searching for tag 7...");
     }
 
     cmd_vel_publisher_->publish(twist);

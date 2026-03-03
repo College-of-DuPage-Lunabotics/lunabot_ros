@@ -1,18 +1,16 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>lunabot_teleop</name>
+  <name>lunabot_logger</name>
   <version>1.0.0</version>
-  <description>This package contains code to control the robot with either a keyboard or game controller.</description>
+  <description>Logging utilities for Lunabot packages (C++ and Python).</description>
   <maintainer email="grayson.n.arendt5@gmail.com">Grayson Arendt</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <build_depend>rclcpp</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>lunabot_logger</build_depend>
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

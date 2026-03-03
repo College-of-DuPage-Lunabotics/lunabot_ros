@@ -10,16 +10,10 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
-#include "lunabot_msgs/action/excavation.hpp"
 #include "lunabot_msgs/action/depositing.hpp"
+#include "lunabot_msgs/action/excavation.hpp"
 #include "lunabot_msgs/action/localization.hpp"
-
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "lunabot_logger/logger.hpp"
 
 /**
  * @class NavigationClient
@@ -99,7 +93,7 @@ private:
         current_state_ = State::IDLE;
         break;
       case State::COMPLETE:
-        RCLCPP_INFO(this->get_logger(), GREEN "CYCLE COMPLETE!" RESET);
+        LOGGER_SUCCESS(this->get_logger(), "Cycle complete!");
         execution_timer_->cancel();
         break;
     }
@@ -112,7 +106,7 @@ private:
   {
     if (!localization_client_->wait_for_action_server(std::chrono::seconds(1)))
     {
-      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "LOCALIZATION ACTION SERVER NOT AVAILABLE." RESET);
+      LOGGER_WARN_ONCE(this->get_logger(), "Localization action server not available.");
       return;
     }
 
@@ -134,13 +128,12 @@ private:
     {
       initial_x_ = result.result->x;
       initial_y_ = result.result->y;
-      RCLCPP_INFO(this->get_logger(), "\033[1;32mLOCALIZATION COMPLETE. INITIAL POSE: [%.2f, %.2f]\033[0m", initial_x_,
-                  initial_y_);
+      LOGGER_SUCCESS(this->get_logger(), "Localization complete. Initial pose: [%.2f, %.2f]", initial_x_, initial_y_);
       current_state_ = State::NAVIGATING_TO_EXCAVATION;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), "\033[1;31mLOCALIZATION FAILED.\033[0m");
+      LOGGER_FAILURE(this->get_logger(), "Localization failed.");
       current_state_ = State::IDLE;
     }
   }
@@ -151,14 +144,14 @@ private:
   void request_navigation()
   {
     // Wait for Nav2 action server to be ready (up to 30 seconds)
-    RCLCPP_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
+    LOGGER_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
     if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
     {
-      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION ACTION SERVER NOT AVAILABLE AFTER 30s." RESET);
+      LOGGER_FAILURE(this->get_logger(), "Navigation action server not available after 30s.");
       return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Nav2 action server ready!");
+    LOGGER_INFO(this->get_logger(), "Nav2 action server ready!");
 
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
@@ -181,7 +174,7 @@ private:
     send_goal_options.feedback_callback =
         std::bind(&NavigationClient::handle_navigation_feedback, this, std::placeholders::_1, std::placeholders::_2);
 
-    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO EXCAVATION ZONE [0.0, -2.0]...\033[0m");
+    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to excavation zone [0.0, -2.0]...");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -191,9 +184,9 @@ private:
    * @param feedback The feedback message containing distance remaining.
    */
   void handle_navigation_feedback(GoalHandleNavigate::SharedPtr,
-                                   const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+                                  const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
-    RCLCPP_INFO(this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
+    LOGGER_INFO(this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
   }
 
   /**
@@ -204,22 +197,22 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION ZONE REACHED. REQUESTING EXCAVATION..." RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Excavation zone reached. Requesting excavation...");
       current_state_ = State::EXCAVATING;
     }
     else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
-      RCLCPP_ERROR(this->get_logger(), RED "GOAL ABORTED, UNABLE TO REACH EXCAVATION ZONE" RESET);
+      LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach excavation zone");
       current_state_ = State::IDLE;
     }
     else if (result.code == rclcpp_action::ResultCode::CANCELED)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "NAVIGATION TO EXCAVATION ZONE CANCELED" RESET);
+      LOGGER_WARN(this->get_logger(), "Navigation to excavation zone canceled");
       current_state_ = State::IDLE;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION TO EXCAVATION ZONE FAILED WITH UNKNOWN RESULT" RESET);
+      LOGGER_FAILURE(this->get_logger(), "Navigation to excavation zone failed with unknown result");
       current_state_ = State::IDLE;
     }
   }
@@ -231,7 +224,7 @@ private:
   {
     if (!excavation_client_->wait_for_action_server(std::chrono::seconds(1)))
     {
-      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "EXCAVATION ACTION SERVER NOT AVAILABLE." RESET);
+      LOGGER_WARN_ONCE(this->get_logger(), "Excavation action server not available.");
       return;
     }
 
@@ -251,12 +244,12 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION SUCCESS! NAVIGATING TO CONSTRUCTION ZONE..." RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Excavation success! Navigating to construction zone...");
       current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), RED "EXCAVATION FAILED." RESET);
+      LOGGER_FAILURE(this->get_logger(), "Excavation failed.");
       current_state_ = State::IDLE;
     }
   }
@@ -267,14 +260,14 @@ private:
   void request_navigation_to_construction()
   {
     // Wait for Nav2 action server to be ready
-    RCLCPP_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
+    LOGGER_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
     if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
     {
-      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION ACTION SERVER NOT AVAILABLE AFTER 30s." RESET);
+      LOGGER_FAILURE(this->get_logger(), "Navigation action server not available after 30s.");
       return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Nav2 action server ready!");
+    LOGGER_INFO(this->get_logger(), "Nav2 action server ready!");
 
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
@@ -297,7 +290,7 @@ private:
     send_goal_options.feedback_callback =
         std::bind(&NavigationClient::handle_construction_feedback, this, std::placeholders::_1, std::placeholders::_2);
 
-    RCLCPP_INFO(this->get_logger(), "\033[1;36mSENDING NAVIGATION GOAL TO CONSTRUCTION ZONE [-4.5, 0.4]...\033[0m");
+    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to construction zone [-4.5, 0.4]...");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -307,9 +300,9 @@ private:
    * @param feedback The feedback message containing distance remaining.
    */
   void handle_construction_feedback(GoalHandleNavigate::SharedPtr,
-                                     const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+                                    const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
-    RCLCPP_INFO(this->get_logger(), "Distance to construction zone: %.2f meters", feedback->distance_remaining);
+    LOGGER_INFO(this->get_logger(), "Distance to construction zone: %.2f meters", feedback->distance_remaining);
   }
 
   /**
@@ -320,22 +313,22 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "CONSTRUCTION ZONE REACHED. REQUESTING DUMP..." RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Construction zone reached. Requesting dump...");
       current_state_ = State::DEPOSITING;
     }
     else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
-      RCLCPP_ERROR(this->get_logger(), RED "GOAL ABORTED, UNABLE TO REACH CONSTRUCTION ZONE" RESET);
+      LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach construction zone");
       current_state_ = State::IDLE;
     }
     else if (result.code == rclcpp_action::ResultCode::CANCELED)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "NAVIGATION TO CONSTRUCTION ZONE CANCELED" RESET);
+      LOGGER_WARN(this->get_logger(), "Navigation to construction zone canceled");
       current_state_ = State::IDLE;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), RED "NAVIGATION TO CONSTRUCTION ZONE FAILED WITH UNKNOWN RESULT" RESET);
+      LOGGER_FAILURE(this->get_logger(), "Navigation to construction zone failed with unknown result");
       current_state_ = State::IDLE;
     }
   }
@@ -347,7 +340,7 @@ private:
   {
     if (!depositing_client_->wait_for_action_server(std::chrono::seconds(1)))
     {
-      RCLCPP_WARN_ONCE(this->get_logger(), YELLOW "DEPOSITING ACTION SERVER NOT AVAILABLE." RESET);
+      LOGGER_WARN_ONCE(this->get_logger(), "Depositing action server not available.");
       return;
     }
 
@@ -367,12 +360,12 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SUCCESS! CYCLE COMPLETE!" RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Depositing success! Cycle complete!");
       current_state_ = State::COMPLETE;
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED." RESET);
+      LOGGER_FAILURE(this->get_logger(), "Depositing failed.");
       current_state_ = State::IDLE;
     }
   }

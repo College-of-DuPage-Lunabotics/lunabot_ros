@@ -36,10 +36,12 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(sparkcan REQUIRED)
+find_package(lunabot_logger REQUIRED)
 
 set(DEPENDENCIES
     geometry_msgs
     lunabot_msgs
+    lunabot_logger
     nav2_core
     nav2_costmap_2d
     nav2_msgs
@@ -55,6 +57,7 @@ set(DEPENDENCIES
 set(SIM_DEPENDENCIES
     geometry_msgs
     lunabot_msgs
+    lunabot_logger
     nav2_core
     nav2_costmap_2d
     nav2_msgs

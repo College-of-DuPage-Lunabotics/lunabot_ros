@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
-import threading
 import termios
+import threading
 import tty
 
 import rclpy
