@@ -13,11 +13,8 @@
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rcl_interfaces/srv/set_parameters.hpp"
-#include "rclcpp/qos.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "rmw/qos_profiles.h"
-#include "std_msgs/msg/string.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 
@@ -58,12 +55,7 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    auto selector_qos =
-        rclcpp::QoS(rclcpp::KeepLast(1)).reliable().durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
-    planner_publisher_ = this->create_publisher<std_msgs::msg::String>("/planner_selector", selector_qos);
-    controller_publisher_ = this->create_publisher<std_msgs::msg::String>("/controller_selector", selector_qos);
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
@@ -199,15 +191,6 @@ private:
 
     try
     {
-      // Switch to GridBased planner for obstacle traversal
-      auto planner_msg = std_msgs::msg::String();
-      planner_msg.data = "GridBased";
-      planner_publisher_->publish(planner_msg);
-
-      auto controller_msg = std_msgs::msg::String();
-      controller_msg.data = "PurePursuit";
-      controller_publisher_->publish(controller_msg);
-
       auto param_node = std::make_shared<rclcpp::Node>("param_helper");
       auto controller_params_client = std::make_shared<rclcpp::AsyncParametersClient>(param_node, "/controller_server");
 
@@ -294,8 +277,6 @@ private:
 
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr planner_publisher_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr controller_publisher_;
 
   double home_offset_;
   SparkMax left_actuator_motor_;

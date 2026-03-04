@@ -8,7 +8,7 @@ _CYAN    = "\033[1;36m"
 
 class Logger:
     """
-    Wrapper around rclpy's Logger with colored output (matches the C++ lunabot_logger.hpp macros)
+    Wrapper around rclpy's Logger with colored output
     """
 
     def __init__(self, node_or_logger):
@@ -35,6 +35,3 @@ class Logger:
 
     def failure(self, msg, **kwargs):
         self._log.error(f'{_RED}{msg}{_RESET}', **kwargs)
-
-    def error(self, msg, **kwargs):
-        self._log.error(msg, **kwargs)
