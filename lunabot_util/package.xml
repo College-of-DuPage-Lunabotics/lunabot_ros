@@ -8,8 +8,9 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  
+
   <depend>rclpy</depend>
+  <depend>lunabot_logger</depend>
   <depend>std_msgs</depend>
   <depend>diagnostic_msgs</depend>
   <depend>lunabot_msgs</depend>

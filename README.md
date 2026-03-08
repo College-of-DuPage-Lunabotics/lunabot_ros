@@ -14,9 +14,23 @@ This repository contains the software developed by the College of DuPage team fo
 - 2x Intel RealSense D456 Depth Camera w/ IR Filter
 
 **Hardware**
-- REV Robotics NEO V1.1 (x2)
-- REV Robotics Spark Max (x5)
-- ODrive USB-CAN Adapter
+- 2x REV Robotics NEO V1.1
+- 5x REV Robotics Spark Max
+- 1x ODrive USB-CAN Adapter
+
+## Packages
+
+- [lunabot_bringup](lunabot_bringup/README.md): Launch files for GUI, simulation, hardware, and autonomy nodes.
+- [lunabot_config](lunabot_config/README.md): Configuration files for Nav2, SLAM, sensors, and RViz2.
+- [lunabot_description](lunabot_description/README.md): Robot URDF descriptions and meshes.
+- [lunabot_gui](lunabot_gui/README.md): PyQt5 GUI for robot control and monitoring.
+- [lunabot_logger](lunabot_logger/README.md): Shared logging library with colored output for C++ and Python nodes.
+- [lunabot_msgs](lunabot_msgs/README.md): Custom ROS messages, actions, and services.
+- [lunabot_nav](lunabot_nav/README.md): Autonomy action servers and navigation client.
+- [lunabot_sim](lunabot_sim/README.md): Gazebo simulation models and world files.
+- [lunabot_teleop](lunabot_teleop/README.md): Keyboard and controller teleop nodes.
+- [lunabot_util](lunabot_util/README.md): Utility nodes for monitoring and image compression.
+- [third_party_packages](third_party_packages/README.md): Third-party ROS packages (Livox, Point-LIO, RTAB-Map).
 
 ## Installation
 
@@ -24,22 +38,15 @@ This repository contains the software developed by the College of DuPage team fo
 
 #### 1. (Optional) Append lines to .bashrc
 
-.bashrc is a script that runs everytime a new terminal window is opened and has various configurations, environment variables, and commands for setup. There is a bug in the VSCode terminal that will cause a symbol lookup error, so you have to unset the path variable using `unset GTK_path`. If you haven't already added `source /opt/ros/humble/setup.bash` to your .bashrc file, it simply runs the setup script for ROS 2 Humble.
-
-Sometimes Gazebo will crash on startup with the following error:
-```bash
- [gzserver-3] gzserver: /usr/include/boost/smart_ptr/shared_ptr.hpp:728: typename boost::detail::sp_member_access<T>::type boost::shared_ptr<T>::operator->() const [with T = gazebo::rendering::Scene; typename boost::detail::sp_member_access<T>::type = gazebo::rendering::Scene*]: Assertion px != 0' failed.
-```
-
-To avoid this, source the `setup.bash` for Gazebo. It can also be put in the .bashrc file.
+Appends ROS 2 and Gazebo setup scripts to .bashrc so they run in every new terminal. Also fixes a VSCode terminal bug that causes a symbol lookup error (`unset GTK_PATH`), and prevents a Gazebo startup crash.
 
 ```bash
 echo 'unset GTK_PATH' >> ~/.bashrc
-echo 'source /opt/ros/humble/setup.bash ' >> ~/.bashrc
-echo 'source /usr/share/gazebo/setup.bash '  >> ~/.bashrc
+echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
+echo 'source /usr/share/gazebo/setup.bash' >> ~/.bashrc
 ```
 
-This will permanently append these lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc` or `gedit ~/.bashrc` if you prefer a text editor GUI instead.
+This will permanently append these lines to your .bashrc file, so there is no need to run it again. If you want to edit the file manually, use `nano ~/.bashrc`.
 
 #### 2. Setup workspace and clone repository
 
@@ -61,9 +68,7 @@ chmod +x install_dependencies.sh
 
 #### 4. (Recommended) Set MAKEFLAGS
 
-Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. You can either increase or reduce both this and `--parallel-workers`, increasing will make it build faster but may put more stress on your computer, leading to freezing.
-
-**This will be required for many computers**, it took 64 GB of 5200MHz DDR5 RAM installed in a Lenovo LOQ 15ARP9 (AMD Ryzen 7 7435HS) to be able to build the packages without freezing while setting `"-j16"` and `--parallel-workers 16`. With this configuration, the entire workspace build took 8 minutes. The main packages that cause freezing are `rtabmap_util` and `rtabmap_sync`.
+Setting this flag to `-j1` limits each package's internal make jobs to 1 thread. **This will be required for most computers**, the main packages that cause freezing are `rtabmap_util` and `rtabmap_sync`. You can increase the number to build faster at the cost of higher memory usage.
 
 ```bash
 export MAKEFLAGS="-j1" # Modify number as needed
@@ -80,7 +85,37 @@ cd ~/lunabot_ws
 colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 --parallel-workers 1 # Modify number as needed
 ```
 
-## Running the Physical Robot
+## Usage
+
+**A detailed list of launch parameters can be found [here](lunabot_bringup/README.md).**
+
+```bash
+# Navigate to workspace and source setup
+cd ~/lunabot_ws
+source install/setup.bash
+
+# Launch GUI in simulation mode (default)
+ros2 launch lunabot_bringup gui_launch.py
+
+# Launch GUI in real robot mode
+ros2 launch lunabot_bringup gui_launch.py use_sim:=false
+```
+
+**For detailed GUI usage, remote operation, and configuration options, see [lunabot_gui/README.md](lunabot_gui/README.md).**
+
+### GUI Interface
+
+#### Simulation Mode
+<p align="center">
+  <img src="gui_sim_mode.png">
+</p>
+
+#### Real Robot Mode
+<p align="center">
+  <img src="gui_real_mode.png">
+</p>
+
+## Physical Robot Setup
 
 ### SSH Setup for Remote Operation
 
@@ -131,34 +166,3 @@ sudo ./setup_udev_rules.sh
 ```
 
 **Note:** Unplug all cameras before running udev setup. Use `ls /dev/ttyUSB*` to verify device ports if needed.
-
-### Basic Usage
-
-**A detailed list of launch parameters can be found [here](lunabot_bringup/README.md).**
-
-```bash
-# Navigate to workspace and source setup
-cd ~/lunabot_ws
-source install/setup.bash
-
-# Launch GUI in simulation mode (default)
-ros2 launch lunabot_bringup gui_launch.py
-
-# Launch GUI in real robot mode
-ros2 launch lunabot_bringup gui_launch.py use_sim:=false
-```
-
-**For detailed GUI usage, remote operation, and configuration options, see [lunabot_gui/README.md](lunabot_gui/README.md).**
-
-### GUI Interface
-
-#### Simulation Mode
-<p align="center">
-  <img src="gui_sim_mode.png">
-</p>
-
-#### Real Robot Mode
-<p align="center">
-  <img src="gui_real_mode.png">
-</p>
-

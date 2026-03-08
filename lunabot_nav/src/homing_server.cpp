@@ -12,14 +12,8 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/homing.hpp"
+#include "lunabot_logger/logger.hpp"
 #include "SparkMax.hpp"
-
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
 
 #define HOMING_SPEED 0.5
 #define POSITION_THRESHOLD 10.0
@@ -39,10 +33,7 @@ public:
    * @brief Constructor for the HomingServer class.
    */
   HomingServer()
-    : Node("homing_server")
-    , goal_active_(false)
-    , left_actuator_motor_("can0", 2)
-    , right_actuator_motor_("can0", 1)
+    : Node("homing_server"), goal_active_(false), left_actuator_motor_("can0", 2), right_actuator_motor_("can0", 1)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
         this, "homing_action",
@@ -58,7 +49,7 @@ public:
     // Declare parameter for home offset
     this->declare_parameter<double>("actuator_home_offset", 0.0);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "HOMING SERVER INITIALIZED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Homing server initialized");
   }
 
 private:
@@ -80,7 +71,7 @@ private:
    */
   void home_actuators()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "EXTENDING ACTUATORS TO HARD STOP..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Extending actuators to hard stop...");
 
     double previous_position = get_actuator_position();
     int stall_count = 0;
@@ -97,7 +88,7 @@ private:
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
       double current_position = get_actuator_position();
-      
+
       // Check if position has changed significantly
       if (std::abs(current_position - previous_position) < POSITION_THRESHOLD)
       {
@@ -107,7 +98,7 @@ private:
       {
         stall_count = 0;
       }
-      
+
       previous_position = current_position;
     }
 
@@ -115,13 +106,13 @@ private:
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "HARD STOP REACHED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Hard stop reached");
 
     // Record the current position as the home offset
     double home_offset = get_actuator_position();
     this->set_parameter(rclcpp::Parameter("actuator_home_offset", home_offset));
 
-    RCLCPP_INFO(this->get_logger(), GREEN "ACTUATOR HOME OFFSET SET: %.2f ticks" RESET, home_offset);
+    LOGGER_SUCCESS(this->get_logger(), "Actuator home offset set: %.2f ticks", home_offset);
   }
 
   /**
@@ -129,7 +120,7 @@ private:
    */
   void return_to_neutral()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "RETURNING TO NEUTRAL POSITION..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
     double initial_position = get_actuator_position();
     double target_position = initial_position - LIFT_TICKS;
@@ -149,7 +140,7 @@ private:
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "NEUTRAL POSITION REACHED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Neutral position reached");
   }
 
   /**
@@ -160,7 +151,7 @@ private:
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "HOMING ALREADY IN PROGRESS" RESET);
+      LOGGER_WARN(this->get_logger(), "Homing already in progress");
       auto result = std::make_shared<Homing::Result>();
       result->success = false;
       result->message = "Homing already in progress";
@@ -169,7 +160,7 @@ private:
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING HOMING SEQUENCE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Starting homing sequence");
 
     auto feedback = std::make_shared<Homing::Feedback>();
     auto result = std::make_shared<Homing::Result>();
@@ -187,14 +178,14 @@ private:
       result->success = true;
       result->message = "Homing completed successfully";
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "HOMING COMPLETED SUCCESSFULLY" RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
     }
     catch (const std::exception& e)
     {
       result->success = false;
       result->message = std::string("Homing failed: ") + e.what();
       goal_handle->abort(result);
-      RCLCPP_ERROR(this->get_logger(), RED "HOMING FAILED: %s" RESET, e.what());
+      LOGGER_FAILURE(this->get_logger(), "Homing failed: %s", e.what());
     }
 
     goal_active_ = false;

@@ -13,13 +13,7 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 
 #include "lunabot_msgs/action/depositing.hpp"
-
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "lunabot_logger/logger.hpp"
 
 #define DUMP_POSITION -1.5
 #define TRAVEL_POSITION -0.4
@@ -37,9 +31,7 @@ public:
   /**
    * @brief Constructor for the DepositingServerSim class.
    */
-  DepositingServerSim()
-    : Node("depositing_server")
-    , goal_active_(false)
+  DepositingServerSim() : Node("depositing_server"), goal_active_(false)
   {
     action_server_ = rclcpp_action::create_server<Depositing>(
         this, "depositing_action",
@@ -47,10 +39,10 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    bucket_position_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
-        "/position_controller/commands", 10);
+    bucket_position_pub_ =
+        this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SERVER (SIM) INITIALIZED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Depositing server (sim) initialized");
   }
 
 private:
@@ -63,7 +55,7 @@ private:
     auto msg = std_msgs::msg::Float64MultiArray();
     msg.data.push_back(position);
     bucket_position_pub_->publish(msg);
-    RCLCPP_INFO(this->get_logger(), CYAN "Setting bucket position to %.2f rad" RESET, position);
+    LOGGER_ACTION(this->get_logger(), "Setting bucket position to %.2f rad", position);
   }
 
   /**
@@ -72,16 +64,16 @@ private:
   void lift_and_dump()
   {
     // Lift bucket to dump position
-    RCLCPP_INFO(this->get_logger(), CYAN "LIFTING BUCKET TO DUMP (vibration ON)..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket to dump (vibration on)...");
     set_bucket_position(DUMP_POSITION);
     std::this_thread::sleep_for(std::chrono::seconds(3));
-    RCLCPP_INFO(this->get_logger(), GREEN "DUMP COMPLETE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Dump complete");
 
     // Return bucket to travel position
-    RCLCPP_INFO(this->get_logger(), CYAN "RESETTING BUCKET TO TRAVEL POSITION..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Resetting bucket to travel position...");
     set_bucket_position(TRAVEL_POSITION);
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    RCLCPP_INFO(this->get_logger(), GREEN "BUCKET RESET COMPLETE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Bucket reset complete");
   }
 
   /**
@@ -92,7 +84,7 @@ private:
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "DEPOSITING ALREADY IN PROGRESS" RESET);
+      LOGGER_WARN(this->get_logger(), "Depositing already in progress");
       auto result = std::make_shared<Depositing::Result>();
       result->success = false;
       result->message = "Depositing already in progress";
@@ -101,7 +93,7 @@ private:
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DEPOSITING SEQUENCE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Starting depositing sequence");
 
     auto feedback = std::make_shared<Depositing::Feedback>();
     auto result = std::make_shared<Depositing::Result>();
@@ -115,14 +107,14 @@ private:
       result->success = true;
       result->message = "Depositing completed successfully";
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING COMPLETED SUCCESSFULLY" RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Depositing completed successfully");
     }
     catch (const std::exception& e)
     {
       result->success = false;
       result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);
-      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED: %s" RESET, e.what());
+      LOGGER_FAILURE(this->get_logger(), "Depositing failed: %s", e.what());
     }
 
     goal_active_ = false;

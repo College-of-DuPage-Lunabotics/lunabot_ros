@@ -25,6 +25,7 @@ These are launched individually via GUI buttons or for specific subsystems:
 - **mapping_launch.py**: Launches RTAB-Map for dense 3D mapping
 - **nav2_stack_launch.py**: Launches Nav2 navigation stack
 - **localization_launch.py**: Launches AprilTag-based localization
+- **launch_manager.launch.py**: Launches the launch manager service node for remote robot control via ROS service
 
 ## Parameters
 

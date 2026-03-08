@@ -1,27 +1,47 @@
 #!/usr/bin/env python3
 import os
+import signal
 import subprocess
 import time
+
 import rclpy
-from PyQt5.QtCore import QCoreApplication
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from std_msgs.msg import Float32, String, Bool, Float64MultiArray
-from sensor_msgs.msg import Image, CompressedImage, JointState
-from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
-from diagnostic_msgs.msg import DiagnosticArray
+from nav_msgs.msg import Odometry
+from PyQt5.QtCore import QCoreApplication
+from rclpy.action import ActionClient
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage, JointState
+from std_msgs.msg import Bool, Float32, Float64MultiArray
+
+from lunabot_logger import Logger
+from lunabot_msgs.action import Depositing, Excavation, Homing
 from lunabot_msgs.msg import ControlState, PowerMonitor
-from lunabot_msgs.action import Excavation, Depositing, Homing
 from lunabot_msgs.srv import LaunchSystem, StopSystem
 
 try:
     from cv_bridge import CvBridge
     import cv2
+    import numpy as np
     CV_AVAILABLE = True
 except ImportError:
     CV_AVAILABLE = False
 
+
+# Service / process timeout constants (seconds)
+_TIMEOUT_SERVICE_WAIT = 5.0
+_TIMEOUT_SERVICE_WAIT_LONG = 10.0
+_TIMEOUT_SERVICE_RESPONSE = 30.0
+_TIMEOUT_STOP_RESPONSE = 10.0
+_TIMEOUT_PROCESS_TERMINATE = 5
+
+# Display names for log messages
+_DISPLAY_NAMES = {
+    'pointlio':     'Point-LIO',
+    'mapping':      'RTAB-Map',
+    'nav2':         'Navigation2',
+    'localization': 'Localization',
+    'hardware':     'Hardware',
+}
 
 class RobotInterface:
     """ROS interface for robot communication and control"""
@@ -33,18 +53,19 @@ class RobotInterface:
         Args:
             mode_param: Robot mode (True=sim, False=real or 'sim'/'real')
         """
-        # Initialize ROS if not already initialized
         if not rclpy.ok():
             rclpy.init()
         self.node = Node('lunabot_gui')
         self._shutdown = False
-        
+        self.log = Logger(self.node)
+
         # Declare and read network parameters from config
         self.node.declare_parameter('network.robot_host', '192.168.0.250')
         self.node.declare_parameter('network.robot_user', 'codetc')
+        self.node.declare_parameter('network.robot_workspace', '~/lunabot_ws')
         self.node.declare_parameter('steam_mode', False)
         
-        # Parse mode parameter
+        # mode_param uses True=sim convention (from the 'mode' ROS param default)
         if isinstance(mode_param, bool):
             self.is_real_mode = not mode_param
         elif isinstance(mode_param, str):
@@ -54,21 +75,20 @@ class RobotInterface:
             self.is_real_mode = False
         
         self.robot_mode_type = 'real' if self.is_real_mode else 'sim'
-        self.node.get_logger().info(f'ROS interface running in {self.robot_mode_type.upper()} mode')
+        self.log.info(f'ROS interface running in {self.robot_mode_type.upper()} mode')
         
         # Remote robot configuration from parameters
         self.robot_host = self.node.get_parameter('network.robot_host').value
         self.robot_user = self.node.get_parameter('network.robot_user').value
-        self.robot_workspace = '~/lunabot_ws'
-        self.is_remote = self.is_real_mode
+        self.robot_workspace = self.node.get_parameter('network.robot_workspace').value
+        self.is_remote = self.is_real_mode  # remote SSH launch only applies in real mode
         self.steam_mode = self.node.get_parameter('steam_mode').value
         
-        self.node.get_logger().info(f'Controller mode: {"Steam Deck" if self.steam_mode else "Xbox"}')
+        self.log.info(f'Controller mode: {"Steam Deck" if self.steam_mode else "Xbox"}')
         
         if self.is_remote:
-            self.node.get_logger().info(f'Remote robot: {self.robot_user}@{self.robot_host}:{self.robot_workspace}')
+            self.log.info(f'Remote robot: {self.robot_user}@{self.robot_host}:{self.robot_workspace}')
         
-        # Initialize CV bridge
         self.bridge = CvBridge() if CV_AVAILABLE else None
         
         # Data storage - bandwidth (current)
@@ -136,7 +156,6 @@ class RobotInterface:
         self.homing_goal_handle = None
         self.navigation_client_process = None
         
-        # Create publishers
         self.emergency_stop_pub = self.node.create_publisher(Bool, '/emergency_stop', 10)
         self.control_state_pub = self.node.create_publisher(ControlState, '/control_state', 10)
         self.mode_switch_pub = self.node.create_publisher(Bool, '/mode_switch', 10)
@@ -144,11 +163,9 @@ class RobotInterface:
         self.camera_cmd_pub = self.node.create_publisher(Float64MultiArray, '/camera_controller/commands', 10)
         self.cmd_vel_pub = self.node.create_publisher(Twist, '/cmd_vel', 10)
         
-        # Create service clients for launch manager
         self.launch_client = self.node.create_client(LaunchSystem, 'launch_system')
         self.stop_client = self.node.create_client(StopSystem, 'stop_system')
         
-        # Create subscriptions
         self._create_subscriptions()
         
         # Callbacks for UI updates (set by GUI)
@@ -158,7 +175,6 @@ class RobotInterface:
         self.on_control_state_update = None
     
     def _create_subscriptions(self):
-        """Create all ROS topic subscriptions"""
         # Bandwidth monitoring - Current
         self.node.create_subscription(
             Float32, '/bandwidth/total_mbps',
@@ -181,83 +197,48 @@ class RobotInterface:
             Float32, '/bandwidth/avg_tx_mbps',
             lambda msg: setattr(self, 'bandwidth_avg_tx', msg.data), 10)
         
-        # Camera feeds
         if CV_AVAILABLE:
             self.node.create_subscription(
                 CompressedImage, '/camera_front/color/image_compressed',
-                self._front_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
             self.node.create_subscription(
                 CompressedImage, '/camera_back/color/image_compressed',
-                self._rear_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
             self.node.create_subscription(
                 CompressedImage, '/camera_fisheye/color/image_compressed',
-                self._fisheye_camera_callback, 10)
+                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 10)
         
-        # Robot odometry
         self.node.create_subscription(
             Odometry, '/odometry/filtered', self._odom_callback, 10)
-        
-        # Velocity commands
-        self.node.create_subscription(
-            Twist, '/cmd_vel', self._cmd_vel_callback, 10)
-        
-        # Control state
+
         self.node.create_subscription(
             ControlState, '/control_state', self._control_state_callback, 10)
-        
-        # Power monitoring
+
         self.node.create_subscription(
             PowerMonitor, '/power_monitor', self._power_monitor_callback, 10)
-        
-        # Robot mode
+
         self.node.create_subscription(
             Bool, '/manual_mode', self._manual_mode_callback, 10)
-        
-        # Robot disabled status
+
         self.node.create_subscription(
             Bool, '/robot_disabled', self._robot_disabled_callback, 10)
-        
-        # Vibration duty cycle
+
         self.node.create_subscription(
             Float32, '/vibration_duty_cycle', self._vibration_duty_cycle_callback, 10)
-        
-        # Joint states
+
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
     
-    # Camera callbacks
-    def _front_camera_callback(self, msg):
+    def _camera_callback(self, msg, camera_name, attr_name):
+        """Generic handler for compressed camera image messages"""
         try:
-            import numpy as np
             np_arr = np.frombuffer(msg.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.front_camera_image = cv_image
+            setattr(self, attr_name, cv_image)
             if self.on_camera_update:
-                self.on_camera_update('front', cv_image)
+                self.on_camera_update(camera_name, cv_image)
         except Exception as e:
-            self.node.get_logger().error(f'Front camera error: {e}')
-    
-    def _rear_camera_callback(self, msg):
-        try:
-            import numpy as np
-            np_arr = np.frombuffer(msg.data, np.uint8)
-            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.rear_camera_image = cv_image
-            if self.on_camera_update:
-                self.on_camera_update('rear', cv_image)
-        except Exception as e:
-            self.node.get_logger().error(f'Rear camera error: {e}')
-    
-    def _fisheye_camera_callback(self, msg):
-        try:
-            import numpy as np
-            np_arr = np.frombuffer(msg.data, np.uint8)
-            cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            self.fisheye_camera_image = cv_image
-            if self.on_camera_update:
-                self.on_camera_update('fisheye', cv_image)
-        except Exception as e:
-            self.node.get_logger().error(f'Fisheye camera error: {e}')
+            self.log.failure(f'{camera_name.capitalize()} camera error: {e}')
     
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x
@@ -266,9 +247,6 @@ class RobotInterface:
         self.angular_velocity = msg.twist.twist.angular.z
         if self.on_robot_state_update:
             self.on_robot_state_update()
-    
-    def _cmd_vel_callback(self, msg):
-        pass  # Use odom for actual velocity display
     
     def _manual_mode_callback(self, msg):
         is_manual = msg.data
@@ -293,7 +271,7 @@ class RobotInterface:
                 if idx < len(msg.position):
                     self.bucket_position = msg.position[idx]
         except Exception as e:
-            self.node.get_logger().warn(f'Error processing joint states: {e}', throttle_duration_sec=5.0)
+            self.log.warning(f'Error processing joint states: {e}', throttle_duration_sec=5.0)
     
     def _control_state_callback(self, msg):
         self.robot_mode = "MANUAL" if msg.mode == 0 else "AUTO"
@@ -318,9 +296,7 @@ class RobotInterface:
         self.power_energy_kwh = msg.energy_kwh
         self.power_alert_status = msg.alert_status
     
-    # Command publishing methods
     def publish_emergency_stop(self):
-        """Publish emergency stop command"""
         msg = Bool()
         msg.data = True
         self.emergency_stop_pub.publish(msg)
@@ -332,279 +308,256 @@ class RobotInterface:
         self.emergency_stop_pub.publish(msg)
     
     def publish_mode_switch(self):
-        """Publish mode switch command to toggle mode"""
         msg = Bool()
-        # Toggle: if currently manual, switch to auto (False), if currently auto, switch to manual (True)
         msg.data = not (self.robot_mode == "MANUAL")
         self.mode_switch_pub.publish(msg)
-        self.node.get_logger().info(f'Mode switch requested: {"MANUAL" if msg.data else "AUTO"}')
+        self.log.action(f'Mode switch requested: {"MANUAL" if msg.data else "AUTO"}')
     
     def publish_velocity(self, linear_x=0.0, angular_z=0.0):
-        """Publish velocity command"""
         msg = Twist()
         msg.linear.x = linear_x
         msg.angular.z = angular_z
         self.cmd_vel_pub.publish(msg)
     
     def publish_bucket_position(self, position):
-        """Publish bucket position command"""
         msg = Float64MultiArray()
         msg.data = [position]
         self.position_cmd_pub.publish(msg)
     
     def publish_camera_position(self, position):
-        """Publish fisheye camera position command"""
         msg = Float64MultiArray()
         msg.data = [position]
         self.camera_cmd_pub.publish(msg)
     
-    # System launch methods
     def start_can_interface(self):
         """Start CAN interface using canable_start.sh script"""
         try:
             script_path = f'{self.robot_workspace}/src/lunabot_ros/scripts/canable_start.sh'
             
             if self.is_remote:
-                self.node.get_logger().info(f'Running CAN interface on {self.robot_user}@{self.robot_host}')
+                self.log.action(f'Running CAN interface on {self.robot_user}@{self.robot_host}')
                 # Use bash -l to ensure proper environment and sudoers is loaded
                 cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
             else:
-                self.node.get_logger().info(f'Running CAN interface script: {script_path}')
+                self.log.action(f'Running CAN interface script: {script_path}')
                 cmd = ['bash', os.path.expanduser(script_path)]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=int(_TIMEOUT_SERVICE_WAIT_LONG))
             
             if result.stdout:
                 for line in result.stdout.strip().split('\n'):
                     if line:
-                        self.node.get_logger().info(f'CAN: {line}')
+                        self.log.info(f'CAN: {line}')
             if result.stderr:
                 for line in result.stderr.strip().split('\n'):
                     if line:
-                        self.node.get_logger().warn(f'CAN: {line}')
+                        self.log.warning(f'CAN: {line}')
             
             if result.returncode == 0:
-                self.node.get_logger().info('CAN interface started successfully')
+                self.log.success('CAN interface started successfully')
             else:
-                self.node.get_logger().error(f'CAN script exited with code {result.returncode}')
+                self.log.failure(f'CAN script exited with code {result.returncode}')
         except subprocess.TimeoutExpired:
-            self.node.get_logger().error('CAN script timed out')
+            self.log.failure('CAN script timed out')
         except Exception as e:
-            self.node.get_logger().error(f'Failed to start CAN interface: {str(e)}')
+            self.log.failure(f'Failed to start CAN interface: {str(e)}')
     
+    def _kill_proc(self, process, name):
+        """Kill a launch process and all its child nodes via process group signal."""
+        try:
+            pgid = os.getpgid(process.pid)
+        except ProcessLookupError:
+            return
+        try:
+            os.killpg(pgid, signal.SIGINT)   # SIGINT = graceful ROS 2 shutdown
+            process.wait(timeout=_TIMEOUT_PROCESS_TERMINATE)
+            self.log.info(f'Terminated {name} process')
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            self.log.warning(f'Killed {name} process (force)')
+        except Exception as e:
+            self.log.warning(f'Error terminating {name}: {e}')
+
+    def _wait_for_service_response(self, future, timeout_sec):
+        """Block (processing Qt events) until the future completes or times out. Returns response or None."""
+        start_time = time.time()
+        while not future.done() and (time.time() - start_time) < timeout_sec:
+            QCoreApplication.processEvents()
+            time.sleep(0.01)
+        if future.done() and future.result() is not None:
+            return future.result()
+        return None
+
+    def _set_system_enabled(self, system_name, value):
+        flag_map = {
+            'pointlio':     'pointlio_enabled',
+            'mapping':      'mapping_enabled',
+            'nav2':         'nav2_enabled',
+            'localization': 'localization_enabled',
+            'hardware':     'hardware_enabled',
+        }
+        attr = flag_map.get(system_name)
+        if attr is not None:
+            setattr(self, attr, value)
+
     def launch_hardware(self):
         """Launch hardware system for real robot"""
         if self.launch_processes['hardware'] is not None:
-            self.node.get_logger().warning('Hardware already running')
+            self.log.warning('Hardware already running')
             return
         
         try:
             if self.is_remote:
-                self.node.get_logger().info('Launching hardware via launch manager service')
-                
+                self.log.action('Launching hardware via launch manager service')
+
                 request = LaunchSystem.Request()
                 request.system_name = 'hardware'
                 request.use_sim = False
                 request.steam_mode = self.steam_mode
-                
-                if not self.launch_client.wait_for_service(timeout_sec=5.0):
-                    self.node.get_logger().error('Launch manager service not available')
+
+                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
+                    self.log.failure('Launch manager service not available')
                     return
-                
+
                 future = self.launch_client.call_async(request)
-                
-                # Wait for response (process Qt events so ROS timer can spin the node)
-                start_time = time.time()
-                timeout = 30.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
+                if response is not None:
                     if response.success:
-                        self.node.get_logger().info(f'Hardware launched: {response.message}')
+                        self.log.success(f'Hardware launched: {response.message}')
                         self.launch_processes['hardware'] = True
                     else:
-                        self.node.get_logger().error(f'Failed to launch hardware: {response.message}')
+                        self.log.failure(f'Failed to launch hardware: {response.message}')
                         return
                 else:
-                    self.node.get_logger().error('Service call failed for hardware launch')
+                    self.log.failure('Service call failed for hardware launch')
                     return
             else:
                 # Local launch
                 steam_arg = 'true' if self.steam_mode else 'false'
                 self.launch_processes['hardware'] = subprocess.Popen(
                     ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    start_new_session=True)
+
             self.hardware_enabled = True
-            self.node.get_logger().info('Hardware launched')
-            
-            # Trigger UI update
+            self.log.success('Hardware launched')
+
             if self.on_robot_state_update:
                 self.on_robot_state_update()
         except Exception as e:
-            self.node.get_logger().error(f'Failed to launch hardware: {str(e)}')
+            self.log.failure(f'Failed to launch hardware: {str(e)}')
     
     def launch_system(self, system_name):
         """Launch a system (PointLIO, mapping, Nav2, localization)"""
-        self.node.get_logger().info(f'Launching {system_name}')
-        
-        # Check if already running
+        display = _DISPLAY_NAMES.get(system_name, system_name)
+        self.log.action(f'Launching {display}')
+
         if self.launch_processes[system_name] is not None:
-            self.node.get_logger().warning(f'{system_name} already running')
+            self.log.warning(f'{display} already running')
             return
-        
+
         try:
             run_on_robot = self.is_real_mode and self.is_remote
             use_sim = not self.is_real_mode
-            
+
             if run_on_robot:
                 # Use service call to launch manager on robot
-                self.node.get_logger().info(f'Launching {system_name} via launch manager service')
-                
+                self.log.action(f'Launching {display} via launch manager service')
+
                 request = LaunchSystem.Request()
                 request.system_name = system_name
                 request.use_sim = use_sim
-                
-                if not self.launch_client.wait_for_service(timeout_sec=10.0):
-                    self.node.get_logger().error('Launch manager service not available')
+
+                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT_LONG):
+                    self.log.failure('Launch manager service not available')
                     return
-                
+
                 future = self.launch_client.call_async(request)
-                
-                # Wait for response (process Qt events so ROS timer can spin the node)
-                start_time = time.time()
-                timeout = 30.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()  # Let Qt event loop run (including ROS timer)
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
+                if response is not None:
                     if response.success:
-                        self.node.get_logger().info(f'{system_name} launched: {response.message}')
+                        self.log.success(f'{display} launched')
                         self.launch_processes[system_name] = True
                     else:
-                        self.node.get_logger().error(f'Failed to launch {system_name}: {response.message}')
+                        self.log.failure(f'Failed to launch {display}: {response.message}')
                         return
                 else:
-                    self.node.get_logger().error(f'Service call failed for {system_name}')
+                    self.log.failure(f'Service call timed out for {display}')
                     return
-                
-                # Set enabled flags
-                if system_name == 'pointlio':
-                    self.pointlio_enabled = True
-                elif system_name == 'mapping':
-                    self.mapping_enabled = True
-                elif system_name == 'nav2':
-                    self.nav2_enabled = True
-                elif system_name == 'localization':
-                    self.localization_enabled = True
+
+                self._set_system_enabled(system_name, True)
             else:
                 # Local launch (simulation mode)
                 use_sim_arg = 'true' if use_sim else 'false'
                 launch_file = f'{system_name}_launch.py'
                 if system_name == 'nav2':
                     launch_file = 'nav2_stack_launch.py'
-                
+
                 self.launch_processes[system_name] = subprocess.Popen(
                     ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    start_new_session=True
                 )
-                
-                # Set enabled flags
-                if system_name == 'pointlio':
-                    self.pointlio_enabled = True
-                elif system_name == 'mapping':
-                    self.mapping_enabled = True
-                elif system_name == 'nav2':
-                    self.nav2_enabled = True
-                elif system_name == 'localization':
-                    self.localization_enabled = True
-            
+                self._set_system_enabled(system_name, True)
+
             location = "via launch manager" if run_on_robot else "locally"
-            self.node.get_logger().info(f'{system_name} launched {location}')
-            
-            # Trigger UI update
+            self.log.success(f'{display} launched {location}')
+
             if self.on_robot_state_update:
                 self.on_robot_state_update()
         except Exception as e:
-            self.node.get_logger().error(f'Failed to launch {system_name}: {e}')
+            self.log.failure(f'Failed to launch {display}: {e}')
     
     def stop_system(self, system_name):
-        """Stop a running system"""
-        self.node.get_logger().info(f'Stopping {system_name}')
-        
+        display = _DISPLAY_NAMES.get(system_name, system_name)
+        self.log.action(f'Stopping {display}')
+
         try:
             if self.launch_processes[system_name] is None:
-                self.node.get_logger().warning(f'{system_name} is not running')
+                self.log.warning(f'{display} is not running')
                 return
-            
+
             # If launch_processes is True, it's a remote process via service
             if self.launch_processes[system_name] is True and self.is_remote:
-                self.node.get_logger().info(f'Stopping {system_name} via launch manager service')
-                
+                self.log.action(f'Stopping {display} via launch manager service')
+
                 request = StopSystem.Request()
                 request.system_name = system_name
-                
-                if not self.stop_client.wait_for_service(timeout_sec=5.0):
-                    self.node.get_logger().error('Stop service not available')
+
+                if not self.stop_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
+                    self.log.failure('Stop service not available')
                     return
-                
+
                 future = self.stop_client.call_async(request)
-                
-                # Wait for response
-                start_time = time.time()
-                timeout = 10.0
-                while not future.done() and (time.time() - start_time) < timeout:
-                    QCoreApplication.processEvents()
-                    time.sleep(0.01)
-                
-                if future.done() and future.result() is not None:
-                    response = future.result()
+                response = self._wait_for_service_response(future, _TIMEOUT_STOP_RESPONSE)
+                if response is not None:
                     if response.success:
-                        self.node.get_logger().info(f'{system_name} stopped: {response.message}')
+                        self.log.success(f'{display} stopped')
                     else:
-                        self.node.get_logger().warn(f'Stop warning: {response.message}')
+                        self.log.warning(f'Stop warning: {response.message}')
                 else:
-                    self.node.get_logger().error(f'Service call failed for stopping {system_name}')
-            
-            # If it's a subprocess object, terminate it locally
+                    self.log.failure(f'Service call timed out for stopping {display}')
+
             elif isinstance(self.launch_processes[system_name], subprocess.Popen):
-                try:
-                    self.launch_processes[system_name].terminate()
-                    self.launch_processes[system_name].wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    self.launch_processes[system_name].kill()
-            
+                self._kill_proc(self.launch_processes[system_name], system_name)
+
             self.launch_processes[system_name] = None
-            
-            # Update enabled flags
-            if system_name == 'pointlio':
-                self.pointlio_enabled = False
-            elif system_name == 'mapping':
-                self.mapping_enabled = False
-            elif system_name == 'nav2':
-                self.nav2_enabled = False
-            elif system_name == 'localization':
-                self.localization_enabled = False
-            elif system_name == 'hardware':
-                self.hardware_enabled = False
-            
-            self.node.get_logger().info(f'{system_name} stopped')
-            
-            # Trigger UI update
+            self._set_system_enabled(system_name, False)
+
+            self.log.success(f'{display} stopped')
+
             if self.on_robot_state_update:
                 self.on_robot_state_update()
         except Exception as e:
-            self.node.get_logger().error(f'Error stopping {system_name}: {e}')
+            self.log.failure(f'Error stopping {display}: {e}')
     
     
     def launch_rviz(self):
         """Launch RViz2 with robot visualization config"""
-        self.node.get_logger().info('Launching RViz2')
+        self.log.action('Launching RViz2')
         try:
             ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
             if ament_prefix:
@@ -625,18 +578,18 @@ class RobotInterface:
             config_path = '$(ros2 pkg prefix lunabot_config)/share/lunabot_config/rviz/robot_view.rviz'
             
             subprocess.Popen(
-                ['gnome-terminal', '--', 'bash', '-c',
-                 f'{setup_cmd} && rviz2 -d {config_path}; read -p "Press Enter to close..."'],
+                f'{setup_cmd} && rviz2 -d {config_path}',
+                shell=True,
+                executable='/bin/bash'
             )
             
-            self.node.get_logger().info('RViz2 launched (close terminal to stop)')
+            self.log.success('RViz2 launched')
         except Exception as e:
-            self.node.get_logger().error(f'Failed to launch RViz2: {e}')
+            self.log.failure(f'Failed to launch RViz2: {e}')
     
-    # Action client methods
     def send_excavate_goal(self, response_callback, result_callback, cancel_callback):
         """Send excavation action goal"""
-        self.node.get_logger().info('Sending excavate goal')
+        self.log.action('Sending excavation goal')
         goal_msg = Excavation.Goal()
         send_goal_future = self.excavation_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(
@@ -653,13 +606,18 @@ class RobotInterface:
     
     def cancel_excavate_goal(self, cancel_callback):
         """Cancel excavation action"""
-        if self.excavation_goal_handle is not None:
+        if self.excavation_goal_handle is not None and self.excavation_goal_handle.accepted:
+            self.log.action('Canceling excavation goal')
             cancel_future = self.excavation_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active excavation goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def send_deposit_goal(self, response_callback, result_callback, cancel_callback):
         """Send depositing action goal"""
-        self.node.get_logger().info('Sending deposit goal')
+        self.log.action('Sending depositing goal')
         goal_msg = Depositing.Goal()
         send_goal_future = self.depositing_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(
@@ -676,13 +634,18 @@ class RobotInterface:
     
     def cancel_deposit_goal(self, cancel_callback):
         """Cancel depositing action"""
-        if self.depositing_goal_handle is not None:
+        if self.depositing_goal_handle is not None and self.depositing_goal_handle.accepted:
+            self.log.action('Canceling depositing goal')
             cancel_future = self.depositing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active depositing goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def send_home_goal(self, response_callback, result_callback, cancel_callback):
         """Send homing action goal"""
-        self.node.get_logger().info('Sending home goal')
+        self.log.action('Sending home goal')
         goal_msg = Homing.Goal()
         send_goal_future = self.homing_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(
@@ -699,13 +662,18 @@ class RobotInterface:
     
     def cancel_home_goal(self, cancel_callback):
         """Cancel homing action"""
-        if self.homing_goal_handle is not None:
+        if self.homing_goal_handle is not None and self.homing_goal_handle.accepted:
+            self.log.action('Canceling homing goal')
             cancel_future = self.homing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
+        else:
+            self.log.warning('No active homing goal to cancel')
+            # Still call the callback to reset GUI state
+            cancel_callback(None)
     
     def launch_navigation_client(self):
         """Launch navigation client for one cycle auto"""
-        self.node.get_logger().info('Starting navigation client...')
+        self.log.action('Starting navigation client')
         try:
             ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
             if ament_prefix:
@@ -727,58 +695,63 @@ class RobotInterface:
             use_localization_arg = 'false'
             
             self.navigation_client_process = subprocess.Popen(
-                ['gnome-terminal', '--', 'bash', '-c',
-                 f'{setup_cmd} && ros2 run lunabot_nav navigation_client --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:={use_localization_arg}; read -p "Press Enter to close..."'],
+                f'{setup_cmd} && ros2 run lunabot_nav navigation_client --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:={use_localization_arg}',
+                shell=True,
+                executable='/bin/bash',
+                preexec_fn=os.setsid
             )
             
-            self.node.get_logger().info('Navigation client launched')
+            self.log.success('Navigation client launched')
             return True
         except Exception as e:
-            self.node.get_logger().error(f'Failed to launch navigation client: {e}')
+            self.log.failure(f'Failed to launch navigation client: {e}')
             return False
     
     def stop_navigation_client(self):
         """Stop navigation client process"""
         if self.navigation_client_process:
             try:
-                self.navigation_client_process.terminate()
+                os.killpg(os.getpgid(self.navigation_client_process.pid), signal.SIGTERM)
                 self.navigation_client_process = None
-                self.node.get_logger().info('Navigation client stopped')
+                self.log.success('Navigation client stopped')
             except Exception as e:
-                self.node.get_logger().error(f'Failed to stop navigation client: {e}')
+                self.log.failure(f'Failed to stop navigation client: {e}')
     
-    # Utility methods
     def spin_once(self):
-        """Spin ROS node once to process callbacks"""
         if not self._shutdown and rclpy.ok():
             try:
                 rclpy.spin_once(self.node, timeout_sec=0)
             except Exception as e:
                 if not self._shutdown:
-                    self.node.get_logger().debug(f'Spin error: {e}')
+                    self.log.debug(f'Spin error: {e}')
     
     def shutdown(self):
-        """Shutdown ROS interface"""
+        if self._shutdown:
+            return
         self._shutdown = True
-        
-        # Terminate any running launch processes
+
         for name, process in self.launch_processes.items():
-            if process is not None:
+            if isinstance(process, subprocess.Popen):
+                self._kill_proc(process, name)
+            elif process is True and self.is_remote:
+                # Remote process started via service -> send stop request
                 try:
-                    process.terminate()
-                    process.wait(timeout=3)
-                    self.node.get_logger().info(f'Terminated {name} process')
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    self.node.get_logger().warn(f'Killed {name} process (force)')
+                    display = _DISPLAY_NAMES.get(name, name)
+                    if self.stop_client.service_is_ready():
+                        request = StopSystem.Request()
+                        request.system_name = name
+                        future = self.stop_client.call_async(request)
+                        start = time.time()
+                        while not future.done() and (time.time() - start) < 2.0:
+                            rclpy.spin_once(self.node, timeout_sec=0.05)
+                        self.log.info(f'Stop request sent for {display}')
                 except Exception as e:
-                    self.node.get_logger().warn(f'Error terminating {name}: {e}')
-        
-        # Stop navigation client
+                    self.log.warning(f'Error sending stop for {name}: {e}')
+
         self.stop_navigation_client()
-        
+
         # Destroy node (don't shutdown rclpy as it may be used by other components)
         try:
             self.node.destroy_node()
-        except Exception as e:
+        except Exception:
             pass

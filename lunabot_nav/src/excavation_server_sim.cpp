@@ -14,13 +14,7 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 
 #include "lunabot_msgs/action/excavation.hpp"
-
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "lunabot_logger/logger.hpp"
 
 #define TRAVEL_POSITION -0.4
 #define EXCAVATE_POSITION 0.0
@@ -38,9 +32,7 @@ public:
   /**
    * @brief Constructor for the ExcavationServerSim class.
    */
-  ExcavationServerSim()
-    : Node("excavation_server")
-    , goal_active_(false)
+  ExcavationServerSim() : Node("excavation_server"), goal_active_(false)
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
         this, "excavation_action",
@@ -48,11 +40,11 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    bucket_position_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
-        "/position_controller/commands", 10);
+    bucket_position_pub_ =
+        this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION SERVER (SIM) INITIALIZED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Excavation server (sim) initialized");
   }
 
 private:
@@ -65,7 +57,7 @@ private:
     auto msg = std_msgs::msg::Float64MultiArray();
     msg.data.push_back(position);
     bucket_position_pub_->publish(msg);
-    RCLCPP_INFO(this->get_logger(), CYAN "Setting bucket position to %.2f rad" RESET, position);
+    LOGGER_ACTION(this->get_logger(), "Setting bucket position to %.2f rad", position);
   }
 
   /**
@@ -73,10 +65,10 @@ private:
    */
   void lower_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LOWERING BUCKET TO EXCAVATE (vibration ON)..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lowering bucket to excavate (vibration on)...");
     set_bucket_position(EXCAVATE_POSITION);
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    RCLCPP_INFO(this->get_logger(), GREEN "BUCKET LOWERED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Bucket lowered");
   }
 
   /**
@@ -84,7 +76,7 @@ private:
    */
   void drive_forward()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "DRIVING FORWARD TO DIG..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Driving forward to dig...");
 
     auto twist_msg = geometry_msgs::msg::Twist();
     twist_msg.linear.x = 0.2;
@@ -99,7 +91,7 @@ private:
     twist_msg.linear.x = 0.0;
     cmd_vel_pub_->publish(twist_msg);
 
-    RCLCPP_INFO(this->get_logger(), GREEN "DRIVE FORWARD COMPLETE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Drive forward complete");
   }
 
   /**
@@ -107,10 +99,10 @@ private:
    */
   void lift_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LIFTING BUCKET (vibration OFF)..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket (vibration off)...");
     set_bucket_position(TRAVEL_POSITION);
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    RCLCPP_INFO(this->get_logger(), GREEN "BUCKET LIFTED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Bucket lifted");
   }
 
   /**
@@ -121,7 +113,7 @@ private:
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "EXCAVATION ALREADY IN PROGRESS" RESET);
+      LOGGER_WARN(this->get_logger(), "Excavation already in progress");
       auto result = std::make_shared<Excavation::Result>();
       result->success = false;
       goal_handle->abort(result);
@@ -129,7 +121,7 @@ private:
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING EXCAVATION SEQUENCE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Starting excavation sequence");
 
     auto result = std::make_shared<Excavation::Result>();
 
@@ -144,11 +136,11 @@ private:
 
       result->success = true;
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "EXCAVATION COMPLETED SUCCESSFULLY" RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Excavation completed successfully");
     }
     catch (const std::exception& e)
     {
-      RCLCPP_ERROR(this->get_logger(), RED "EXCAVATION FAILED: %s" RESET, e.what());
+      LOGGER_FAILURE(this->get_logger(), "Excavation failed: %s", e.what());
       result->success = false;
       goal_handle->abort(result);
     }

@@ -12,14 +12,9 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/depositing.hpp"
-#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
 
-// ANSI color codes
-#define RESET "\033[0m"
-#define RED "\033[1;31m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[1;36m"
+#include "SparkMax.hpp"
 
 #define LIFT_TICKS 1000.0
 
@@ -55,7 +50,7 @@ public:
     left_actuator_motor_.BurnFlash();
     right_actuator_motor_.BurnFlash();
 
-    RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING SERVER INITIALIZED" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
 
 private:
@@ -82,11 +77,11 @@ private:
     auto param_client = std::make_shared<rclcpp::SyncParametersClient>(homing_node, "/homing_server");
     if (param_client->wait_for_service(std::chrono::seconds(1)))
     {
-      auto params = param_client->get_parameters({"actuator_home_offset"});
+      auto params = param_client->get_parameters({ "actuator_home_offset" });
       if (!params.empty())
       {
         home_offset_ = params[0].as_double();
-        RCLCPP_INFO(this->get_logger(), CYAN "Home offset updated: %.2f ticks" RESET, home_offset_);
+        LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f ticks", home_offset_);
       }
     }
   }
@@ -96,7 +91,7 @@ private:
    */
   void lift_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LIFTING BUCKET TO DUMP..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket to dump...");
 
     double initial_position = get_actuator_position();
     double target_position = initial_position + LIFT_TICKS;
@@ -121,7 +116,7 @@ private:
     right_actuator_motor_.SetDutyCycle(0.0);
     vibration_motor_.SetDutyCycle(0.0);
 
-    RCLCPP_INFO(this->get_logger(), CYAN "WAITING FOR MATERIAL TO DUMP..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Waiting for material to dump...");
     std::this_thread::sleep_for(std::chrono::seconds(3));
   }
 
@@ -130,7 +125,7 @@ private:
    */
   void lower_bucket()
   {
-    RCLCPP_INFO(this->get_logger(), CYAN "LOWERING BUCKET TO HOME..." RESET);
+    LOGGER_ACTION(this->get_logger(), "Lowering bucket to home...");
 
     double initial_position = get_actuator_position();
     double target_position = initial_position - LIFT_TICKS;
@@ -159,7 +154,7 @@ private:
   {
     if (goal_active_)
     {
-      RCLCPP_WARN(this->get_logger(), YELLOW "DEPOSITING ALREADY IN PROGRESS" RESET);
+      LOGGER_WARN(this->get_logger(), "Depositing already in progress");
       auto result = std::make_shared<Depositing::Result>();
       result->success = false;
       result->message = "Depositing already in progress";
@@ -168,7 +163,7 @@ private:
     }
 
     goal_active_ = true;
-    RCLCPP_INFO(this->get_logger(), GREEN "STARTING DEPOSITING SEQUENCE" RESET);
+    LOGGER_SUCCESS(this->get_logger(), "Starting depositing sequence");
 
     // Update home offset before starting
     update_home_offset();
@@ -189,14 +184,14 @@ private:
       result->success = true;
       result->message = "Depositing completed successfully";
       goal_handle->succeed(result);
-      RCLCPP_INFO(this->get_logger(), GREEN "DEPOSITING COMPLETED SUCCESSFULLY" RESET);
+      LOGGER_SUCCESS(this->get_logger(), "Depositing completed successfully");
     }
     catch (const std::exception& e)
     {
       result->success = false;
       result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);
-      RCLCPP_ERROR(this->get_logger(), RED "DEPOSITING FAILED: %s" RESET, e.what());
+      LOGGER_FAILURE(this->get_logger(), "Depositing failed: %s", e.what());
     }
 
     goal_active_ = false;
