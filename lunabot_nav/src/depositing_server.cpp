@@ -15,12 +15,14 @@
 #include "lunabot_logger/logger.hpp"
 
 #include "SparkMax.hpp"
+#include <std_msgs/msg/float64.hpp>
 
-#define LIFT_TICKS 1000.0
+#define DEPOSIT_POS 9.0
+#define TRAVEL_POS 2.0
 
 /**
  * @class DepositingServer
- * @brief Hardware depositing server that controls bucket actuators for depositing operations.
+ * @brief Hardware depositing server that controls bucket actuators for depositing sequence.
  */
 class DepositingServer : public rclcpp::Node
 {
@@ -35,8 +37,8 @@ public:
     : Node("depositing_server")
     , goal_active_(false)
     , home_offset_(0.0)
-    , left_actuator_motor_("can0", 2)
     , right_actuator_motor_("can0", 1)
+    , left_actuator_motor_("can0", 2)
     , vibration_motor_("can0", 5)
   {
     action_server_ = rclcpp_action::create_server<Depositing>(
@@ -45,79 +47,62 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    left_actuator_motor_.SetSensorType(SensorType::kEncoder);
-    right_actuator_motor_.SetSensorType(SensorType::kEncoder);
-    left_actuator_motor_.BurnFlash();
-    right_actuator_motor_.BurnFlash();
+    home_offset_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
+        "actuator_home_offset", 10,
+        [this](const std_msgs::msg::Float64::SharedPtr msg) {
+          home_offset_ = msg->data;
+          LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
+        });
 
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
 
 private:
   /**
-   * @brief Gets the average position of both bucket actuators.
-   * @return Average encoder position in ticks.
+   * @brief Gets the position of the left bucket actuator (right encoder not working).
+   * @return Left encoder position in radians.
    */
   double get_actuator_position()
   {
     left_actuator_motor_.Heartbeat();
     right_actuator_motor_.Heartbeat();
     double left_pos = left_actuator_motor_.GetPosition();
-    double right_pos = right_actuator_motor_.GetPosition();
     // Subtract home offset to get position relative to home
-    return (left_pos + right_pos) / 2.0 - home_offset_;
+    return left_pos - home_offset_;
   }
 
   /**
-   * @brief Updates the home offset from homing server parameter.
-   */
-  void update_home_offset()
-  {
-    auto homing_node = std::make_shared<rclcpp::Node>("homing_offset_reader");
-    auto param_client = std::make_shared<rclcpp::SyncParametersClient>(homing_node, "/homing_server");
-    if (param_client->wait_for_service(std::chrono::seconds(1)))
-    {
-      auto params = param_client->get_parameters({ "actuator_home_offset" });
-      if (!params.empty())
-      {
-        home_offset_ = params[0].as_double();
-        LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f ticks", home_offset_);
-      }
-    }
-  }
-
-  /**
-   * @brief Lifts bucket to dump position.
+   * @brief Lifts bucket to deposit position.
    */
   void lift_bucket()
   {
-    LOGGER_ACTION(this->get_logger(), "Lifting bucket to dump...");
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket to deposit...");
 
-    double initial_position = get_actuator_position();
-    double target_position = initial_position + LIFT_TICKS;
+    // Absolute target from zero
+    double target_position = DEPOSIT_POS;
 
-    // Turn on vibration to help with depositing
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(1.0);
-
+    // Lift bucket without vibration first
     while (get_actuator_position() < target_position)
     {
       left_actuator_motor_.Heartbeat();
       right_actuator_motor_.Heartbeat();
-      vibration_motor_.Heartbeat();
 
-      left_actuator_motor_.SetDutyCycle(1.0);
-      right_actuator_motor_.SetDutyCycle(1.0);
+      left_actuator_motor_.SetDutyCycle(-1.0);
+      right_actuator_motor_.SetDutyCycle(-1.0);
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      LOGGER_INFO(this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f", get_actuator_position(), target_position);
     }
 
+    // Stop the actuators
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
-    vibration_motor_.SetDutyCycle(0.0);
 
-    LOGGER_ACTION(this->get_logger(), "Waiting for material to dump...");
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Vibrate at deposit position for a couple seconds
+    LOGGER_ACTION(this->get_logger(), "Vibrating bucket for 5 seconds...");
+    vibration_motor_.Heartbeat();
+    vibration_motor_.SetDutyCycle(1.0);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    vibration_motor_.SetDutyCycle(0.0);
   }
 
   /**
@@ -127,18 +112,16 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket to home...");
 
-    double initial_position = get_actuator_position();
-    double target_position = initial_position - LIFT_TICKS;
+    // Absolute target from zero
+    double target_position = TRAVEL_POS;
 
     while (get_actuator_position() > target_position)
     {
       left_actuator_motor_.Heartbeat();
       right_actuator_motor_.Heartbeat();
 
-      left_actuator_motor_.SetDutyCycle(-1.0);
-      right_actuator_motor_.SetDutyCycle(-1.0);
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      left_actuator_motor_.SetDutyCycle(1.0);
+      right_actuator_motor_.SetDutyCycle(1.0);
     }
 
     // Stop motors
@@ -165,15 +148,12 @@ private:
     goal_active_ = true;
     LOGGER_SUCCESS(this->get_logger(), "Starting depositing sequence");
 
-    // Update home offset before starting
-    update_home_offset();
-
     auto feedback = std::make_shared<Depositing::Feedback>();
     auto result = std::make_shared<Depositing::Result>();
 
     try
     {
-      feedback->feedback_message = "Lifting bucket to dump position";
+      feedback->feedback_message = "Lifting bucket to deposit position";
       goal_handle->publish_feedback(feedback);
       lift_bucket();
 
@@ -198,6 +178,7 @@ private:
   }
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
 
   double home_offset_;
   SparkMax left_actuator_motor_;

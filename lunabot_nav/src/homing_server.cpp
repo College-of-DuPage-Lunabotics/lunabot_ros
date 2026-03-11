@@ -14,10 +14,11 @@
 #include "lunabot_msgs/action/homing.hpp"
 #include "lunabot_logger/logger.hpp"
 #include "SparkMax.hpp"
+#include <std_msgs/msg/float64.hpp>
 
 #define HOMING_SPEED 0.5
 #define POSITION_THRESHOLD 10.0
-#define LIFT_TICKS 1000.0
+#define TRAVEL_POS 2.5
 
 /**
  * @class HomingServer
@@ -33,7 +34,7 @@ public:
    * @brief Constructor for the HomingServer class.
    */
   HomingServer()
-    : Node("homing_server"), goal_active_(false), left_actuator_motor_("can0", 2), right_actuator_motor_("can0", 1)
+    : Node("homing_server"), goal_active_(false), right_actuator_motor_("can0", 1), left_actuator_motor_("can0", 2)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
         this, "homing_action",
@@ -41,10 +42,7 @@ public:
         [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
         [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
 
-    left_actuator_motor_.SetSensorType(SensorType::kEncoder);
-    right_actuator_motor_.SetSensorType(SensorType::kEncoder);
-    left_actuator_motor_.BurnFlash();
-    right_actuator_motor_.BurnFlash();
+    home_offset_publisher_ = this->create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
 
     // Declare parameter for home offset
     this->declare_parameter<double>("actuator_home_offset", 0.0);
@@ -55,7 +53,7 @@ public:
 private:
   /**
    * @brief Gets the average position of both bucket actuators.
-   * @return Average encoder position in ticks.
+   * @return Average encoder position in radians.
    */
   double get_actuator_position()
   {
@@ -112,7 +110,12 @@ private:
     double home_offset = get_actuator_position();
     this->set_parameter(rclcpp::Parameter("actuator_home_offset", home_offset));
 
-    LOGGER_SUCCESS(this->get_logger(), "Actuator home offset set: %.2f ticks", home_offset);
+    // Publish home offset so other nodes can use it
+    auto msg = std_msgs::msg::Float64();
+    msg.data = home_offset;
+    home_offset_publisher_->publish(msg);
+
+    LOGGER_SUCCESS(this->get_logger(), "Actuator home offset set: %.2f position", home_offset);
   }
 
   /**
@@ -123,7 +126,7 @@ private:
     LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
     double initial_position = get_actuator_position();
-    double target_position = initial_position - LIFT_TICKS;
+    double target_position = initial_position - TRAVEL_POS;
 
     while (get_actuator_position() > target_position)
     {
@@ -132,8 +135,6 @@ private:
 
       left_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
       right_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     // Stop motors
@@ -192,6 +193,7 @@ private:
   }
 
   rclcpp_action::Server<Homing>::SharedPtr action_server_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
 
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;

@@ -15,7 +15,7 @@
 #include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_logger/logger.hpp"
 
-#define DUMP_POSITION -1.5
+#define DEPOSIT_POSITION -1.5
 #define TRAVEL_POSITION -0.4
 
 /**
@@ -59,15 +59,15 @@ private:
   }
 
   /**
-   * @brief Lifts bucket to dump position and returns to travel position.
+   * @brief Lifts bucket to deposit position and returns to travel position.
    */
-  void lift_and_dump()
+  void lift_and_deposit()
   {
-    // Lift bucket to dump position
-    LOGGER_ACTION(this->get_logger(), "Lifting bucket to dump (vibration on)...");
-    set_bucket_position(DUMP_POSITION);
+    // Lift bucket to deposit position
+    LOGGER_ACTION(this->get_logger(), "Lifting bucket to deposit (vibration on)...");
+    set_bucket_position(DEPOSIT_POSITION);
     std::this_thread::sleep_for(std::chrono::seconds(3));
-    LOGGER_SUCCESS(this->get_logger(), "Dump complete");
+    LOGGER_SUCCESS(this->get_logger(), "Deposit complete");
 
     // Return bucket to travel position
     LOGGER_ACTION(this->get_logger(), "Resetting bucket to travel position...");
@@ -102,7 +102,7 @@ private:
     {
       feedback->feedback_message = "Depositing and resetting bucket";
       goal_handle->publish_feedback(feedback);
-      lift_and_dump();
+      lift_and_deposit();
 
       result->success = true;
       result->message = "Depositing completed successfully";

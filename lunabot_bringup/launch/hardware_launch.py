@@ -10,6 +10,7 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     realsense_dir = get_package_share_directory("realsense2_camera")
+    bringup_dir = get_package_share_directory("lunabot_bringup")
 
     apriltag_params_file = os.path.join(
         config_dir, "params", "apriltag", "tag_params.yaml"
@@ -61,6 +62,15 @@ def generate_launch_description():
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
+        }.items(),
+    )
+
+    actions_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_dir, "launch", "actions_launch.py")
+        ),
+        launch_arguments={
+            "use_sim": "false",
         }.items(),
     )
 
@@ -171,6 +181,7 @@ def generate_launch_description():
         image_compressor_node,
         d456_front_launch,
         d456_back_launch,
+        actions_launch,
         controller_teleop_node,
         power_monitor_node,
         apriltag_d456_node,
