@@ -56,14 +56,85 @@ def set_robot_entity_name(context, *args, **kwargs):
     return [SetLaunchConfiguration("robot_entity", robot_type)]
 
 
+def create_sim_group(context, *args, **kwargs):
+    if context.launch_configurations.get("use_sim") != "true":
+        return []
+
+    sim_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
+            )
+        ),
+        launch_arguments={
+            "gui": LaunchConfiguration("sim_gui"),
+            "world": LaunchConfiguration("world_file"),
+        }.items(),
+    )
+
+    spawn_robot_node = Node(
+        package="gazebo_ros",
+        executable="spawn_entity.py",
+        arguments=[
+            "-topic", "robot_description",
+            "-entity", LaunchConfiguration("robot_entity"),
+            "-x", LaunchConfiguration("spawn_x"),
+            "-y", LaunchConfiguration("spawn_y"),
+            "-Y", LaunchConfiguration("robot_heading"),
+            "-z", LaunchConfiguration("spawn_z"),
+        ],
+        output="screen",
+    )
+
+    topic_remapper_node = Node(
+        package="lunabot_util",
+        executable="topic_remapper",
+    )
+
+    joint_state_broadcaster_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+    )
+
+    diff_drive_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["diff_drive_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    camera_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["camera_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    actions = [
+        sim_launch,
+        spawn_robot_node,
+        topic_remapper_node,
+        joint_state_broadcaster_spawner,
+        diff_drive_controller_spawner,
+        camera_controller_spawner,
+    ]
+
+    # v2_bot also needs the position controller for the bucket joint
+    if context.launch_configurations.get("robot_type") == "v2_bot":
+        actions.append(Node(
+            package="controller_manager",
+            executable="spawner",
+            arguments=["position_controller", "--controller-manager", "/controller_manager"],
+        ))
+
+    return actions
+
+
 def generate_launch_description():
     config_dir = get_package_share_directory("lunabot_config")
     description_dir = get_package_share_directory("lunabot_description")
 
     rviz_config_file = os.path.join(config_dir, "rviz", "robot_view.rviz")
-    gui_params_file = os.path.join(
-        config_dir, "params", "gui","gui_params.yaml"
-    )
+    gui_params_file = os.path.join(config_dir, "params", "gui", "gui_params.yaml")
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
@@ -74,7 +145,7 @@ def generate_launch_description():
 
     declare_use_sim = DeclareLaunchArgument(
         "use_sim",
-        default_value="true",
+        default_value="false",
         description="Specifies whether the robot is in simulation mode 'true' or real-world mode 'false'.",
     )
 
@@ -89,7 +160,7 @@ def generate_launch_description():
         "sim_gui",
         default_value="true",
         choices=["true", "false"],
-        description="Sets whether to open Gazebo with its GUI. 'true' opens the GUI, while 'false' runs Gazebo in headless mode.",
+        description="Sets whether to open Gazebo with its GUI.",
     )
 
     declare_arena_type = DeclareLaunchArgument(
@@ -132,17 +203,12 @@ def generate_launch_description():
         output="screen",
     )
 
-    topic_remapper_node = Node(
-        package="lunabot_util",
-        executable="topic_remapper"
-    )
-
     bandwidth_monitor_node = Node(
         package="lunabot_util",
         executable="bandwidth_monitor.py",
         name="bandwidth_monitor",
         output="screen",
-        parameters=[{'interface': 'wlo1'}],  # Force WiFi interface for now
+        parameters=[{'interface': 'wlo1'}],
     )
 
     robot_state_publisher = Node(
@@ -165,90 +231,6 @@ def generate_launch_description():
         parameters=[{"use_sim_time": False}],
     )
 
-    sim_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
-            )
-        ),
-        launch_arguments={
-            "gui": LaunchConfiguration("sim_gui"),
-            "world": LaunchConfiguration("world_file"),
-        }.items(),
-    )
-
-    spawn_robot_node = Node(
-        package="gazebo_ros",
-        executable="spawn_entity.py",
-        arguments=[
-            "-topic",
-            "robot_description",
-            "-entity",
-            LaunchConfiguration("robot_entity"),
-            "-x",
-            LaunchConfiguration("spawn_x"),
-            "-y",
-            LaunchConfiguration("spawn_y"),
-            "-Y",
-            LaunchConfiguration("robot_heading"),
-            "-z",
-            LaunchConfiguration("spawn_z"),
-        ],
-        output="screen",
-    )
-
-    actions_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("lunabot_bringup"), "launch", "actions_launch.py"
-            )
-        ),
-        launch_arguments={
-            "use_sim": LaunchConfiguration("use_sim"),
-        }.items(),
-        condition=LaunchConfigurationEquals("use_sim", "true"),
-    )
-
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    diff_drive_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "diff_drive_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    position_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "position_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    camera_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "camera_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
     image_compressor_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -260,29 +242,6 @@ def generate_launch_description():
         ],
     )
 
-    sim_group = GroupAction(
-        actions=[
-            sim_launch,
-            spawn_robot_node,
-            topic_remapper_node,
-            image_compressor_node,
-            joint_state_broadcaster_spawner,
-            diff_drive_controller_spawner,
-            camera_controller_spawner,
-        ],
-        condition=LaunchConfigurationEquals("use_sim", "true"),
-    )
-
-    position_controller_group = GroupAction(
-        actions=[position_controller_spawner],
-        condition=LaunchConfigurationEquals("robot_type", "v2_bot"),
-    )
-
-    joint_state_publisher_real = GroupAction(
-        actions=[joint_state_publisher_node],
-        condition=LaunchConfigurationEquals("use_sim", "false"),
-    )
-
     joy_node = Node(
         package="joy",
         executable="joy_node",
@@ -290,8 +249,27 @@ def generate_launch_description():
         output="screen",
     )
 
+    actions_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("lunabot_bringup"), "launch", "actions_launch.py"
+            )
+        ),
+        launch_arguments={"use_sim": LaunchConfiguration("use_sim")}.items(),
+    )
+
+    joint_state_publisher_real = GroupAction(
+        actions=[joint_state_publisher_node],
+        condition=LaunchConfigurationEquals("use_sim", "false"),
+    )
+
     joy_group = GroupAction(
         actions=[joy_node],
+        condition=LaunchConfigurationEquals("use_sim", "false"),
+    )
+
+    image_compressor_real = GroupAction(
+        actions=[image_compressor_node],
         condition=LaunchConfigurationEquals("use_sim", "false"),
     )
 
@@ -325,10 +303,11 @@ def generate_launch_description():
     ld.add_action(custom_gui_group)
     ld.add_action(robot_state_publisher)
     ld.add_action(bandwidth_monitor_node)
-    ld.add_action(sim_group)
-    ld.add_action(position_controller_group)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
+    ld.add_action(image_compressor_real)
     ld.add_action(actions_launch)
+
+    ld.add_action(OpaqueFunction(function=create_sim_group))
 
     return ld

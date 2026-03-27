@@ -4,6 +4,15 @@
 
   <xacro:arg name="use_sim" default="true" />
 
+  <xacro:if value="$(arg use_sim)">
+    <xacro:property name="camera_sim_link_offset" value="-0.01" />
+    <xacro:property name="lidar_sim_link_offset" value="0.01" />
+  </xacro:if>
+  <xacro:unless value="$(arg use_sim)">
+    <xacro:property name="camera_sim_link_offset" value="0" />
+    <xacro:property name="lidar_sim_link_offset" value="0" />
+  </xacro:unless>
+
   <material name="camera_grey">
     <color rgba="0.81 0.81 0.81 1.0" />
   </material>
@@ -11,19 +20,6 @@
   <material name="black">
     <color rgba="0.22 0.22 0.22 1.0" />
   </material>
-
-  <xacro:if value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="-0.01" />
-    <xacro:property name="camera_sim_joint_offset" value="0" />
-    <xacro:property name="lidar_sim_link_offset" value="0.01" />
-    <xacro:property name="lidar_sim_joint_offset" value="0" />
-  </xacro:if>
-  <xacro:unless value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0" />
-    <xacro:property name="camera_sim_joint_offset" value="0" />
-    <xacro:property name="lidar_sim_link_offset" value="0" />
-    <xacro:property name="lidar_sim_joint_offset" value="0" />
-  </xacro:unless>
 
   <!-- ================================= -->
   <!--            BODY LINKS             -->
@@ -326,6 +322,7 @@
     <origin xyz="0.215 0.25 0.08" rpy="0 0 0" />
     <axis xyz="0 1 0" />
   </joint>
+
 
   <!-- ================================= -->
   <!--       GAZEBO CONFIGURATION        -->

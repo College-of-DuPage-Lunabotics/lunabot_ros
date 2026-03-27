@@ -24,6 +24,16 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+
+# Gazebo Classic is only available on Humble (Ubuntu 22.04). Skip building the
+# plugin on Jazzy (Ubuntu 24.04) where Gazebo Classic is not installed.
+find_package(gazebo QUIET)
+if(NOT gazebo_FOUND)
+  message(STATUS "Gazebo Classic not found — skipping ros2_livox_simulation plugin build")
+  ament_package()
+  return()
+endif()
+
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(gazebo_dev REQUIRED)
@@ -31,13 +41,9 @@ find_package(gazebo_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 include_directories(
   include
 )
