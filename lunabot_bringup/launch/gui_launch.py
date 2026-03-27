@@ -2,8 +2,8 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.substitutions import Command, LaunchConfiguration
-from launch.conditions import LaunchConfigurationEquals
+from launch.substitutions import Command, LaunchConfiguration, EqualsSubstitution
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import (
     DeclareLaunchArgument,
@@ -109,6 +109,15 @@ def create_sim_group(context, *args, **kwargs):
         arguments=["camera_controller", "--controller-manager", "/controller_manager"],
     )
 
+    actions_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("lunabot_bringup"), "launch", "actions_launch.py"
+            )
+        ),
+        launch_arguments={"use_sim": "true"}.items(),
+    )
+
     actions = [
         sim_launch,
         spawn_robot_node,
@@ -116,6 +125,7 @@ def create_sim_group(context, *args, **kwargs):
         joint_state_broadcaster_spawner,
         diff_drive_controller_spawner,
         camera_controller_spawner,
+        actions_launch,
     ]
 
     # v2_bot also needs the position controller for the bucket joint
@@ -249,38 +259,29 @@ def generate_launch_description():
         output="screen",
     )
 
-    actions_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("lunabot_bringup"), "launch", "actions_launch.py"
-            )
-        ),
-        launch_arguments={"use_sim": LaunchConfiguration("use_sim")}.items(),
-    )
-
     joint_state_publisher_real = GroupAction(
         actions=[joint_state_publisher_node],
-        condition=LaunchConfigurationEquals("use_sim", "false"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
     joy_group = GroupAction(
         actions=[joy_node],
-        condition=LaunchConfigurationEquals("use_sim", "false"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
     image_compressor_real = GroupAction(
         actions=[image_compressor_node],
-        condition=LaunchConfigurationEquals("use_sim", "false"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
     rviz_group = GroupAction(
         actions=[rviz_launch],
-        condition=LaunchConfigurationEquals("viz_mode", "rviz"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("viz_mode"), "rviz")),
     )
 
     custom_gui_group = GroupAction(
         actions=[custom_gui_node],
-        condition=LaunchConfigurationEquals("viz_mode", "gui"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("viz_mode"), "gui")),
     )
 
     ld = LaunchDescription()
@@ -306,7 +307,6 @@ def generate_launch_description():
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
     ld.add_action(image_compressor_real)
-    ld.add_action(actions_launch)
 
     ld.add_action(OpaqueFunction(function=create_sim_group))
 

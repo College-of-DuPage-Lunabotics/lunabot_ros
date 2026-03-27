@@ -2,8 +2,8 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.conditions import LaunchConfigurationEquals
-from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, EqualsSubstitution
 
 
 def generate_launch_description():
@@ -38,7 +38,7 @@ def generate_launch_description():
                 parameters=[{"use_sim_time": True}],
             ),
         ],
-        condition=LaunchConfigurationEquals("use_sim", "true"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
 
     # For real hardware, use hardware servers (control bucket via CAN motors)
@@ -66,7 +66,7 @@ def generate_launch_description():
                 parameters=[{"use_sim_time": False}],
             ),
         ],
-        condition=LaunchConfigurationEquals("use_sim", "false"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
     return LaunchDescription([
