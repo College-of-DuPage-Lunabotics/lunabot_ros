@@ -21,7 +21,7 @@ case "${UBUNTU_CODENAME}" in
         ;;
 esac
 
-echo "Detected Ubuntu ${UBUNTU_CODENAME} — using ROS 2 ${ROS_DISTRO}"
+echo "Detected Ubuntu ${UBUNTU_CODENAME} - using ROS 2 ${ROS_DISTRO}"
 
 echo -e "\n------------------------ Install robot_upstart ------------------------ \n"
 apt list --installed 2>/dev/null | grep -q ros-${ROS_DISTRO}-robot-upstart

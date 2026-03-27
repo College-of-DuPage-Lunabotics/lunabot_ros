@@ -1,31 +1,28 @@
 cmake_minimum_required(VERSION 3.10)
 project(lunabot_bringup)
 
-# Default to C99
+# Set default C standard
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
 endif()
 
-# Default to C++14
+# Set default C++ standard
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
-# Compiler options for GCC and Clang
+# Enable compiler warnings
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Find required dependencies
 find_package(ament_cmake REQUIRED)
 
-# Install launch
+# Install package files
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME}/)
 
-# Install scripts
-install(PROGRAMS
-  scripts/launch_manager_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+install(PROGRAMS scripts/launch_manager_node.py DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

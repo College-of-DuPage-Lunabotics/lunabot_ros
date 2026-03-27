@@ -22,14 +22,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
+# Find dependencies
 find_package(ament_cmake REQUIRED)
 
 # Gazebo Classic is only available on Humble (Ubuntu 22.04). Skip building the
 # plugin on Jazzy (Ubuntu 24.04) where Gazebo Classic is not installed.
 find_package(gazebo QUIET)
 if(NOT gazebo_FOUND)
-  message(STATUS "Gazebo Classic not found — skipping ros2_livox_simulation plugin build")
+  message(
+    STATUS
+      "Gazebo Classic not found — skipping ros2_livox_simulation plugin build")
   ament_package()
   return()
 endif()
@@ -44,41 +46,38 @@ find_package(tf2_ros REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
-include_directories(
-  include
-)
+include_directories(include)
 include_directories(${GAZEBO_INCLUDE_DIRS})
 include_directories(/usr/include/gazebo-11/gazebo)
 link_directories(${GAZEBO_LIBRARY_DIRS})
 
+install(DIRECTORY include/ DESTINATION include)
 
-
-install(DIRECTORY include/
-        DESTINATION include
-)
-
-
-
-add_library(ros2_livox SHARED src/livox_points_plugin.cpp src/livox_ode_multiray_shape.cpp)
+add_library(ros2_livox SHARED src/livox_points_plugin.cpp
+                              src/livox_ode_multiray_shape.cpp)
 target_link_libraries(ros2_livox ${GAZEBO_LIBRARIES} RayPlugin GpuRayPlugin)
-ament_target_dependencies(ros2_livox rclcpp std_msgs sensor_msgs geometry_msgs gazebo_dev gazebo_ros tf2_ros livox_ros_driver2 )
+ament_target_dependencies(
+  ros2_livox
+  rclcpp
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  gazebo_dev
+  gazebo_ros
+  tf2_ros
+  livox_ros_driver2)
 target_link_libraries(ros2_livox libprotobuf.so.9)
 target_link_libraries(ros2_livox libboost_chrono.so.1.71.0)
 target_include_directories(ros2_livox PRIVATE include)
 
-#install(TARGETS ros2_livox DESTINATION lib/${PROJECT_NAME})
-
-install(TARGETS ros2_livox
-    LIBRARY DESTINATION lib)
+install(TARGETS ros2_livox LIBRARY DESTINATION lib)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_libraries(
-  ros2_livox
-)
+ament_export_libraries(ros2_livox)
 
 set(CSV_FILES
     scan_mode/mid40.csv
@@ -87,13 +86,11 @@ set(CSV_FILES
     scan_mode/tele.csv
     scan_mode/horizon.csv
     scan_mode/HAP.csv
-    scan_mode/avia.csv
-)
+    scan_mode/avia.csv)
 foreach(CSV_FILE ${CSV_FILES})
-    configure_file(${CSV_FILE} ${CMAKE_CURRENT_BINARY_DIR}/${CSV_FILE} COPYONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CSV_FILE}
-        DESTINATION share/${PROJECT_NAME}/scan_mode
-    )
+  configure_file(${CSV_FILE} ${CMAKE_CURRENT_BINARY_DIR}/${CSV_FILE} COPYONLY)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CSV_FILE}
+          DESTINATION share/${PROJECT_NAME}/scan_mode)
 endforeach()
 
 set(URDF_FILES
@@ -103,13 +100,12 @@ set(URDF_FILES
     urdf/tele.xacro
     urdf/horizon.xacro
     urdf/HAP.xacro
-    urdf/avia.xacro
-)
+    urdf/avia.xacro)
 foreach(URDF_FILES ${URDF_FILES})
-    configure_file(${URDF_FILES} ${CMAKE_CURRENT_BINARY_DIR}/${URDF_FILES} COPYONLY)
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${URDF_FILES}
-        DESTINATION share/${PROJECT_NAME}/urdf
-    )
+  configure_file(${URDF_FILES} ${CMAKE_CURRENT_BINARY_DIR}/${URDF_FILES}
+                 COPYONLY)
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${URDF_FILES}
+          DESTINATION share/${PROJECT_NAME}/urdf)
 endforeach()
 
 ament_package()
