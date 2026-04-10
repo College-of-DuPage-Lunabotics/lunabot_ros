@@ -88,9 +88,34 @@ def generate_launch_description():
         name="power_monitor",
         output="screen",
         parameters=[
-            {"serial_port": "/dev/ttyACM0"},
+            {"serial_port": "/dev/ttyACM1"},
             {"baud_rate": 9600},
             {"publish_rate": 10.0},
+        ],
+    )
+
+    fisheye_rotation = Node(
+        package="lunabot_util",
+        executable="fisheye_rotation.py",
+        name="fisheye_rotation",
+        output="screen",
+        parameters=[
+            {"serial_port": "/dev/ttyACM0"},
+            {"baud_rate": 115200},
+        ],
+    )
+
+    fisheye_camera = Node(
+        package="lunabot_util",
+        executable="fisheye_camera.py",
+        name="fisheye_camera",
+        output="screen",
+        parameters=[
+            {"device_id": "/dev/video0"},
+            {"width": 640},
+            {"height": 480},
+            {"fps": 30},
+            {"jpeg_quality": 80},
         ],
     )
  
@@ -184,6 +209,8 @@ def generate_launch_description():
         actions_launch,
         controller_teleop_node,
         power_monitor_node,
+        fisheye_rotation,
+        fisheye_camera,
         apriltag_d456_node,
         rgbd_sync_front,
         rgbd_sync_back,

@@ -9,7 +9,6 @@
 #include <memory>
 #include <thread>
 
-#include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rcl_interfaces/srv/set_parameters.hpp"
@@ -26,6 +25,8 @@
 
 #define EXCAVATION_POS 0.7
 #define TRAVEL_POS 2.0
+#define DRIVE_SPEED 0.7
+#define DRIVE_TIME_SEC 5.0
 
 /**
  * @class ExcavationServer
@@ -43,24 +44,25 @@ public:
    * @brief Constructor for the ExcavationServer class.
    */
   ExcavationServer()
-    : Node("excavation_server")
-    , goal_active_(false)
-    , home_offset_(0.0)
-    , right_actuator_motor_("can0", 1)
-    , left_actuator_motor_("can0", 2)
-    , vibration_motor_("can0", 5)
+      : Node("excavation_server"), goal_active_(false), home_offset_(0.0), right_actuator_motor_("can0", 1), left_actuator_motor_("can0", 2), right_wheel_motor_("can0", 3), left_wheel_motor_("can0", 4), vibration_motor_("can0", 5)
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
         this, "excavation_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+        [this](const auto &, const auto &)
+        { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
+        [this](const auto &)
+        { return rclcpp_action::CancelResponse::ACCEPT; },
+        [this](const auto goal_handle)
+        { std::thread{[this, goal_handle]()
+                      { execute(goal_handle); }}
+              .detach(); });
 
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
     home_offset_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
         "actuator_home_offset", 10,
-        [this](const std_msgs::msg::Float64::SharedPtr msg) {
+        [this](const std_msgs::msg::Float64::SharedPtr msg)
+        {
           home_offset_ = msg->data;
           LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
         });
@@ -89,13 +91,13 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket...");
 
-    // Absolute target from zero: excavation position is below zero
     double target_position = -EXCAVATION_POS;
 
     // Turn on vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
+    // Move bucket down until target position reached
     while (get_actuator_position() > target_position)
     {
       left_actuator_motor_.Heartbeat();
@@ -103,6 +105,7 @@ private:
       right_actuator_motor_.SetDutyCycle(1.0);
     }
 
+    // Stop bucket from moving
     left_actuator_motor_.Heartbeat();
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
@@ -121,29 +124,30 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Driving forward to excavate...");
 
-    // Create velocity publisher for driving forward
-    auto velocity_publisher = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-
-    // Turn on vibration motor during collection
+    // Turn on vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
-    auto twist_msg = geometry_msgs::msg::Twist();
-    twist_msg.linear.x = 0.2; // Drive forward at 0.2 m/s
-
+    // Drive forward for set time
     auto start_time = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(3))
+    auto drive_duration = std::chrono::duration<double>(DRIVE_TIME_SEC);
+    while (std::chrono::steady_clock::now() - start_time < drive_duration)
     {
-      velocity_publisher->publish(twist_msg);
+      left_wheel_motor_.Heartbeat();
+      right_wheel_motor_.Heartbeat();
       vibration_motor_.Heartbeat();
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      left_wheel_motor_.SetDutyCycle(DRIVE_SPEED);
+      right_wheel_motor_.SetDutyCycle(-DRIVE_SPEED); // Right wheel inverted
     }
 
-    // Stop driving
-    twist_msg.linear.x = 0.0;
-    velocity_publisher->publish(twist_msg);
+    // Stop motors
+    left_wheel_motor_.Heartbeat();
+    right_wheel_motor_.Heartbeat();
+    left_wheel_motor_.SetDutyCycle(0.0);
+    right_wheel_motor_.SetDutyCycle(0.0);
 
     // Turn off vibration motor
+    vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.0);
 
     LOGGER_SUCCESS(this->get_logger(), "Drive forward complete");
@@ -156,13 +160,13 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket...");
 
-    // Absolute target from zero: travel position is above zero
     double target_position = TRAVEL_POS;
 
     // Turn on vibration motor
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
+    // Move bucket up until travel position reached
     while (get_actuator_position() < target_position)
     {
       left_actuator_motor_.Heartbeat();
@@ -172,6 +176,7 @@ private:
       right_actuator_motor_.SetDutyCycle(-1.0);
     }
 
+    // Stop bucket from moving
     left_actuator_motor_.Heartbeat();
     right_actuator_motor_.Heartbeat();
     left_actuator_motor_.SetDutyCycle(0.0);
@@ -193,13 +198,15 @@ private:
     auto result = std::make_shared<Excavation::Result>();
     bool excavation_success = false;
 
-    lift_bucket();
+    // Excavation sequence
     lower_bucket();
     drive_forward();
     lift_bucket();
 
+    // After excavating, send navigation goal to construction zone to deposit material
     try
     {
+      // Dynamically reconfigure navigation goal tolerances
       auto param_node = std::make_shared<rclcpp::Node>("param_helper");
       auto controller_params_client = std::make_shared<rclcpp::AsyncParametersClient>(param_node, "/controller_server");
 
@@ -207,8 +214,8 @@ private:
       executor.add_node(param_node);
 
       auto results = controller_params_client->set_parameters_atomically(
-          { rclcpp::Parameter("goal_checker.xy_goal_tolerance", 0.2),
-            rclcpp::Parameter("goal_checker.yaw_goal_tolerance", 0.2) });
+          {rclcpp::Parameter("goal_checker.xy_goal_tolerance", 0.2),
+           rclcpp::Parameter("goal_checker.yaw_goal_tolerance", 0.2)});
 
       if (executor.spin_until_future_complete(results) != rclcpp::FutureReturnCode::SUCCESS)
       {
@@ -236,7 +243,8 @@ private:
       std::promise<bool> nav_completed;
       std::future<bool> nav_future = nav_completed.get_future();
 
-      send_goal_options.result_callback = [&](const GoalHandleNavigate::WrappedResult& result) {
+      send_goal_options.result_callback = [&](const GoalHandleNavigate::WrappedResult &result)
+      {
         if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
         {
           excavation_success = true;
@@ -267,7 +275,7 @@ private:
         throw std::runtime_error(RED "Excavation timed out" RESET);
       }
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
       LOGGER_FAILURE(this->get_logger(), "Excavation failed: %s", e.what());
       excavation_success = false;
@@ -291,6 +299,8 @@ private:
   double home_offset_;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
+  SparkMax right_wheel_motor_;
+  SparkMax left_wheel_motor_;
   SparkMax vibration_motor_;
   bool goal_active_;
 };
@@ -299,7 +309,7 @@ private:
  * @brief Main function.
  * Initializes and runs the ExcavationServer node.
  */
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<ExcavationServer>());

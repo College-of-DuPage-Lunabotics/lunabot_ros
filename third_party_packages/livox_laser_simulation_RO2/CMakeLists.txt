@@ -25,13 +25,12 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 
-# Gazebo Classic is only available on Humble (Ubuntu 22.04). Skip building the
-# plugin on Jazzy (Ubuntu 24.04) where Gazebo Classic is not installed.
+# Gazebo Classic is only available on Humble (Ubuntu 22.04). Skip building the plugin on Jazzy (Ubuntu 24.04) where Gazebo Classic is not installed.
 find_package(gazebo QUIET)
 if(NOT gazebo_FOUND)
   message(
     STATUS
-      "Gazebo Classic not found — skipping ros2_livox_simulation plugin build")
+      "Gazebo Classic not found - skipping ros2_livox_simulation plugin build")
   ament_package()
   return()
 endif()
