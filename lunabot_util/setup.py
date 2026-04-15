@@ -14,6 +14,12 @@ setup(
     license="MIT",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "fisheye_rotation = fisheye_rotation:main",
+            "fisheye_camera = fisheye_camera:main",
+            "image_compressor = image_compressor:main",
+            "bandwidth_monitor = bandwidth_monitor:main",
+            "power_monitor = power_monitor:main",
+        ],
     },
 )
