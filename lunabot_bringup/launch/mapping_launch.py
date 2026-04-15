@@ -4,7 +4,8 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import LaunchConfigurationEquals
+from launch.conditions import IfCondition
+from launch.substitutions import EqualsSubstitution
 
 
 def generate_launch_description():
@@ -39,7 +40,7 @@ def generate_launch_description():
             ("rgbd_image", "/camera_front/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
-        condition=LaunchConfigurationEquals("use_sim", "true"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
 
     rgbd_sync_back = Node(
@@ -61,7 +62,7 @@ def generate_launch_description():
             ("rgbd_image", "/camera_back/rgbd_image"),
         ],
         arguments=["--ros-args", "--log-level", "error"],
-        condition=LaunchConfigurationEquals("use_sim", "true"),
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
 
     slam_node = Node(
@@ -85,7 +86,7 @@ def generate_launch_description():
                 "publish_tf_odom": False,
                 "database_path": "",
                 "approx_sync": True,
-                "sync_queue_size": 1000,
+                "sync_queue_size": 100,
                 "wait_for_transform": 0.2,
                 "subscribe_scan_cloud": False,  # Disabled - only using cameras
                 "subscribe_scan": False,

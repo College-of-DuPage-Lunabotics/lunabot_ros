@@ -10,11 +10,24 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Detect Ubuntu codename and map to ROS distro
+UBUNTU_CODENAME=$(lsb_release -cs)
+case "${UBUNTU_CODENAME}" in
+    jammy)  ROS_DISTRO="humble" ;;
+    noble)  ROS_DISTRO="jazzy"  ;;
+    *)
+        echo "ERROR: Unsupported Ubuntu release '${UBUNTU_CODENAME}'."
+        exit 1
+        ;;
+esac
+
+echo "Detected Ubuntu ${UBUNTU_CODENAME} - using ROS 2 ${ROS_DISTRO}"
+
 echo -e "\n------------------------ Install robot_upstart ------------------------ \n"
-apt list --installed 2>/dev/null | grep -q ros-humble-robot-upstart
+apt list --installed 2>/dev/null | grep -q ros-${ROS_DISTRO}-robot-upstart
 if [ $? -ne 0 ]; then
-    echo "Installing ros-humble-robot-upstart..."
-    apt install -y ros-humble-robot-upstart
+    echo "Installing ros-${ROS_DISTRO}-robot-upstart..."
+    apt install -y ros-${ROS_DISTRO}-robot-upstart
 else
     echo "robot_upstart already installed"
 fi
@@ -32,7 +45,7 @@ fi
 
 echo -e "\n------------------------ Install Launch Manager Service Using robot_upstart ------------------------ \n"
 # Source ROS and workspace, run installer directly
-source /opt/ros/humble/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 source ${WORKSPACE_DIR}/install/setup.bash
 # Pass workspace directory via environment variable
 LUNABOT_WS="${WORKSPACE_DIR}" python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0

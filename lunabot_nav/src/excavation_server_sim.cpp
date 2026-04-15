@@ -72,11 +72,11 @@ private:
   }
 
   /**
-   * @brief Drives robot forward to dig into material.
+   * @brief Drives robot forward to excavate material.
    */
   void drive_forward()
   {
-    LOGGER_ACTION(this->get_logger(), "Driving forward to dig...");
+    LOGGER_ACTION(this->get_logger(), "Driving forward to excavate...");
 
     auto twist_msg = geometry_msgs::msg::Twist();
     twist_msg.linear.x = 0.2;

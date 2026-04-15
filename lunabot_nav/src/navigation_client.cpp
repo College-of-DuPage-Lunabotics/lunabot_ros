@@ -313,7 +313,7 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      LOGGER_SUCCESS(this->get_logger(), "Construction zone reached. Requesting dump...");
+      LOGGER_SUCCESS(this->get_logger(), "Construction zone reached. Requesting deposit...");
       current_state_ = State::DEPOSITING;
     }
     else if (result.code == rclcpp_action::ResultCode::ABORTED)

@@ -2,7 +2,7 @@
 
 # Project Overview
 
-This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It is built for ROS 2 Humble on Ubuntu 22.04 for x86-64 architecture.
+This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It supports ROS 2 Jazzy on Ubuntu 24.04 (real robot only) and ROS 2 Humble on Ubuntu 22.04 (real robot and Gazebo Classic simulation) for x86-64 architecture.
 
 ## System Components
 
@@ -34,13 +34,22 @@ This repository contains the software developed by the College of DuPage team fo
 
 ## Installation
 
-**You will need to have already installed ROS 2 Humble before continuing with installation. The guide can be found [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html). Install both `ros-humble-desktop` and `ros-dev-tools`.**
+**You will need to have already installed ROS 2 before continuing with installation.**
+- Jazzy (Ubuntu 24.04): [installation guide](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
+- Humble (Ubuntu 22.04): [installation guide](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
+
+Install both `ros-<distro>-desktop` and `ros-dev-tools`.
 
 #### 1. (Optional) Append lines to .bashrc
 
-Appends ROS 2 and Gazebo setup scripts to .bashrc so they run in every new terminal. Also fixes a VSCode terminal bug that causes a symbol lookup error (`unset GTK_PATH`), and prevents a Gazebo startup crash.
+Appends the ROS 2 setup script to .bashrc so it runs in every new terminal. Fixes a VSCode terminal bug that causes a symbol lookup error (`unset GTK_PATH`). On Humble, also source the Gazebo setup script to prevent a startup crash.
 
 ```bash
+# Jazzy
+echo 'unset GTK_PATH' >> ~/.bashrc
+echo 'source /opt/ros/jazzy/setup.bash' >> ~/.bashrc
+
+# Humble (also add Gazebo)
 echo 'unset GTK_PATH' >> ~/.bashrc
 echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
 echo 'source /usr/share/gazebo/setup.bash' >> ~/.bashrc
@@ -94,11 +103,11 @@ colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_
 cd ~/lunabot_ws
 source install/setup.bash
 
-# Launch GUI in simulation mode (default)
+# Launch GUI in real robot mode (default)
 ros2 launch lunabot_bringup gui_launch.py
 
-# Launch GUI in real robot mode
-ros2 launch lunabot_bringup gui_launch.py use_sim:=false
+# Launch GUI in simulation mode (ROS2 Humble only)
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true
 ```
 
 **For detailed GUI usage, remote operation, and configuration options, see [lunabot_gui/README.md](lunabot_gui/README.md).**

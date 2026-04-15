@@ -15,6 +15,7 @@
 #include "lunabot_logger/logger.hpp"
 
 #include "SparkMax.hpp"
+#include <std_msgs/msg/float64.hpp>
 
 #define WHEEL_RADIUS 0.095  // In meters
 #define WHEEL_BASE 0.53
@@ -31,11 +32,11 @@ public:
    */
   ControllerTeleop()
     : Node("controller_teleop")
-    , right_actuator_motor_("can0", 1)
+    , right_actuator_motor_("can0", 5)
     , left_actuator_motor_("can0", 2)
     , right_wheel_motor_("can0", 3)
-    , left_wheel_motor_("can0", 4)
-    , vibration_motor_("can0", 5)
+    , left_wheel_motor_("can0", 1)
+    , vibration_motor_("can0", 4)
   {
     // Declare and get controller mode parameter
     declare_parameter("steam_mode", false);
@@ -56,10 +57,15 @@ public:
     mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
         "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
 
+    // Subscribe to actuator home offset updates
+    home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
+        "actuator_home_offset", 10, std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
+
     // Publishers for robot state
     manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
     robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
     vibration_duty_cycle_publisher_ = create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
+    home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
 
     // Timer to publish state periodically
     state_timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -69,8 +75,12 @@ public:
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
+
+    left_actuator_motor_.SetIdleMode(IdleMode::kBrake);
+    right_actuator_motor_.SetIdleMode(IdleMode::kBrake);
     left_actuator_motor_.BurnFlash();
     right_actuator_motor_.BurnFlash();
+
     LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
     LOGGER_INFO(get_logger(), "Speed: " YELLOW "Slow" RESET " (%.1fx)", speed_multiplier_);
   }
@@ -113,12 +123,8 @@ private:
    */
   void control_loop()
   {
-    // Send heartbeats
+    // Send heartbeat
     left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
-    vibration_motor_.Heartbeat();
-    left_wheel_motor_.Heartbeat();
-    right_wheel_motor_.Heartbeat();
 
     if (robot_disabled_)
     {
@@ -142,8 +148,13 @@ private:
       left_actuator_motor_.SetDutyCycle(actuator_speed);
       right_actuator_motor_.SetDutyCycle(actuator_speed);
 
+      // Print actuator positions
+      double left_position = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
+      double right_position = right_actuator_motor_.GetPosition() - actuator_zero_offset_;
+      LOGGER_INFO(get_logger(), "Actuator positions - Left: %.6f, Right: %.6f", left_position, right_position);
+
       // Control vibration motor
-      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 1.0 : 0.0);
+      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
     }
   }
 
@@ -159,19 +170,7 @@ private:
     bool home_button = msg->buttons[get_button_index(11, 8)];
     bool x_button = msg->buttons[get_button_index(5, 2)];
     bool y_button = msg->buttons[get_button_index(6, 3)];
-
-    left_joystick_x_ = msg->axes[0];
-    left_joystick_y_ = msg->axes[1];
-
-    // Right joystick Y axis differs between controllers
-    if (steam_mode_)
-    {
-      right_joystick_y_ = -msg->axes[3];
-    }
-    else
-    {
-      right_joystick_y_ = -msg->axes[4];
-    }
+    bool a_button = msg->buttons[0];
 
     // Detect button presses (rising edges)
     bool x_pressed = detect_button_press(x_button, prev_x_button_);
@@ -179,8 +178,8 @@ private:
     bool share_pressed = detect_button_press(share_button, prev_share_button_);
     bool menu_pressed = detect_button_press(menu_button, prev_menu_button_);
     bool home_pressed = detect_button_press(home_button, prev_home_button_);
+    bool a_pressed = detect_button_press(a_button, prev_a_button_);
 
-    // Handle mode switching
     if (share_pressed)
     {
       manual_enabled_ = true;
@@ -191,8 +190,10 @@ private:
     if (menu_pressed)
     {
       manual_enabled_ = false;
-      // Clear vibration state when switching to auto mode (GUI update only)
       vibration_enabled_ = false;
+      left_joystick_x_ = 0.0;
+      left_joystick_y_ = 0.0;
+      right_joystick_y_ = 0.0;
       LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
       publish_state();
     }
@@ -211,20 +212,46 @@ private:
       publish_state();
     }
 
-    // Toggle vibration motor and read back duty cycle (manual mode only)
-    if (x_pressed && manual_enabled_)
+    if (manual_enabled_)
     {
-      vibration_enabled_ = !vibration_enabled_;
-      LOGGER_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
-      publish_state();  // Publish updated duty cycle immediately
-    }
+      left_joystick_x_ = msg->axes[0];
+      left_joystick_y_ = msg->axes[1];
 
-    // Toggle speed multiplier
-    if (y_pressed)
-    {
-      speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.7 : 0.3;
-      const char* speed_label = (speed_multiplier_ >= 0.5) ? "Fast" : "Slow";
-      LOGGER_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
+      // Right joystick Y axis differs between controllers
+      if (steam_mode_)
+      {
+        right_joystick_y_ = -msg->axes[3];
+      }
+      else
+      {
+        right_joystick_y_ = -msg->axes[4];
+      }
+
+      // Toggle vibration motor
+      if (x_pressed)
+      {
+        vibration_enabled_ = !vibration_enabled_;
+        LOGGER_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
+        publish_state();
+      }
+
+      // Toggle speed multiplier
+      if (y_pressed)
+      {
+        speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.7 : 0.3;
+        const char* speed_label = (speed_multiplier_ >= 0.5) ? "Fast" : "Slow";
+        LOGGER_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
+      }
+
+      // Zero actuator position offset
+      if (a_pressed)
+      {
+        actuator_zero_offset_ = left_actuator_motor_.GetPosition();
+        auto msg = std_msgs::msg::Float64();
+        msg.data = actuator_zero_offset_;
+        home_offset_publisher_->publish(msg);
+        LOGGER_SUCCESS(get_logger(), "Actuator zeroed at position: %.6f", actuator_zero_offset_);
+      }
     }
   }
 
@@ -258,7 +285,6 @@ private:
     {
       robot_disabled_ = true;
       LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
-      // Stop all motors immediately
       left_wheel_motor_.SetDutyCycle(0.0);
       right_wheel_motor_.SetDutyCycle(0.0);
       left_actuator_motor_.SetDutyCycle(0.0);
@@ -281,10 +307,17 @@ private:
     else
     {
       LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
-      // Clear vibration state when switching to auto mode
-      vibration_enabled_ = false;
     }
     publish_state();
+  }
+
+  /**
+   * @brief Callback for actuator home offset updates.
+   */
+  void home_offset_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    actuator_zero_offset_ = msg->data;
+    LOGGER_SUCCESS(get_logger(), "Actuator offset updated: %.6f", actuator_zero_offset_);
   }
 
   /**
@@ -310,10 +343,12 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
@@ -328,12 +363,16 @@ private:
   // Button states
   bool prev_x_button_ = false;
   bool prev_y_button_ = false;
+  bool prev_a_button_ = false;
   bool prev_share_button_ = false;
   bool prev_menu_button_ = false;
   bool prev_home_button_ = false;
 
   // Speed multiplier
   double speed_multiplier_ = 0.3;
+
+  // Actuator zero offset
+  double actuator_zero_offset_ = 0.0;
 
   // Joystick axes
   double left_joystick_x_ = 0.0;

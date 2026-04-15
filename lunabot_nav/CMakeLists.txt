@@ -1,26 +1,26 @@
 cmake_minimum_required(VERSION 3.10)
 project(lunabot_nav)
 
-# Compiler settings
+# Configure compiler definitions
 add_definitions(-w)
 
-# Default to C99
+# Set default C standard
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
 endif()
 
-# Default to C++17
+# Set default C++ standard
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
-# Compile options for GCC and Clang
+# Enable compiler warnings
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Find dependencies
+# Find required dependencies
 find_package(geometry_msgs REQUIRED)
 find_package(lunabot_msgs REQUIRED)
 find_package(nav2_core REQUIRED)
@@ -69,33 +69,37 @@ set(SIM_DEPENDENCIES
     sensor_msgs
     tf2_ros)
 
-# Define executables - Hardware versions
+# Define build targets
 add_executable(excavation_server src/excavation_server.cpp)
 add_executable(depositing_server src/depositing_server.cpp)
 add_executable(homing_server src/homing_server.cpp)
 add_executable(localization_server src/localization_server.cpp)
 add_executable(navigation_client src/navigation_client.cpp)
 
-# Define executables - Sim versions
 add_executable(excavation_server_sim src/excavation_server_sim.cpp)
 add_executable(depositing_server_sim src/depositing_server_sim.cpp)
 add_executable(homing_server_sim src/homing_server_sim.cpp)
 
-# Set target dependencies - Hardware versions
 ament_target_dependencies(excavation_server ${DEPENDENCIES})
 ament_target_dependencies(depositing_server ${DEPENDENCIES})
 ament_target_dependencies(homing_server ${DEPENDENCIES})
 ament_target_dependencies(localization_server ${DEPENDENCIES})
 ament_target_dependencies(navigation_client ${DEPENDENCIES})
 
-# Set target dependencies - Sim versions (no sparkcan)
 ament_target_dependencies(excavation_server_sim ${SIM_DEPENDENCIES})
 ament_target_dependencies(depositing_server_sim ${SIM_DEPENDENCIES})
 ament_target_dependencies(homing_server_sim ${SIM_DEPENDENCIES})
 
-# Install targets
-install(TARGETS excavation_server depositing_server homing_server localization_server navigation_client
-                excavation_server_sim depositing_server_sim homing_server_sim
-                DESTINATION lib/${PROJECT_NAME})
+# Install package files
+install(
+  TARGETS excavation_server
+          depositing_server
+          homing_server
+          localization_server
+          navigation_client
+          excavation_server_sim
+          depositing_server_sim
+          homing_server_sim
+  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

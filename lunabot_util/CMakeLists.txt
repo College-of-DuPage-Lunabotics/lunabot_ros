@@ -1,46 +1,41 @@
 cmake_minimum_required(VERSION 3.10)
 project(lunabot_util)
 
-# Compiler settings
+# Configure compiler definitions
 add_definitions(-w)
 
-# Default to C99
+# Set default C standard
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
 endif()
 
-# Default to C++17
+# Set default C++ standard
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
-# Compile options for GCC and Clang
+# Enable compiler warnings
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Find required packages
+# Find required dependencies
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 
-# Define executables
+# Define build targets
 add_executable(topic_remapper src/topic_remapper.cpp)
 
-# Set target dependencies
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
 
-# Install targets
-install(TARGETS
-  topic_remapper
-  DESTINATION lib/${PROJECT_NAME})
+# Install package files
+install(TARGETS topic_remapper DESTINATION lib/${PROJECT_NAME})
 
-# Install Python scripts
-install(PROGRAMS
-  src/bandwidth_monitor.py
-  src/image_compressor.py
-  src/power_monitor.py
-  DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS src/bandwidth_monitor.py src/image_compressor.py
+                 src/power_monitor.py src/fisheye_rotation.py
+                 src/fisheye_camera.py
+                 DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
