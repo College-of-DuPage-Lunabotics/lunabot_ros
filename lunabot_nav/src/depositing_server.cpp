@@ -17,8 +17,9 @@
 #include "SparkMax.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define DEPOSIT_POS 9.0
-#define TRAVEL_POS 2.0
+#define DEPOSIT_POS 0.0
+#define TRAVEL_POS 6.0
+#define DEPOSIT_SECONDS 7.0
 
 /**
  * @class DepositingServer
@@ -37,9 +38,9 @@ public:
     : Node("depositing_server")
     , goal_active_(false)
     , home_offset_(0.0)
-    , right_actuator_motor_("can0", 1)
+    , right_actuator_motor_("can0", 5)
     , left_actuator_motor_("can0", 2)
-    , vibration_motor_("can0", 5)
+    , vibration_motor_("can0", 4)
   {
     action_server_ = rclcpp_action::create_server<Depositing>(
         this, "depositing_action",
@@ -65,25 +66,28 @@ private:
   double get_actuator_position()
   {
     left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
-    double left_pos = left_actuator_motor_.GetPosition();
-    // Subtract home offset to get position relative to home
-    return left_pos - home_offset_;
+    return left_actuator_motor_.GetPosition() - home_offset_;
   }
 
   /**
    * @brief Lifts bucket to deposit position.
+   * @return true if successful, false if cancelled
    */
-  void lift_bucket()
+  bool lift_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket to deposit...");
 
-    // Absolute target from zero
     double target_position = DEPOSIT_POS;
 
-    // Lift bucket without vibration first
     while (get_actuator_position() < target_position)
     {
+      if (goal_handle->is_canceling())
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        return false;
+      }
+
       left_actuator_motor_.Heartbeat();
       right_actuator_motor_.Heartbeat();
 
@@ -93,40 +97,67 @@ private:
       LOGGER_INFO(this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f", get_actuator_position(), target_position);
     }
 
-    // Stop the actuators
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    // Vibrate at deposit position for a couple seconds
-    LOGGER_ACTION(this->get_logger(), "Vibrating bucket for 5 seconds...");
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(1.0);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    vibration_motor_.SetDutyCycle(0.0);
+    LOGGER_ACTION(this->get_logger(), "Vibrating bucket for %.2f seconds...", DEPOSIT_SECONDS);
+
+    auto start = std::chrono::steady_clock::now();
+
+    bool vibration_on = true;
+
+    while (vibration_on) {
+      if (goal_handle->is_canceling())
+      {
+        vibration_motor_.SetDutyCycle(0.0);
+        return false;
+      }
+
+      vibration_motor_.Heartbeat();
+      vibration_motor_.SetDutyCycle(1.0);
+
+      auto end = std::chrono::steady_clock::now();
+
+      std::chrono::duration<double> elapsed_seconds = end-start;
+      
+      if (elapsed_seconds.count() >= DEPOSIT_SECONDS) {
+        vibration_on = false;
+        vibration_motor_.Heartbeat();
+        vibration_motor_.SetDutyCycle(0.0);
+      }
+    }
+
+    return true;
   }
 
   /**
-   * @brief Lowers bucket back to home position.
+   * @brief Lowers bucket back to travel position.
+   * @return true if successful, false if cancelled
    */
-  void lower_bucket()
+  bool lower_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
-    LOGGER_ACTION(this->get_logger(), "Lowering bucket to home...");
+    LOGGER_ACTION(this->get_logger(), "Lowering bucket to travel position...");
 
-    // Absolute target from zero
-    double target_position = TRAVEL_POS;
+    double target_position = -TRAVEL_POS;
 
     while (get_actuator_position() > target_position)
     {
-      left_actuator_motor_.Heartbeat();
-      right_actuator_motor_.Heartbeat();
+      if (goal_handle->is_canceling())
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        return false;
+      }
 
+      left_actuator_motor_.Heartbeat();
       left_actuator_motor_.SetDutyCycle(1.0);
       right_actuator_motor_.SetDutyCycle(1.0);
     }
 
-    // Stop motors
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
+
+    return true;
   }
 
   /**
@@ -155,11 +186,33 @@ private:
     {
       feedback->feedback_message = "Lifting bucket to deposit position";
       goal_handle->publish_feedback(feedback);
-      lift_bucket();
+      if (!lift_bucket(goal_handle))
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        vibration_motor_.SetDutyCycle(0.0);
+        result->success = false;
+        result->message = "Depositing cancelled";
+        goal_handle->canceled(result);
+        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        goal_active_ = false;
+        return;
+      }
 
       feedback->feedback_message = "Returning bucket to home position";
       goal_handle->publish_feedback(feedback);
-      lower_bucket();
+      if (!lower_bucket(goal_handle))
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        vibration_motor_.SetDutyCycle(0.0);
+        result->success = false;
+        result->message = "Depositing cancelled";
+        goal_handle->canceled(result);
+        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        goal_active_ = false;
+        return;
+      }
 
       result->success = true;
       result->message = "Depositing completed successfully";
@@ -168,6 +221,9 @@ private:
     }
     catch (const std::exception& e)
     {
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
       result->success = false;
       result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);

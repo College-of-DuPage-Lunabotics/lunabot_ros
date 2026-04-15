@@ -32,11 +32,11 @@ public:
    */
   ControllerTeleop()
     : Node("controller_teleop")
-    , right_actuator_motor_("can0", 1)
+    , right_actuator_motor_("can0", 5)
     , left_actuator_motor_("can0", 2)
     , right_wheel_motor_("can0", 3)
-    , left_wheel_motor_("can0", 4)
-    , vibration_motor_("can0", 5)
+    , left_wheel_motor_("can0", 1)
+    , vibration_motor_("can0", 4)
   {
     // Declare and get controller mode parameter
     declare_parameter("steam_mode", false);
@@ -56,6 +56,10 @@ public:
     // Subscribe to mode switch commands from GUI
     mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
         "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
+
+    // Subscribe to actuator home offset updates
+    home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
+        "actuator_home_offset", 10, std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
 
     // Publishers for robot state
     manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
@@ -150,7 +154,7 @@ private:
       LOGGER_INFO(get_logger(), "Actuator positions - Left: %.6f, Right: %.6f", left_position, right_position);
 
       // Control vibration motor
-      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 1.0 : 0.0);
+      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
     }
   }
 
@@ -308,6 +312,15 @@ private:
   }
 
   /**
+   * @brief Callback for actuator home offset updates.
+   */
+  void home_offset_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    actuator_zero_offset_ = msg->data;
+    LOGGER_SUCCESS(get_logger(), "Actuator offset updated: %.6f", actuator_zero_offset_);
+  }
+
+  /**
    * @brief Publish robot state (manual mode and disabled status).
    */
   void publish_state()
@@ -330,6 +343,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;

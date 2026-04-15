@@ -16,9 +16,10 @@
 #include "SparkMax.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define HOMING_SPEED 0.5
-#define POSITION_THRESHOLD 10.0
-#define TRAVEL_POS 2.5
+#define HOMING_SPEED 1.0
+#define POSITION_THRESHOLD 0.02
+#define STALL_DURATION_SEC 3
+#define TRAVEL_POS 6.0
 
 /**
  * @class HomingServer
@@ -34,7 +35,7 @@ public:
    * @brief Constructor for the HomingServer class.
    */
   HomingServer()
-    : Node("homing_server"), goal_active_(false), right_actuator_motor_("can0", 1), left_actuator_motor_("can0", 2)
+    : Node("homing_server"), goal_active_(false), right_actuator_motor_("can0", 5), left_actuator_motor_("can0", 2)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
         this, "homing_action",
@@ -44,7 +45,6 @@ public:
 
     home_offset_publisher_ = this->create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
 
-    // Declare parameter for home offset
     this->declare_parameter<double>("actuator_home_offset", 0.0);
 
     LOGGER_SUCCESS(this->get_logger(), "Homing server initialized");
@@ -52,76 +52,97 @@ public:
 
 private:
   /**
-   * @brief Gets the average position of both bucket actuators.
-   * @return Average encoder position in radians.
+   * @brief Gets the position of the left bucket actuator.
+   * @return Left encoder position in radians.
    */
   double get_actuator_position()
   {
     left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
     double left_pos = left_actuator_motor_.GetPosition();
-    double right_pos = right_actuator_motor_.GetPosition();
-    return (left_pos + right_pos) / 2.0;
+    return left_pos;
   }
 
   /**
    * @brief Extends actuators to hard stop and sets zero position.
+   * @return true if successful, false if cancelled
    */
-  void home_actuators()
+  bool home_actuators(const std::shared_ptr<GoalHandleHoming> goal_handle)
   {
     LOGGER_ACTION(this->get_logger(), "Extending actuators to hard stop...");
 
     double previous_position = get_actuator_position();
-    int stall_count = 0;
+    auto last_check_time = std::chrono::steady_clock::now();
+    auto stall_start_time = std::chrono::steady_clock::now();
+    bool is_stalled = false;
 
-    // Move actuators until they stop (hit hard limit)
-    while (stall_count < 20)
+    while (true)
     {
+      if (goal_handle->is_canceling())
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        return false;
+      }
+
       left_actuator_motor_.Heartbeat();
-      right_actuator_motor_.Heartbeat();
 
-      left_actuator_motor_.SetDutyCycle(HOMING_SPEED);
-      right_actuator_motor_.SetDutyCycle(HOMING_SPEED);
+      left_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
+      right_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-      double current_position = get_actuator_position();
-
-      // Check if position has changed significantly
-      if (std::abs(current_position - previous_position) < POSITION_THRESHOLD)
+      auto now = std::chrono::steady_clock::now();
+      auto elapsed_since_check = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_check_time);
+      
+      if (elapsed_since_check.count() >= 100) // Check every 100ms if stalled
       {
-        stall_count++;
-      }
-      else
-      {
-        stall_count = 0;
-      }
+        double current_position = get_actuator_position();
+        double position_change = std::abs(current_position - previous_position);
 
-      previous_position = current_position;
+        if (position_change < POSITION_THRESHOLD)
+        {
+          if (!is_stalled)
+          {
+            stall_start_time = now;
+            is_stalled = true;
+          }
+          else
+          {
+            auto stall_duration = std::chrono::duration_cast<std::chrono::seconds>(now - stall_start_time);
+            if (stall_duration.count() >= STALL_DURATION_SEC)
+            {
+              break;
+            }
+          }
+        }
+        else
+        {
+          is_stalled = false;
+        }
+
+        previous_position = current_position;
+        last_check_time = now;
+      }
     }
 
-    // Stop motors
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
     LOGGER_SUCCESS(this->get_logger(), "Hard stop reached");
 
-    // Record the current position as the home offset
     double home_offset = get_actuator_position();
-    this->set_parameter(rclcpp::Parameter("actuator_home_offset", home_offset));
 
-    // Publish home offset so other nodes can use it
     auto msg = std_msgs::msg::Float64();
     msg.data = home_offset;
     home_offset_publisher_->publish(msg);
 
-    LOGGER_SUCCESS(this->get_logger(), "Actuator home offset set: %.2f position", home_offset);
+    LOGGER_SUCCESS(this->get_logger(), "Actuator home offset set: %.2f", home_offset);
+    return true;
   }
 
   /**
    * @brief Retracts actuators to neutral travel position.
+   * @return true if successful, false if cancelled
    */
-  void return_to_neutral()
+  bool return_to_neutral(const std::shared_ptr<GoalHandleHoming> goal_handle)
   {
     LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
@@ -130,18 +151,24 @@ private:
 
     while (get_actuator_position() > target_position)
     {
-      left_actuator_motor_.Heartbeat();
-      right_actuator_motor_.Heartbeat();
+      if (goal_handle->is_canceling())
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        return false;
+      }
 
-      left_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
-      right_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
+      left_actuator_motor_.Heartbeat();
+
+      left_actuator_motor_.SetDutyCycle(HOMING_SPEED);
+      right_actuator_motor_.SetDutyCycle(HOMING_SPEED);
     }
 
-    // Stop motors
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
     LOGGER_SUCCESS(this->get_logger(), "Neutral position reached");
+    return true;
   }
 
   /**
@@ -170,11 +197,31 @@ private:
     {
       feedback->feedback_message = "Extending actuators to home position";
       goal_handle->publish_feedback(feedback);
-      home_actuators();
+      if (!home_actuators(goal_handle))
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        result->success = false;
+        result->message = "Homing cancelled";
+        goal_handle->canceled(result);
+        LOGGER_WARN(this->get_logger(), "Homing cancelled");
+        goal_active_ = false;
+        return;
+      }
 
       feedback->feedback_message = "Returning to neutral position";
       goal_handle->publish_feedback(feedback);
-      return_to_neutral();
+      if (!return_to_neutral(goal_handle))
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+        result->success = false;
+        result->message = "Homing cancelled";
+        goal_handle->canceled(result);
+        LOGGER_WARN(this->get_logger(), "Homing cancelled");
+        goal_active_ = false;
+        return;
+      }
 
       result->success = true;
       result->message = "Homing completed successfully";
@@ -183,6 +230,8 @@ private:
     }
     catch (const std::exception& e)
     {
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
       result->success = false;
       result->message = std::string("Homing failed: ") + e.what();
       goal_handle->abort(result);
