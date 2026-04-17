@@ -167,9 +167,9 @@ private:
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    LOGGER_SUCCESS(this->get_logger(), "Neutral position reached");
-    return true;
+    LOGGER_SUCCESS(this->get_logger(), "Travel position reached: %.2f", get_actuator_position());
   }
+}
 
   /**
    * @brief Executes the homing action sequence.
@@ -193,50 +193,28 @@ private:
     auto feedback = std::make_shared<Homing::Feedback>();
     auto result = std::make_shared<Homing::Result>();
 
-    try
-    {
-      feedback->feedback_message = "Extending actuators to home position";
-      goal_handle->publish_feedback(feedback);
-      if (!home_actuators(goal_handle))
-      {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        result->success = false;
-        result->message = "Homing cancelled";
-        goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Homing cancelled");
-        goal_active_ = false;
-        return;
-      }
+  try
+  {
+    feedback->feedback_message = "Extending actuators to home position";
+    goal_handle->publish_feedback(feedback);
+    home_actuators();
 
-      feedback->feedback_message = "Returning to neutral position";
-      goal_handle->publish_feedback(feedback);
-      if (!return_to_neutral(goal_handle))
-      {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        result->success = false;
-        result->message = "Homing cancelled";
-        goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Homing cancelled");
-        goal_active_ = false;
-        return;
-      }
+    feedback->feedback_message = "Returning to neutral position";
+    goal_handle->publish_feedback(feedback);
+    return_to_travel();
 
-      result->success = true;
-      result->message = "Homing completed successfully";
-      goal_handle->succeed(result);
-      LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
-    }
-    catch (const std::exception& e)
-    {
-      left_actuator_motor_.SetDutyCycle(0.0);
-      right_actuator_motor_.SetDutyCycle(0.0);
-      result->success = false;
-      result->message = std::string("Homing failed: ") + e.what();
-      goal_handle->abort(result);
-      LOGGER_FAILURE(this->get_logger(), "Homing failed: %s", e.what());
-    }
+    result->success = true;
+    result->message = "Homing completed successfully";
+    goal_handle->succeed(result);
+    LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
+  }
+  catch (const std::exception &e)
+  {
+    result->success = false;
+    result->message = std::string("Homing failed: ") + e.what();
+    goal_handle->abort(result);
+    LOGGER_FAILURE(this->get_logger(), "Homing failed: %s", e.what());
+  }
 
     goal_active_ = false;
   }

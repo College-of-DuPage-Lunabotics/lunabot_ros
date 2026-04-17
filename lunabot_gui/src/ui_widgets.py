@@ -988,35 +988,20 @@ def create_camera_control_group(app):
     layout.addWidget(app.camera_pos_label)
     
     layout.addSpacing(2)
-    
+
     button_row = QHBoxLayout()
     button_row.setSpacing(8)
-    
-    rotate_left_btn = QPushButton("← 45°")
-    rotate_left_btn.setStyleSheet(Styles.camera_button())
-    rotate_left_btn.clicked.connect(lambda: app.rotate_fisheye_camera(math.pi / 4))
-    button_row.addWidget(rotate_left_btn)
-    
-    center_column = QVBoxLayout()
-    center_column.setSpacing(8)
-    
-    center_btn = QPushButton("Center")
-    center_btn.setStyleSheet(Styles.camera_button(padding="15px"))
-    center_btn.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
-    center_column.addWidget(center_btn)
-    
+
+    btn_0 = QPushButton("0°")
+    btn_0.setStyleSheet(Styles.camera_button(padding="15px"))
+    btn_0.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
+    button_row.addWidget(btn_0)
+
     btn_180 = QPushButton("180°")
     btn_180.setStyleSheet(Styles.camera_button(padding="15px"))
     btn_180.clicked.connect(lambda: app.set_fisheye_camera_position(math.pi))
-    center_column.addWidget(btn_180)
-    
-    button_row.addLayout(center_column)
-    
-    rotate_right_btn = QPushButton("45° →")
-    rotate_right_btn.setStyleSheet(Styles.camera_button())
-    rotate_right_btn.clicked.connect(lambda: app.rotate_fisheye_camera(-math.pi / 4))
-    button_row.addWidget(rotate_right_btn)
-    
+    button_row.addWidget(btn_180)
+
     layout.addLayout(button_row)
     
     group.setLayout(layout)

@@ -4,16 +4,18 @@ import signal
 import sys
 
 import rclpy
+from rclpy.node import Node
+
+import ui_widgets
+from gui_styles import Colors, MAIN_STYLESHEET, Styles
+from ros_interface import RobotInterface
+
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QIcon, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (QApplication, QGroupBox, QHBoxLayout, QLabel,
                               QMainWindow, QPushButton, QSizePolicy, QVBoxLayout,
                               QWidget)
-from rclpy.node import Node
 
-from gui_styles import Colors, MAIN_STYLESHEET, Styles
-from ros_interface import RobotInterface
-import ui_widgets
 
 try:
     import cv2

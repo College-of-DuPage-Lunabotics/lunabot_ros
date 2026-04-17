@@ -11,6 +11,7 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include "lunabot_logger/logger.hpp"
 
@@ -56,6 +57,11 @@ public:
     // Subscribe to mode switch commands from GUI
     mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
         "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
+
+    // Subscribe to fisheye camera position (0 = forward, 180 = inverted)
+    camera_position_subscriber_ = create_subscription<std_msgs::msg::Float64MultiArray>(
+        "/camera_controller/commands", 10,
+        std::bind(&ControllerTeleop::camera_position_callback, this, std::placeholders::_1));
 
     // Subscribe to actuator home offset updates
     home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
@@ -137,9 +143,10 @@ private:
     }
     else if (manual_enabled_)
     {
-      // Control wheel motors with left joystick
-      double left_speed = left_joystick_y_ - left_joystick_x_;
-      double right_speed = left_joystick_y_ + left_joystick_x_;
+      // Control wheel motors with left joystick; invert if camera is at 180°
+      double drive_sign = camera_inverted_ ? -1.0 : 1.0;
+      double left_speed = drive_sign * (left_joystick_y_ - left_joystick_x_);
+      double right_speed = drive_sign * (left_joystick_y_ + left_joystick_x_);
       left_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(left_speed));
       right_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(-right_speed));
 
@@ -256,6 +263,21 @@ private:
   }
 
   /**
+   * @brief Process fisheye camera position from GUI. Inverts driving at 180°.
+   */
+  void camera_position_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+  {
+    if (!msg->data.empty())
+    {
+      // pi radians (180°) means camera is flipped — invert drive direction
+      camera_inverted_ = (std::abs(msg->data[0] - M_PI) < 0.1);
+      LOGGER_INFO(get_logger(), "Camera position: %.1f° — driving %s",
+                  std::abs(msg->data[0]) * 180.0 / M_PI,
+                  camera_inverted_ ? "INVERTED" : "NORMAL");
+    }
+  }
+
+  /**
    * @brief Process /cmd_vel in autonomous mode.
    */
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
@@ -266,8 +288,10 @@ private:
     }
 
     // Calculate left and right wheel speeds based on linear and angular velocities
-    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
-    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
+    // Invert direction if fisheye camera is rotated 180°
+    double drive_sign = camera_inverted_ ? -1.0 : 1.0;
+    double left_cmd = drive_sign * -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
+    double right_cmd = drive_sign * -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
 
     LOGGER_INFO(get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
 
@@ -343,6 +367,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joystick_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
@@ -359,6 +384,7 @@ private:
   bool robot_disabled_ = false;
   bool vibration_enabled_ = false;
   bool steam_mode_ = false;
+  bool camera_inverted_ = false;  // true when fisheye camera is at 180°
 
   // Button states
   bool prev_x_button_ = false;
