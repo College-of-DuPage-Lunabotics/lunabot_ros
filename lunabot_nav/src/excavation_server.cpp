@@ -4,29 +4,28 @@
  * @date 02/22/2026
  */
 
-#include <chrono>
-#include <cmath>
-#include <memory>
-#include <thread>
-
-#include "geometry_msgs/msg/twist.hpp"
-#include "nav2_msgs/action/navigate_to_pose.hpp"
-#include "nav_msgs/msg/odometry.hpp"
+#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
 #include "rcl_interfaces/srv/set_parameters.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 
+#include "geometry_msgs/msg/twist.hpp"
 #include "lunabot_msgs/action/excavation.hpp"
-#include "lunabot_logger/logger.hpp"
-
-#include "SparkMax.hpp"
+#include "nav2_msgs/action/navigate_to_pose.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define EXCAVATION_POS 10.5
-#define TRAVEL_POS 6.0
-#define FORWARD_SECONDS 5
+#include <chrono>
+#include <cmath>
+#include <memory>
+#include <thread>
+
+static constexpr double excavation_pos = 10.5;
+static constexpr double travel_pos = 6.0;
+static constexpr int forward_seconds = 5;
 
 /**
  * @class ExcavationServer
@@ -44,29 +43,30 @@ public:
    * @brief Constructor for the ExcavationServer class.
    */
   ExcavationServer()
-    : Node("excavation_server")
-    , goal_active_(false)
-    , home_offset_(0.0)
-    , right_actuator_motor_("can0", 5)
-    , left_actuator_motor_("can0", 2)
-    , right_wheel_motor_("can0", 3)
-    , left_wheel_motor_("can0", 1)
-    , vibration_motor_("can0", 4)
+  : Node("excavation_server"),
+    right_actuator_motor_("can0", 5),
+    left_actuator_motor_("can0", 2),
+    right_wheel_motor_("can0", 3),
+    left_wheel_motor_("can0", 1),
+    vibration_motor_("can0", 4)
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
-        this, "excavation_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+      this, "excavation_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
 
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
     home_offset_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
-        "actuator_home_offset", 10,
-        [this](const std_msgs::msg::Float64::SharedPtr msg) {
-          home_offset_ = msg->data;
-          LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
-        });
+      "actuator_home_offset", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
+        home_offset_ = msg->data;
+        LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
+      });
 
     LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
   }
@@ -92,7 +92,7 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket...");
 
-    double target_position = -EXCAVATION_POS;
+    double target_position = -excavation_pos;
 
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.5);
@@ -119,7 +119,8 @@ private:
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.0);
 
-    LOGGER_SUCCESS(this->get_logger(), "Bucket lowered to excavation position: %.2f", get_actuator_position());
+    LOGGER_SUCCESS(
+      this->get_logger(), "Bucket lowered to excavation position: %.2f", get_actuator_position());
     return true;
   }
 
@@ -135,10 +136,11 @@ private:
     vibration_motor_.SetDutyCycle(1.0);
 
     auto start_time = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(FORWARD_SECONDS))
+    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(forward_seconds))
     {
       if (goal_handle->is_canceling())
       {
+        // Stop all motion immediately
         right_wheel_motor_.SetDutyCycle(0.0);
         left_wheel_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
@@ -146,13 +148,14 @@ private:
         return false;
       }
 
-      //velocity_publisher->publish(twist_msg);
+      // Drive forward with vibration to help break up material
       vibration_motor_.Heartbeat();
-      right_wheel_motor_.SetDutyCycle(-0.7);
-      left_wheel_motor_.SetDutyCycle(0.7);
+      right_wheel_motor_.SetDutyCycle(-1.0);
+      left_wheel_motor_.SetDutyCycle(1.0);
       vibration_motor_.SetDutyCycle(1.0);
     }
 
+    // Stop all motion after driving forward
     vibration_motor_.Heartbeat();
     right_wheel_motor_.SetDutyCycle(0.0);
     left_wheel_motor_.SetDutyCycle(0.0);
@@ -170,8 +173,9 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket...");
 
-    double target_position = -TRAVEL_POS;
+    double target_position = -travel_pos;
 
+    // Turn on vibration while lifting to help settle material in bucket
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
@@ -179,28 +183,27 @@ private:
     {
       if (goal_handle->is_canceling())
       {
+        // Stop all motion immediately
         left_actuator_motor_.SetDutyCycle(0.0);
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         return false;
       }
 
-      left_actuator_motor_.Heartbeat();
-      right_actuator_motor_.Heartbeat();
+      // Lift bucket
       vibration_motor_.Heartbeat();
       left_actuator_motor_.SetDutyCycle(-1.0);
       right_actuator_motor_.SetDutyCycle(-1.0);
     }
 
-    left_actuator_motor_.Heartbeat();
-    right_actuator_motor_.Heartbeat();
+    // Stop all motion after lifting
+    vibration_motor_.Heartbeat();
+    vibration_motor_.SetDutyCycle(0.0);
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(0.0);
-
-    LOGGER_SUCCESS(this->get_logger(), "Bucket lifted to travel position: %.2f", get_actuator_position());
+    LOGGER_SUCCESS(
+      this->get_logger(), "Bucket lifted to travel position: %.2f", get_actuator_position());
     return true;
   }
 
@@ -255,7 +258,7 @@ private:
       goal_active_ = false;
       return;
     }
-    
+
     feedback->feedback_message = "Lifting bucket to travel position";
     goal_handle->publish_feedback(feedback);
     if (!lift_bucket(goal_handle))
@@ -282,20 +285,20 @@ private:
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
 
-  double home_offset_;
+  double home_offset_ = 0.0;
+  bool goal_active_ = false;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
   SparkMax left_wheel_motor_;
   SparkMax right_wheel_motor_;
   SparkMax vibration_motor_;
-  bool goal_active_;
 };
 
 /**
  * @brief Main function.
  * Initializes and runs the ExcavationServer node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<ExcavationServer>());

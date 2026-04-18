@@ -1,25 +1,25 @@
 /**
  * @file controller_teleop.cpp
  * @author Grayson Arendt
- * @date 4/17/2025
+ * @date 4/17/2026
  */
 
-#include <algorithm>
+#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
+
+#include <rclcpp/rclcpp.hpp>
 
 #include <geometry_msgs/msg/twist.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 
-#include "lunabot_logger/logger.hpp"
+#include <algorithm>
 
-#include "SparkMax.hpp"
-#include <std_msgs/msg/float64.hpp>
-
-#define WHEEL_RADIUS 0.095  // In meters
-#define WHEEL_BASE 0.53
+static constexpr double wheel_radius = 0.095;
+static constexpr double wheel_base = 0.53;
 
 /**
  * @class ControllerTeleop
@@ -32,56 +32,50 @@ public:
    * @brief Constructor for ControllerTeleop.
    */
   ControllerTeleop()
-    : Node("controller_teleop")
-    , right_actuator_motor_("can0", 5)
-    , left_actuator_motor_("can0", 2)
-    , right_wheel_motor_("can0", 3)
-    , left_wheel_motor_("can0", 1)
-    , vibration_motor_("can0", 4)
+  : Node("controller_teleop"),
+    right_actuator_motor_("can0", 5),
+    left_actuator_motor_("can0", 2),
+    right_wheel_motor_("can0", 3),
+    left_wheel_motor_("can0", 1),
+    vibration_motor_("can0", 4)
   {
-    // Declare and get controller mode parameter
     declare_parameter("steam_mode", false);
     get_parameter("steam_mode", steam_mode_);
 
     LOGGER_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "Steam Deck" : "Xbox");
 
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
-        "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
-
+      "cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
     joystick_subscriber_ = create_subscription<sensor_msgs::msg::Joy>(
-        "joy", 10, std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
-
+      "joy", 10, std::bind(&ControllerTeleop::joy_callback, this, std::placeholders::_1));
     emergency_stop_subscriber_ = create_subscription<std_msgs::msg::Bool>(
-        "emergency_stop", 10, std::bind(&ControllerTeleop::emergency_stop_callback, this, std::placeholders::_1));
-
-    // Subscribe to mode switch commands from GUI
+      "emergency_stop", 10,
+      std::bind(&ControllerTeleop::emergency_stop_callback, this, std::placeholders::_1));
     mode_switch_subscriber_ = create_subscription<std_msgs::msg::Bool>(
-        "mode_switch", 10, std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
-
-    // Subscribe to fisheye camera position (0 = forward, 180 = inverted)
+      "mode_switch", 10,
+      std::bind(&ControllerTeleop::mode_switch_callback, this, std::placeholders::_1));
     camera_position_subscriber_ = create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/camera_controller/commands", 10,
-        std::bind(&ControllerTeleop::camera_position_callback, this, std::placeholders::_1));
-
-    // Subscribe to actuator home offset updates
+      "/camera_controller/commands", 10,
+      std::bind(&ControllerTeleop::camera_position_callback, this, std::placeholders::_1));
     home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
-        "actuator_home_offset", 10, std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
+      "actuator_home_offset", 10,
+      std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
 
-    // Publishers for robot state
     manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
     robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
-    vibration_duty_cycle_publisher_ = create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
+    vibration_duty_cycle_publisher_ =
+      create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
     home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
+    actuator_position_publisher_ =
+      create_publisher<std_msgs::msg::Float64>("actuator_position", 10);
 
-    // Timer to publish state periodically
-    state_timer_ = create_wall_timer(std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
-
-    // Timer for motor control at fixed rate
-    control_timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&ControllerTeleop::control_loop, this));
+    state_timer_ = create_wall_timer(
+      std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
+    control_timer_ = create_wall_timer(
+      std::chrono::milliseconds(50), std::bind(&ControllerTeleop::control_loop, this));
 
     left_actuator_motor_.SetSensorType(SensorType::kEncoder);
     right_actuator_motor_.SetSensorType(SensorType::kEncoder);
-
     left_actuator_motor_.SetIdleMode(IdleMode::kBrake);
     right_actuator_motor_.SetIdleMode(IdleMode::kBrake);
     left_actuator_motor_.BurnFlash();
@@ -93,12 +87,12 @@ public:
 
 private:
   /**
-   * @brief Detect rising edge for a button.
+   * @brief Detects a rising edge.
    * @param current Current button state.
    * @param previous Previous button state.
    * @return True if button was just pressed.
    */
-  bool detect_button_press(bool current, bool& previous)
+  static bool detect_button_press(bool current, bool & previous)
   {
     bool pressed = current && !previous;
     previous = current;
@@ -106,18 +100,14 @@ private:
   }
 
   /**
-   * @brief Clamp helper for motor duty‑cycle.
+   * @brief Clamps a value to [-1, 1] for motor duty cycle.
    */
-  static double clamp(double v)
-  {
-    return std::clamp(v, -1.0, 1.0);
-  }
+  static float clamp(double v) { return static_cast<float>(std::clamp(v, -1.0, 1.0)); }
 
   /**
-   * @brief Get button index based on controller mode.
-   * @param steam_idx Button index for Steam Deck controller.
-   * @param xbox_idx Button index for Xbox controller.
-   * @return The correct button index for current mode.
+   * @brief Returns the correct button index for the active controller.
+   * @param steam_idx Button index for Steam Deck.
+   * @param xbox_idx Button index for Xbox.
    */
   int get_button_index(int steam_idx, int xbox_idx) const
   {
@@ -125,67 +115,65 @@ private:
   }
 
   /**
-   * @brief Control loop at fixed rate
+   * @brief Motor control loop running at 20 Hz.
    */
   void control_loop()
   {
-    // Send heartbeat
     left_actuator_motor_.Heartbeat();
+
+    // Always publish actuator position so the GUI can read bucket state
+    auto pos_msg = std_msgs::msg::Float64();
+    pos_msg.data = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
+    actuator_position_publisher_->publish(pos_msg);
 
     if (robot_disabled_)
     {
-      // Stop all motors if robot is disabled
       left_wheel_motor_.SetDutyCycle(0.0);
       right_wheel_motor_.SetDutyCycle(0.0);
       left_actuator_motor_.SetDutyCycle(0.0);
       right_actuator_motor_.SetDutyCycle(0.0);
       vibration_motor_.SetDutyCycle(0.0);
+      return;
     }
-    else if (manual_enabled_)
-    {
-      // Control wheel motors with left joystick; invert if camera is at 180°
-      double drive_sign = camera_inverted_ ? -1.0 : 1.0;
-      double left_speed = drive_sign * (left_joystick_y_ - left_joystick_x_);
-      double right_speed = drive_sign * (left_joystick_y_ + left_joystick_x_);
-      left_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(left_speed));
-      right_wheel_motor_.SetDutyCycle(speed_multiplier_ * clamp(-right_speed));
 
-      // Control actuators with right joystick
-      double actuator_speed = clamp(right_joystick_y_);
-      left_actuator_motor_.SetDutyCycle(actuator_speed);
-      right_actuator_motor_.SetDutyCycle(actuator_speed);
+    if (!manual_enabled_) return;
 
-      // Print actuator positions
-      double left_position = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
-      double right_position = right_actuator_motor_.GetPosition() - actuator_zero_offset_;
-      LOGGER_INFO(get_logger(), "Actuator positions - Left: %.6f, Right: %.6f", left_position, right_position);
+    // Drive wheels with left joystick (invert direction when fisheye camera is at 180 degrees)
+    double drive_sign = camera_inverted_ ? -1.0 : 1.0;
+    left_wheel_motor_.SetDutyCycle(
+      speed_multiplier_ * clamp(drive_sign * (left_joystick_y_ - left_joystick_x_)));
+    right_wheel_motor_.SetDutyCycle(
+      speed_multiplier_ * clamp(drive_sign * -(left_joystick_y_ + left_joystick_x_)));
 
-      // Control vibration motor
-      vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
-    }
+    // Drive actuators with right joystick
+    float actuator_cmd = clamp(right_joystick_y_);
+    left_actuator_motor_.SetDutyCycle(actuator_cmd);
+    right_actuator_motor_.SetDutyCycle(actuator_cmd);
+
+    LOGGER_INFO(
+      get_logger(), "Actuator positions - Left: %.6f, Right: %.6f",
+      left_actuator_motor_.GetPosition() - actuator_zero_offset_,
+      right_actuator_motor_.GetPosition() - actuator_zero_offset_);
+
+    vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
   }
 
   /**
-   * @brief Process joystick messages in manual mode.
+   * @brief Processes joystick input in manual mode.
    * @param msg The joystick message.
    */
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
-    // Read button and axis values
-    bool share_button = msg->buttons[get_button_index(2, 9)];
-    bool menu_button = msg->buttons[get_button_index(14, 10)];
-    bool home_button = msg->buttons[get_button_index(11, 8)];
-    bool x_button = msg->buttons[get_button_index(5, 2)];
-    bool y_button = msg->buttons[get_button_index(6, 3)];
-    bool a_button = msg->buttons[0];
-
     // Detect button presses (rising edges)
-    bool x_pressed = detect_button_press(x_button, prev_x_button_);
-    bool y_pressed = detect_button_press(y_button, prev_y_button_);
-    bool share_pressed = detect_button_press(share_button, prev_share_button_);
-    bool menu_pressed = detect_button_press(menu_button, prev_menu_button_);
-    bool home_pressed = detect_button_press(home_button, prev_home_button_);
-    bool a_pressed = detect_button_press(a_button, prev_a_button_);
+    bool share_pressed =
+      detect_button_press(msg->buttons[get_button_index(2, 9)], prev_share_button_);
+    bool menu_pressed =
+      detect_button_press(msg->buttons[get_button_index(14, 10)], prev_menu_button_);
+    bool home_pressed =
+      detect_button_press(msg->buttons[get_button_index(11, 8)], prev_home_button_);
+    bool x_pressed = detect_button_press(msg->buttons[get_button_index(5, 2)], prev_x_button_);
+    bool y_pressed = detect_button_press(msg->buttons[get_button_index(6, 3)], prev_y_button_);
+    bool a_pressed = detect_button_press(msg->buttons[0], prev_a_button_);
 
     if (share_pressed)
     {
@@ -198,9 +186,7 @@ private:
     {
       manual_enabled_ = false;
       vibration_enabled_ = false;
-      left_joystick_x_ = 0.0;
-      left_joystick_y_ = 0.0;
-      right_joystick_y_ = 0.0;
+      left_joystick_x_ = left_joystick_y_ = right_joystick_y_ = 0.0;
       LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
       publish_state();
     }
@@ -211,115 +197,99 @@ private:
       if (robot_disabled_)
       {
         LOGGER_FAILURE(get_logger(), "Robot disabled");
-      }
-      else
+      } else
       {
         LOGGER_SUCCESS(get_logger(), "Robot enabled");
       }
       publish_state();
     }
 
-    if (manual_enabled_)
+    if (!manual_enabled_) return;
+
+    // Read joystick axes
+    left_joystick_x_ = msg->axes[0];
+    left_joystick_y_ = msg->axes[1];
+    right_joystick_y_ = -(steam_mode_ ? msg->axes[3] : msg->axes[4]);
+
+    if (x_pressed)
     {
-      left_joystick_x_ = msg->axes[0];
-      left_joystick_y_ = msg->axes[1];
+      vibration_enabled_ = !vibration_enabled_;
+      LOGGER_INFO(
+        get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
+      publish_state();
+    }
 
-      // Right joystick Y axis differs between controllers
-      if (steam_mode_)
-      {
-        right_joystick_y_ = -msg->axes[3];
-      }
-      else
-      {
-        right_joystick_y_ = -msg->axes[4];
-      }
+    if (y_pressed)
+    {
+      speed_multiplier_ = (speed_multiplier_ == 0.6f) ? 0.9f : 0.6f;
+      LOGGER_INFO(
+        get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)",
+        speed_multiplier_ == 0.9 ? "Turbo" : "Slow", speed_multiplier_);
+    }
 
-      // Toggle vibration motor
-      if (x_pressed)
-      {
-        vibration_enabled_ = !vibration_enabled_;
-        LOGGER_INFO(get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
-        publish_state();
-      }
-
-      // Toggle speed multiplier
-      if (y_pressed)
-      {
-        speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.7 : 0.3;
-        const char* speed_label = (speed_multiplier_ >= 0.5) ? "Fast" : "Slow";
-        LOGGER_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
-      }
-
-      // Zero actuator position offset
-      if (a_pressed)
-      {
-        actuator_zero_offset_ = left_actuator_motor_.GetPosition();
-        auto msg = std_msgs::msg::Float64();
-        msg.data = actuator_zero_offset_;
-        home_offset_publisher_->publish(msg);
-        LOGGER_SUCCESS(get_logger(), "Actuator zeroed at position: %.6f", actuator_zero_offset_);
-      }
+    if (a_pressed)
+    {
+      actuator_zero_offset_ = left_actuator_motor_.GetPosition();
+      auto offset_msg = std_msgs::msg::Float64();
+      offset_msg.data = actuator_zero_offset_;
+      home_offset_publisher_->publish(offset_msg);
+      LOGGER_SUCCESS(get_logger(), "Actuator zeroed at position: %.6f", actuator_zero_offset_);
     }
   }
 
   /**
-   * @brief Process fisheye camera position from GUI. Inverts driving at 180°.
+   * @brief Inverts drive direction when camera is at 180 degrees (pi radians).
+   * @param msg Float64MultiArray with camera angle in radians.
    */
   void camera_position_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
   {
-    if (!msg->data.empty())
-    {
-      // pi radians (180°) means camera is flipped — invert drive direction
-      camera_inverted_ = (std::abs(msg->data[0] - M_PI) < 0.1);
-      LOGGER_INFO(get_logger(), "Camera position: %.1f° — driving %s",
-                  std::abs(msg->data[0]) * 180.0 / M_PI,
-                  camera_inverted_ ? "INVERTED" : "NORMAL");
-    }
+    if (msg->data.empty()) return;
+
+    camera_inverted_ = (std::abs(msg->data[0] - M_PI) < 0.1);
+    LOGGER_INFO(
+      get_logger(), "Camera position: %.1f°: driving %s", std::abs(msg->data[0]) * 180.0 / M_PI,
+      camera_inverted_ ? "INVERTED" : "NORMAL");
   }
 
   /**
-   * @brief Process /cmd_vel in autonomous mode.
+   * @brief Processes cmd_vel in autonomous mode.
+   * @param msg Twist message with linear and angular velocity.
    */
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
-    if (manual_enabled_)
-    {
-      return;
-    }
+    if (manual_enabled_) return;
 
-    // Calculate left and right wheel speeds based on linear and angular velocities
-    // Invert direction if fisheye camera is rotated 180°
     double drive_sign = camera_inverted_ ? -1.0 : 1.0;
-    double left_cmd = drive_sign * -0.1 * (msg->linear.x + msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
-    double right_cmd = drive_sign * -0.1 * (msg->linear.x - msg->angular.z * WHEEL_BASE / 2.0) / WHEEL_RADIUS;
+    double left_cmd =
+      drive_sign * -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd =
+      drive_sign * -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
-    LOGGER_INFO(get_logger(), "Left: %f, Right: %f", left_cmd, right_cmd);
-
-    // Send motor commands directly in autonomous mode
     left_wheel_motor_.SetDutyCycle(clamp(left_cmd));
     right_wheel_motor_.SetDutyCycle(clamp(-right_cmd));
   }
 
   /**
-   * @brief Process emergency stop command.
+   * @brief Immediately stops all motors on emergency stop.
+   * @param msg Bool message; true triggers the stop.
    */
   void emergency_stop_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
-    if (msg->data)
-    {
-      robot_disabled_ = true;
-      LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
-      left_wheel_motor_.SetDutyCycle(0.0);
-      right_wheel_motor_.SetDutyCycle(0.0);
-      left_actuator_motor_.SetDutyCycle(0.0);
-      right_actuator_motor_.SetDutyCycle(0.0);
-      vibration_motor_.SetDutyCycle(0.0);
-      publish_state();
-    }
+    if (!msg->data) return;
+
+    robot_disabled_ = true;
+    LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
+    left_wheel_motor_.SetDutyCycle(0.0);
+    right_wheel_motor_.SetDutyCycle(0.0);
+    left_actuator_motor_.SetDutyCycle(0.0);
+    right_actuator_motor_.SetDutyCycle(0.0);
+    vibration_motor_.SetDutyCycle(0.0);
+    publish_state();
   }
 
   /**
-   * @brief Process mode switch command from GUI.
+   * @brief Switches between manual and autonomous mode from the GUI.
+   * @param msg Bool message; true = manual, false = autonomous.
    */
   void mode_switch_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
@@ -327,8 +297,7 @@ private:
     if (manual_enabled_)
     {
       LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
-    }
-    else
+    } else
     {
       LOGGER_INFO(get_logger(), YELLOW "Autonomous control:" RESET " " GREEN "Enabled" RESET);
     }
@@ -336,7 +305,8 @@ private:
   }
 
   /**
-   * @brief Callback for actuator home offset updates.
+   * @brief Updates the actuator zero offset.
+   * @param msg Float64 message with the new offset value.
    */
   void home_offset_callback(const std_msgs::msg::Float64::SharedPtr msg)
   {
@@ -345,7 +315,7 @@ private:
   }
 
   /**
-   * @brief Publish robot state (manual mode and disabled status).
+   * @brief Publishes manual mode, disabled state, and vibration duty cycle.
    */
   void publish_state()
   {
@@ -357,9 +327,8 @@ private:
     disabled_msg.data = robot_disabled_;
     robot_disabled_publisher_->publish(disabled_msg);
 
-    // Publish vibration duty cycle (0.0 if off, 1.0 if on)
     auto duty_msg = std_msgs::msg::Float32();
-    duty_msg.data = vibration_enabled_ ? 1.0 : 0.0;
+    duty_msg.data = vibration_enabled_ ? 1.0f : 0.0f;
     vibration_duty_cycle_publisher_->publish(duty_msg);
   }
 
@@ -374,19 +343,20 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr actuator_position_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
 
-  SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_, vibration_motor_;
+  SparkMax left_actuator_motor_, right_actuator_motor_, left_wheel_motor_, right_wheel_motor_,
+    vibration_motor_;
 
   bool manual_enabled_ = true;
   bool robot_disabled_ = false;
   bool vibration_enabled_ = false;
   bool steam_mode_ = false;
-  bool camera_inverted_ = false;  // true when fisheye camera is at 180°
+  bool camera_inverted_ = false;
 
-  // Button states
   bool prev_x_button_ = false;
   bool prev_y_button_ = false;
   bool prev_a_button_ = false;
@@ -394,27 +364,20 @@ private:
   bool prev_menu_button_ = false;
   bool prev_home_button_ = false;
 
-  // Speed multiplier
-  double speed_multiplier_ = 0.3;
-
-  // Actuator zero offset
+  float speed_multiplier_ = 0.6f;
   double actuator_zero_offset_ = 0.0;
-
-  // Joystick axes
   double left_joystick_x_ = 0.0;
   double left_joystick_y_ = 0.0;
   double right_joystick_y_ = 0.0;
 };
 
 /**
- * @brief Main function
- * Initializes and spins the ControllerTeleop node.
+ * @brief Initializes and spins the ControllerTeleop node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<ControllerTeleop>();
-  rclcpp::spin(node);
+  rclcpp::spin(std::make_shared<ControllerTeleop>());
   rclcpp::shutdown();
   return 0;
 }

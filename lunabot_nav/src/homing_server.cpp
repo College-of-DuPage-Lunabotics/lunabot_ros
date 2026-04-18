@@ -4,22 +4,22 @@
  * @date 02/22/2026
  */
 
-#include <chrono>
-#include <memory>
-#include <thread>
-
+#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/homing.hpp"
-#include "lunabot_logger/logger.hpp"
-#include "SparkMax.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define HOMING_SPEED 1.0
-#define POSITION_THRESHOLD 0.02
-#define STALL_DURATION_SEC 3
-#define TRAVEL_POS 6.0
+#include <chrono>
+#include <memory>
+#include <thread>
+
+static constexpr double homing_speed = 1.0;
+static constexpr double position_threshold = 0.02;
+static constexpr int stall_duration_sec = 3;
+static constexpr double travel_pos = 6.0;
 
 /**
  * @class HomingServer
@@ -35,15 +35,23 @@ public:
    * @brief Constructor for the HomingServer class.
    */
   HomingServer()
-    : Node("homing_server"), goal_active_(false), right_actuator_motor_("can0", 5), left_actuator_motor_("can0", 2)
+  : Node("homing_server"),
+    goal_active_(false),
+    right_actuator_motor_("can0", 5),
+    left_actuator_motor_("can0", 2)
   {
     action_server_ = rclcpp_action::create_server<Homing>(
-        this, "homing_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+      this, "homing_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
 
-    home_offset_publisher_ = this->create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
+    home_offset_publisher_ =
+      this->create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
 
     this->declare_parameter<double>("actuator_home_offset", 0.0);
 
@@ -86,34 +94,34 @@ private:
 
       left_actuator_motor_.Heartbeat();
 
-      left_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
-      right_actuator_motor_.SetDutyCycle(-HOMING_SPEED);
+      left_actuator_motor_.SetDutyCycle(-homing_speed);
+      right_actuator_motor_.SetDutyCycle(-homing_speed);
 
       auto now = std::chrono::steady_clock::now();
-      auto elapsed_since_check = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_check_time);
-      
-      if (elapsed_since_check.count() >= 100) // Check every 100ms if stalled
+      auto elapsed_since_check =
+        std::chrono::duration_cast<std::chrono::milliseconds>(now - last_check_time);
+
+      if (elapsed_since_check.count() >= 100)  // Check every 100ms if stalled
       {
         double current_position = get_actuator_position();
         double position_change = std::abs(current_position - previous_position);
 
-        if (position_change < POSITION_THRESHOLD)
+        if (position_change < position_threshold)
         {
           if (!is_stalled)
           {
             stall_start_time = now;
             is_stalled = true;
-          }
-          else
+          } else
           {
-            auto stall_duration = std::chrono::duration_cast<std::chrono::seconds>(now - stall_start_time);
-            if (stall_duration.count() >= STALL_DURATION_SEC)
+            auto stall_duration =
+              std::chrono::duration_cast<std::chrono::seconds>(now - stall_start_time);
+            if (stall_duration.count() >= stall_duration_sec)
             {
               break;
             }
           }
-        }
-        else
+        } else
         {
           is_stalled = false;
         }
@@ -147,7 +155,7 @@ private:
     LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
     double initial_position = get_actuator_position();
-    double target_position = initial_position - TRAVEL_POS;
+    double target_position = initial_position - travel_pos;
 
     while (get_actuator_position() > target_position)
     {
@@ -160,16 +168,16 @@ private:
 
       left_actuator_motor_.Heartbeat();
 
-      left_actuator_motor_.SetDutyCycle(HOMING_SPEED);
-      right_actuator_motor_.SetDutyCycle(HOMING_SPEED);
+      left_actuator_motor_.SetDutyCycle(homing_speed);
+      right_actuator_motor_.SetDutyCycle(homing_speed);
     }
 
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
     LOGGER_SUCCESS(this->get_logger(), "Travel position reached: %.2f", get_actuator_position());
+    return true;
   }
-}
 
   /**
    * @brief Executes the homing action sequence.
@@ -193,28 +201,27 @@ private:
     auto feedback = std::make_shared<Homing::Feedback>();
     auto result = std::make_shared<Homing::Result>();
 
-  try
-  {
-    feedback->feedback_message = "Extending actuators to home position";
-    goal_handle->publish_feedback(feedback);
-    home_actuators();
+    try
+    {
+      feedback->feedback_message = "Extending actuators to home position";
+      goal_handle->publish_feedback(feedback);
+      home_actuators(goal_handle);
 
-    feedback->feedback_message = "Returning to neutral position";
-    goal_handle->publish_feedback(feedback);
-    return_to_travel();
+      feedback->feedback_message = "Returning to neutral position";
+      goal_handle->publish_feedback(feedback);
+      return_to_neutral(goal_handle);
 
-    result->success = true;
-    result->message = "Homing completed successfully";
-    goal_handle->succeed(result);
-    LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
-  }
-  catch (const std::exception &e)
-  {
-    result->success = false;
-    result->message = std::string("Homing failed: ") + e.what();
-    goal_handle->abort(result);
-    LOGGER_FAILURE(this->get_logger(), "Homing failed: %s", e.what());
-  }
+      result->success = true;
+      result->message = "Homing completed successfully";
+      goal_handle->succeed(result);
+      LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
+    } catch (const std::exception & e)
+    {
+      result->success = false;
+      result->message = std::string("Homing failed: ") + e.what();
+      goal_handle->abort(result);
+      LOGGER_FAILURE(this->get_logger(), "Homing failed: %s", e.what());
+    }
 
     goal_active_ = false;
   }
@@ -224,14 +231,14 @@ private:
 
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
-  bool goal_active_;
+  bool goal_active_ = false;
 };
 
 /**
  * @brief Main function.
  * Initializes and runs the HomingServer node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<HomingServer>());

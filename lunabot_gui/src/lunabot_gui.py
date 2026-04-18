@@ -254,7 +254,12 @@ class LunabotGUI(QMainWindow):
         left_column_layout.addWidget(telemetry_group)
         
         bottom_row_layout.addWidget(left_column, 2)
-        
+
+        bucket_state_group = ui_widgets.create_bucket_led_group(self)
+        bucket_state_group.setMinimumWidth(125)
+        bucket_state_group.setMaximumWidth(125)
+        bottom_row_layout.addWidget(bucket_state_group, 1)
+
         camera_group = ui_widgets.create_camera_control_group(self)
         bottom_row_layout.addWidget(camera_group, 1)
         
@@ -766,6 +771,8 @@ class LunabotGUI(QMainWindow):
         if not self.robot.is_real_mode and any(self.teleop_keys.values()):
             self.publish_teleop_velocity()
 
+        self.update_bucket_leds()
+
         if CV_AVAILABLE:
             if self.swappable_camera_showing_front:
                 self.update_camera_display(self.swappable_camera_label, self.robot.front_camera_image)
@@ -773,6 +780,10 @@ class LunabotGUI(QMainWindow):
                 self.update_camera_display(self.swappable_camera_label, self.robot.rear_camera_image)
             self.update_camera_display(self.fisheye_camera_label, self.robot.fisheye_camera_image)
     
+    def update_bucket_leds(self):
+        pos = self.robot.actuator_position
+        self.bucket_slider.set_position(pos)
+
     def update_camera_display(self, label, cv_image):
         if cv_image is None:
             return
