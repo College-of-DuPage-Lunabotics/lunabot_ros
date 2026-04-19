@@ -4,20 +4,21 @@
  * @date 02/22/2026
  */
 
-#include <chrono>
-
-#include "nav2_msgs/action/navigate_to_pose.hpp"
+#include "lunabot_logger/logger.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/action/excavation.hpp"
 #include "lunabot_msgs/action/localization.hpp"
-#include "lunabot_logger/logger.hpp"
+#include "nav2_msgs/action/navigate_to_pose.hpp"
+
+#include <chrono>
 
 /**
  * @class NavigationClient
- * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and depositing actions.
+ * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and depositing
+ * actions.
  */
 class NavigationClient : public rclcpp::Node
 {
@@ -31,8 +32,7 @@ public:
   using Depositing = lunabot_msgs::action::Depositing;
   using GoalHandleDepositing = rclcpp_action::ClientGoalHandle<Depositing>;
 
-  enum class State
-  {
+  enum class State {
     IDLE,
     LOCALIZATION,
     NAVIGATING_TO_EXCAVATION,
@@ -59,7 +59,8 @@ public:
     excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
     depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
 
-    execution_timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
+    execution_timer_ =
+      this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
   }
 
 private:
@@ -113,7 +114,7 @@ private:
     auto goal_msg = Localization::Goal();
     auto send_goal_options = rclcpp_action::Client<Localization>::SendGoalOptions();
     send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_localization_result, this, std::placeholders::_1);
+      std::bind(&NavigationClient::handle_localization_result, this, std::placeholders::_1);
 
     localization_client_->async_send_goal(goal_msg, send_goal_options);
   }
@@ -122,16 +123,17 @@ private:
    * @brief Handles the result from the localization server.
    * @param result The result from the localization action.
    */
-  void handle_localization_result(const GoalHandleLocalization::WrappedResult& result)
+  void handle_localization_result(const GoalHandleLocalization::WrappedResult & result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       initial_x_ = result.result->x;
       initial_y_ = result.result->y;
-      LOGGER_SUCCESS(this->get_logger(), "Localization complete. Initial pose: [%.2f, %.2f]", initial_x_, initial_y_);
+      LOGGER_SUCCESS(
+        this->get_logger(), "Localization complete. Initial pose: [%.2f, %.2f]", initial_x_,
+        initial_y_);
       current_state_ = State::NAVIGATING_TO_EXCAVATION;
-    }
-    else
+    } else
     {
       LOGGER_FAILURE(this->get_logger(), "Localization failed.");
       current_state_ = State::IDLE;
@@ -170,9 +172,10 @@ private:
 
     auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
     send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_navigation_result, this, std::placeholders::_1);
-    send_goal_options.feedback_callback =
-        std::bind(&NavigationClient::handle_navigation_feedback, this, std::placeholders::_1, std::placeholders::_2);
+      std::bind(&NavigationClient::handle_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback = std::bind(
+      &NavigationClient::handle_navigation_feedback, this, std::placeholders::_1,
+      std::placeholders::_2);
 
     LOGGER_ACTION(this->get_logger(), "Sending navigation goal to excavation zone [0.0, -2.0]...");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
@@ -183,36 +186,35 @@ private:
    * @param goal_handle The goal handle.
    * @param feedback The feedback message containing distance remaining.
    */
-  void handle_navigation_feedback(GoalHandleNavigate::SharedPtr,
-                                  const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+  void handle_navigation_feedback(
+    GoalHandleNavigate::SharedPtr, const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
-    LOGGER_INFO(this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
+    LOGGER_INFO(
+      this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
   }
 
   /**
    * @brief Callback for the result of the navigation goal.
    * @param result The result of the goal execution.
    */
-  void handle_navigation_result(const GoalHandleNavigate::WrappedResult& result)
+  void handle_navigation_result(const GoalHandleNavigate::WrappedResult & result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       LOGGER_SUCCESS(this->get_logger(), "Excavation zone reached. Requesting excavation...");
       current_state_ = State::EXCAVATING;
-    }
-    else if (result.code == rclcpp_action::ResultCode::ABORTED)
+    } else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
       LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach excavation zone");
       current_state_ = State::IDLE;
-    }
-    else if (result.code == rclcpp_action::ResultCode::CANCELED)
+    } else if (result.code == rclcpp_action::ResultCode::CANCELED)
     {
       LOGGER_WARN(this->get_logger(), "Navigation to excavation zone canceled");
       current_state_ = State::IDLE;
-    }
-    else
+    } else
     {
-      LOGGER_FAILURE(this->get_logger(), "Navigation to excavation zone failed with unknown result");
+      LOGGER_FAILURE(
+        this->get_logger(), "Navigation to excavation zone failed with unknown result");
       current_state_ = State::IDLE;
     }
   }
@@ -231,7 +233,7 @@ private:
     auto goal_msg = Excavation::Goal();
     auto send_goal_options = rclcpp_action::Client<Excavation>::SendGoalOptions();
     send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_excavation_result, this, std::placeholders::_1);
+      std::bind(&NavigationClient::handle_excavation_result, this, std::placeholders::_1);
 
     excavation_client_->async_send_goal(goal_msg, send_goal_options);
   }
@@ -240,14 +242,13 @@ private:
    * @brief Callback for the result of the excavation action.
    * @param result The result of the excavation action.
    */
-  void handle_excavation_result(const GoalHandleExcavation::WrappedResult& result)
+  void handle_excavation_result(const GoalHandleExcavation::WrappedResult & result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       LOGGER_SUCCESS(this->get_logger(), "Excavation success! Navigating to construction zone...");
       current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
-    }
-    else
+    } else
     {
       LOGGER_FAILURE(this->get_logger(), "Excavation failed.");
       current_state_ = State::IDLE;
@@ -285,12 +286,14 @@ private:
     goal_msg.pose.header.frame_id = "map";
 
     auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
-    send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_construction_navigation_result, this, std::placeholders::_1);
-    send_goal_options.feedback_callback =
-        std::bind(&NavigationClient::handle_construction_feedback, this, std::placeholders::_1, std::placeholders::_2);
+    send_goal_options.result_callback = std::bind(
+      &NavigationClient::handle_construction_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback = std::bind(
+      &NavigationClient::handle_construction_feedback, this, std::placeholders::_1,
+      std::placeholders::_2);
 
-    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to construction zone [-4.5, 0.4]...");
+    LOGGER_ACTION(
+      this->get_logger(), "Sending navigation goal to construction zone [-4.5, 0.4]...");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -299,36 +302,36 @@ private:
    * @param goal_handle The goal handle.
    * @param feedback The feedback message containing distance remaining.
    */
-  void handle_construction_feedback(GoalHandleNavigate::SharedPtr,
-                                    const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+  void handle_construction_feedback(
+    GoalHandleNavigate::SharedPtr, const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
-    LOGGER_INFO(this->get_logger(), "Distance to construction zone: %.2f meters", feedback->distance_remaining);
+    LOGGER_INFO(
+      this->get_logger(), "Distance to construction zone: %.2f meters",
+      feedback->distance_remaining);
   }
 
   /**
    * @brief Callback for the result of navigation to construction zone.
    * @param result The result of the goal execution.
    */
-  void handle_construction_navigation_result(const GoalHandleNavigate::WrappedResult& result)
+  void handle_construction_navigation_result(const GoalHandleNavigate::WrappedResult & result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       LOGGER_SUCCESS(this->get_logger(), "Construction zone reached. Requesting deposit...");
       current_state_ = State::DEPOSITING;
-    }
-    else if (result.code == rclcpp_action::ResultCode::ABORTED)
+    } else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
       LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach construction zone");
       current_state_ = State::IDLE;
-    }
-    else if (result.code == rclcpp_action::ResultCode::CANCELED)
+    } else if (result.code == rclcpp_action::ResultCode::CANCELED)
     {
       LOGGER_WARN(this->get_logger(), "Navigation to construction zone canceled");
       current_state_ = State::IDLE;
-    }
-    else
+    } else
     {
-      LOGGER_FAILURE(this->get_logger(), "Navigation to construction zone failed with unknown result");
+      LOGGER_FAILURE(
+        this->get_logger(), "Navigation to construction zone failed with unknown result");
       current_state_ = State::IDLE;
     }
   }
@@ -347,7 +350,7 @@ private:
     auto goal_msg = Depositing::Goal();
     auto send_goal_options = rclcpp_action::Client<Depositing>::SendGoalOptions();
     send_goal_options.result_callback =
-        std::bind(&NavigationClient::handle_depositing_result, this, std::placeholders::_1);
+      std::bind(&NavigationClient::handle_depositing_result, this, std::placeholders::_1);
 
     depositing_client_->async_send_goal(goal_msg, send_goal_options);
   }
@@ -356,14 +359,13 @@ private:
    * @brief Callback for the result of the depositing action.
    * @param result The result of the depositing action.
    */
-  void handle_depositing_result(const GoalHandleDepositing::WrappedResult& result)
+  void handle_depositing_result(const GoalHandleDepositing::WrappedResult & result)
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
       LOGGER_SUCCESS(this->get_logger(), "Depositing success! Cycle complete!");
       current_state_ = State::COMPLETE;
-    }
-    else
+    } else
     {
       LOGGER_FAILURE(this->get_logger(), "Depositing failed.");
       current_state_ = State::IDLE;
@@ -384,7 +386,7 @@ private:
  * @brief Main function.
  * Initializes and runs the NavigationClient node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<NavigationClient>());

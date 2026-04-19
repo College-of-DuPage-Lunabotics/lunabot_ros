@@ -4,19 +4,19 @@
  * @date 02/22/2026
  */
 
+#include "lunabot_logger/logger.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+
+#include "lunabot_msgs/action/homing.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
+
 #include <chrono>
 #include <memory>
 #include <thread>
 
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "std_msgs/msg/float64_multi_array.hpp"
-
-#include "lunabot_msgs/action/homing.hpp"
-#include "lunabot_logger/logger.hpp"
-
-#define HOME_POSITION -1.5
-#define TRAVEL_POSITION -0.4
+static constexpr double home_position = -1.5;
+static constexpr double travel_position = -0.4;
 
 /**
  * @class HomingServerSim
@@ -31,16 +31,20 @@ public:
   /**
    * @brief Constructor for the HomingServerSim class.
    */
-  HomingServerSim() : Node("homing_server"), goal_active_(false)
+  HomingServerSim() : Node("homing_server")
   {
     action_server_ = rclcpp_action::create_server<Homing>(
-        this, "homing_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+      this, "homing_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
 
     bucket_position_pub_ =
-        this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
+      this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
 
     LOGGER_SUCCESS(this->get_logger(), "Homing server (sim) initialized");
   }
@@ -65,13 +69,13 @@ private:
   {
     // Move bucket to fully extended home position
     LOGGER_ACTION(this->get_logger(), "Moving bucket to home position...");
-    set_bucket_position(HOME_POSITION);
+    set_bucket_position(home_position);
     std::this_thread::sleep_for(std::chrono::seconds(3));
     LOGGER_SUCCESS(this->get_logger(), "Home position reached");
 
     // Return to neutral travel position
     LOGGER_ACTION(this->get_logger(), "Returning to travel position...");
-    set_bucket_position(TRAVEL_POSITION);
+    set_bucket_position(travel_position);
     std::this_thread::sleep_for(std::chrono::seconds(2));
     LOGGER_SUCCESS(this->get_logger(), "Travel position reached");
   }
@@ -108,8 +112,7 @@ private:
       result->message = "Homing completed successfully";
       goal_handle->succeed(result);
       LOGGER_SUCCESS(this->get_logger(), "Homing completed successfully");
-    }
-    catch (const std::exception& e)
+    } catch (const std::exception & e)
     {
       result->success = false;
       result->message = std::string("Homing failed: ") + e.what();
@@ -122,14 +125,14 @@ private:
 
   rclcpp_action::Server<Homing>::SharedPtr action_server_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr bucket_position_pub_;
-  bool goal_active_;
+  bool goal_active_ = false;
 };
 
 /**
  * @brief Main function.
  * Initializes and runs the HomingServerSim node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<HomingServerSim>());

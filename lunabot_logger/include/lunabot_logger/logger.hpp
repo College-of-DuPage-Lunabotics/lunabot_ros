@@ -20,6 +20,7 @@
 
 // Throttled / once variants
 #define LOGGER_WARN_ONCE(logger, fmt, ...) RCLCPP_WARN_ONCE(logger, YELLOW fmt RESET, ##__VA_ARGS__)
-#define LOGGER_INFO_THROTTLE(logger, clock, ms, fmt, ...) RCLCPP_INFO_THROTTLE(logger, clock, ms, fmt, ##__VA_ARGS__)
-#define LOGGER_WARN_THROTTLE(logger, clock, ms, fmt, ...)                                                              \
+#define LOGGER_INFO_THROTTLE(logger, clock, ms, fmt, ...) \
+  RCLCPP_INFO_THROTTLE(logger, clock, ms, fmt, ##__VA_ARGS__)
+#define LOGGER_WARN_THROTTLE(logger, clock, ms, fmt, ...) \
   RCLCPP_WARN_THROTTLE(logger, clock, ms, YELLOW fmt RESET, ##__VA_ARGS__)

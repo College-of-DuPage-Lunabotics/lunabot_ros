@@ -118,6 +118,7 @@ class RobotInterface:
         self.position_x = 0.0
         self.position_y = 0.0
         self.bucket_position = -0.2
+        self.actuator_position = -5.25
         
         # System enable states
         self.hardware_enabled = False
@@ -225,6 +226,11 @@ class RobotInterface:
 
         self.node.create_subscription(
             Float32, '/vibration_duty_cycle', self._vibration_duty_cycle_callback, 10)
+
+        from std_msgs.msg import Float64
+        self.node.create_subscription(
+            Float64, '/actuator_position',
+            lambda msg: setattr(self, 'actuator_position', msg.data), 10)
 
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)

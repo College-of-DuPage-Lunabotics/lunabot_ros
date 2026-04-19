@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import math
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QColor, QFont, QPainter
 from PyQt5.QtWidgets import (QGridLayout, QGroupBox, QHBoxLayout, QLabel,
                               QLineEdit, QProgressBar, QPushButton, QSizePolicy,
-                              QVBoxLayout)
+                              QVBoxLayout, QWidget)
 
 from gui_styles import Colors, Styles
 
@@ -988,38 +988,171 @@ def create_camera_control_group(app):
     layout.addWidget(app.camera_pos_label)
     
     layout.addSpacing(2)
-    
+
     button_row = QHBoxLayout()
-    button_row.setSpacing(8)
-    
-    rotate_left_btn = QPushButton("← 45°")
-    rotate_left_btn.setStyleSheet(Styles.camera_button())
-    rotate_left_btn.clicked.connect(lambda: app.rotate_fisheye_camera(math.pi / 4))
-    button_row.addWidget(rotate_left_btn)
-    
-    center_column = QVBoxLayout()
-    center_column.setSpacing(8)
-    
-    center_btn = QPushButton("Center")
-    center_btn.setStyleSheet(Styles.camera_button(padding="15px"))
-    center_btn.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
-    center_column.addWidget(center_btn)
-    
+    button_row.setSpacing(6)
+
+    btn_0 = QPushButton("0°")
+    btn_0.setStyleSheet(Styles.camera_button(padding="14px 10px"))
+    btn_0.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
+    button_row.addWidget(btn_0)
+
     btn_180 = QPushButton("180°")
-    btn_180.setStyleSheet(Styles.camera_button(padding="15px"))
+    btn_180.setStyleSheet(Styles.camera_button(padding="14px 10px"))
     btn_180.clicked.connect(lambda: app.set_fisheye_camera_position(math.pi))
-    center_column.addWidget(btn_180)
-    
-    button_row.addLayout(center_column)
-    
-    rotate_right_btn = QPushButton("45° →")
-    rotate_right_btn.setStyleSheet(Styles.camera_button())
-    rotate_right_btn.clicked.connect(lambda: app.rotate_fisheye_camera(-math.pi / 4))
-    button_row.addWidget(rotate_right_btn)
-    
+    button_row.addWidget(btn_180)
+
     layout.addLayout(button_row)
     
     group.setLayout(layout)
+    return group
+
+
+class BucketSliderWidget(QWidget):
+    """Vertical 3-zone bar with a white indicator line for current bucket position."""
+
+    _DEPOSIT_COLOR  = "#f5c400"
+    _TRAVEL_COLOR   = "#22cc44"
+    _EXCAVATE_COLOR = "#ee2222"
+
+    _MAX_POS = 0.0
+    _MIN_POS = -10.5
+    _MID1    = -2.0   # deposit / travel boundary
+    _MID2    = -8.0   # travel / excavate boundary
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._position = -5.25  # default to center of range
+        self.setMinimumSize(24, 60)
+        self.setMaximumHeight(160)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+
+    def set_position(self, pos):
+        self._position = max(self._MIN_POS, min(self._MAX_POS, pos))
+        self.update()
+
+    _OVERHANG = 5  # px the indicator line extends past each side of the bar
+
+    def paintEvent(self, event):
+        from PyQt5.QtGui import QPen
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        w = self.width()
+        h = self.height()
+        ox = self._OVERHANG
+        bx = ox          # bar left
+        bw = w - ox * 2  # bar width
+        total = self._MAX_POS - self._MIN_POS
+
+        def _y(pos):
+            return int((self._MAX_POS - pos) / total * h)
+
+        y1 = _y(self._MID1)
+        y2 = _y(self._MID2)
+
+        r = 3  # corner radius for bar
+
+        # Draw colored zones clipped via painter save/restore
+        bar_rect = QRectF(bx, 0, bw, h)
+
+        # Clip to rounded bar shape
+        from PyQt5.QtGui import QPainterPath
+        clip_path = QPainterPath()
+        clip_path.addRoundedRect(bar_rect, r, r)
+        painter.setClipPath(clip_path)
+
+        painter.fillRect(bx, 0,   bw, y1,      QColor(self._DEPOSIT_COLOR))
+        painter.fillRect(bx, y1,  bw, y2 - y1, QColor(self._TRAVEL_COLOR))
+        painter.fillRect(bx, y2,  bw, h - y2,  QColor(self._EXCAVATE_COLOR))
+
+        painter.setClipping(False)
+
+        iy = _y(self._position)
+        ind_h = 3
+
+        # Darker border outline around the bar
+        painter.setPen(QPen(QColor("#555555"), 2))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(QRectF(bx + 1, 1, bw - 2, h - 2), r, r)
+
+        # Lighter outer frame
+        painter.setPen(QPen(QColor("#d0d0d0"), 1))
+        painter.drawRoundedRect(QRectF(bx + 0.5, 0.5, bw - 1, h - 1), r, r)
+
+        ind_y = max(ind_h // 2, min(h - ind_h // 2, iy))
+        ind_rect = QRectF(0, ind_y - ind_h / 2, w, ind_h)
+        painter.setBrush(QColor("#e8e8e8"))
+        painter.setPen(QPen(QColor("#aaaaaa"), 1))
+        painter.drawRect(ind_rect)
+
+
+def create_bucket_led_group(app):
+    """Vertical slider indicator showing bucket position across 3 zones."""
+    group = QGroupBox("Bucket State")
+    group.setAutoFillBackground(True)
+    group.setStyleSheet(f"""
+        QGroupBox {{
+            background-color: {Colors.BG_BOX};
+            margin: 0px;
+            font-weight: bold;
+            padding-top: 8px;
+            padding-left: 4px;
+            padding-right: 4px;
+            padding-bottom: 4px;
+            color: {Colors.TEXT_MAIN};
+        }}
+        QGroupBox::title {{
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            padding: 0 5px;
+            top: 5px;
+            left: 2px;
+            color: {Colors.TEXT_MAIN};
+        }}
+    """)
+
+    outer = QVBoxLayout()
+    outer.setContentsMargins(10, 14, 10, 10)
+    outer.setSpacing(0)
+
+    # Bar + labels side by side, centered horizontally
+    center_row = QHBoxLayout()
+    center_row.setSpacing(0)
+    center_row.addStretch()
+
+    bar_row = QHBoxLayout()
+    bar_row.setSpacing(8)
+
+    label_col = QVBoxLayout()
+    label_col.setSpacing(0)
+
+    def _zone_label(text, alignment):
+        lbl = QLabel(text)
+        lbl.setAlignment(alignment | Qt.AlignRight)
+        lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        lbl.setStyleSheet(
+            f"color: {Colors.TEXT_DIM}; font-size: 14px;"
+            f" font-weight: bold; background: transparent;")
+        return lbl
+
+    # Stretch proportional to zone size: deposit=2.0, travel=6.0, excavate=2.5
+    # Align each label toward its zone boundary so text sits inside the zone
+    label_col.addWidget(_zone_label("Deposit",  Qt.AlignBottom), 4)
+    label_col.addWidget(_zone_label("Travel",   Qt.AlignVCenter), 12)
+    label_col.addWidget(_zone_label("Excavate", Qt.AlignTop), 5)
+    bar_row.addLayout(label_col)
+
+    app.bucket_slider = BucketSliderWidget()
+    app.bucket_slider.setFixedWidth(28)  # 18px bar + 5px overhang each side
+    bar_row.addWidget(app.bucket_slider)
+
+    center_row.addLayout(bar_row)
+    center_row.addStretch()
+
+    outer.addLayout(center_row, 1)
+
+    group.setLayout(outer)
     return group
 
 
