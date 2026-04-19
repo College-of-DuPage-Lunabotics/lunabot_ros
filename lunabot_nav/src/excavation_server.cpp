@@ -24,9 +24,9 @@
 #include "SparkMax.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define EXCAVATION_POS 10.5
+#define EXCAVATION_POS 12.2
 #define TRAVEL_POS 6.0
-#define FORWARD_SECONDS 5
+#define FORWARD_SECONDS 6
 
 /**
  * @class ExcavationServer
@@ -146,7 +146,6 @@ private:
         return false;
       }
 
-      //velocity_publisher->publish(twist_msg);
       vibration_motor_.Heartbeat();
       right_wheel_motor_.SetDutyCycle(-0.7);
       left_wheel_motor_.SetDutyCycle(0.7);

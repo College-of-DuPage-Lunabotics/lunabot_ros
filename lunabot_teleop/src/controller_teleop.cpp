@@ -148,11 +148,6 @@ private:
       left_actuator_motor_.SetDutyCycle(actuator_speed);
       right_actuator_motor_.SetDutyCycle(actuator_speed);
 
-      // Print actuator positions
-      double left_position = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
-      double right_position = right_actuator_motor_.GetPosition() - actuator_zero_offset_;
-      LOGGER_INFO(get_logger(), "Actuator positions - Left: %.6f, Right: %.6f", left_position, right_position);
-
       // Control vibration motor
       vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
     }
@@ -215,7 +210,7 @@ private:
     if (manual_enabled_)
     {
       left_joystick_x_ = msg->axes[0];
-      left_joystick_y_ = msg->axes[1];
+      left_joystick_y_ = -msg->axes[1];
 
       // Right joystick Y axis differs between controllers
       if (steam_mode_)
@@ -238,8 +233,8 @@ private:
       // Toggle speed multiplier
       if (y_pressed)
       {
-        speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.7 : 0.3;
-        const char* speed_label = (speed_multiplier_ >= 0.5) ? "Fast" : "Slow";
+        speed_multiplier_ = (speed_multiplier_ < 0.5) ? 0.9 : 0.6;
+        const char* speed_label = (speed_multiplier_ > 0.6) ? "Fast" : "Slow";
         LOGGER_INFO(get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)", speed_label, speed_multiplier_);
       }
 
@@ -333,9 +328,9 @@ private:
     disabled_msg.data = robot_disabled_;
     robot_disabled_publisher_->publish(disabled_msg);
 
-    // Publish vibration duty cycle (0.0 if off, 1.0 if on)
+    // Publish vibration duty cycle
     auto duty_msg = std_msgs::msg::Float32();
-    duty_msg.data = vibration_enabled_ ? 1.0 : 0.0;
+    duty_msg.data = vibration_motor_.GetDutyCycle();
     vibration_duty_cycle_publisher_->publish(duty_msg);
   }
 
