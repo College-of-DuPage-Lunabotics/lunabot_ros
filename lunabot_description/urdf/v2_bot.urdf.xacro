@@ -23,6 +23,14 @@
   <!--            BODY LINKS             -->
   <!-- ================================= -->
 
+  <link name="base_footprint"></link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint" />
+    <child link="base_link" />
+    <origin xyz="0 0 -0.3556" rpy="0 0 0" />
+  </joint>
+
   <link name="base_link">
     <visual>
       <geometry>
@@ -51,7 +59,8 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_bucket.stl" />
       </geometry>
-      <origin xyz="0.2 0 0" rpy="1.5708 0 1.5708" />
+      <origin xyz="0.2 0 0" rpy="0 0 1.5708" />
+      <material name="camera_grey" />
     </visual>
     <!-- <collision>
       <geometry>
@@ -249,7 +258,7 @@
   <joint name="base_camera_front_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_front_link" />
-    <origin xyz="0.55 0 0.425" rpy="0 0.523599 0" />
+    <origin xyz="0.55 0 0.425" rpy="0 0.785398 0" />
   </joint>
 
   <joint name="camera_front_optical_joint" type="fixed">

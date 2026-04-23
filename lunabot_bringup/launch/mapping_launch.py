@@ -79,7 +79,7 @@ def generate_launch_description():
                 "subscribe_rgb": False,
                 "subscribe_odom_info": False,
                 "odom_sensor_sync": False,
-                "frame_id": "base_link",
+                "frame_id": "base_footprint",
                 "map_frame_id": "map",
                 "odom_frame_id": "odom",
                 "publish_tf": True,
