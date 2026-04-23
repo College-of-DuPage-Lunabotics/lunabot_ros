@@ -259,11 +259,8 @@ private:
   {
     if (manual_enabled_) return;
 
-    double drive_sign = camera_inverted_ ? -1.0 : 1.0;
-    double left_cmd =
-      drive_sign * -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd =
-      drive_sign * -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
     left_wheel_motor_.SetDutyCycle(clamp(left_cmd));
     right_wheel_motor_.SetDutyCycle(clamp(-right_cmd));
