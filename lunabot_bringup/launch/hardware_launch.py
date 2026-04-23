@@ -37,8 +37,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.profile": "640,480,15",
-            "rgb_camera.profile": "640,480,15",
+            "depth_module.depth_profile": "640,480,15",
+            "rgb_camera.color_profile": "640,480,15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -57,8 +57,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.profile": "640,480,15",
-            "rgb_camera.profile": "640,480,15",
+            "depth_module.depth_profile": "640,480,15",
+            "rgb_camera.color_profile": "640,480,15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -88,7 +88,7 @@ def generate_launch_description():
         name="power_monitor",
         output="screen",
         parameters=[
-            {"serial_port": "/dev/ttyACM1"},
+            {"serial_port": "/dev/ttyACM0"},
             {"baud_rate": 9600},
             {"publish_rate": 10.0},
         ],
@@ -100,7 +100,7 @@ def generate_launch_description():
         name="fisheye_rotation",
         output="screen",
         parameters=[
-            {"serial_port": "/dev/ttyACM0"},
+            {"serial_port": "/dev/ttyACM1"},
             {"baud_rate": 115200},
         ],
     )
@@ -111,7 +111,7 @@ def generate_launch_description():
         name="fisheye_camera",
         output="screen",
         parameters=[
-            {"device_id": "/dev/video0"},
+            {"device_id": "/dev/webcam_fisheye"},
             {"width": 640},
             {"height": 480},
             {"fps": 30},
