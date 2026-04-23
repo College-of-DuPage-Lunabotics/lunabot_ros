@@ -120,6 +120,11 @@ class RobotInterface:
         self.bucket_position = -0.2
         self.actuator_position = -5.25
         
+        # RealSense camera subscription control
+        self.realsense_enabled = True  # Start with RealSense enabled
+        self.front_camera_sub = None
+        self.rear_camera_sub = None
+        
         # System enable states
         self.hardware_enabled = False
         self.pointlio_enabled = False
@@ -174,6 +179,7 @@ class RobotInterface:
         self.on_camera_update = None
         self.on_robot_state_update = None
         self.on_control_state_update = None
+        self.on_realsense_toggle = None
     
     def _create_subscriptions(self):
         # Bandwidth monitoring - Current
@@ -199,12 +205,11 @@ class RobotInterface:
             lambda msg: setattr(self, 'bandwidth_avg_tx', msg.data), 10)
         
         if CV_AVAILABLE:
-            self.node.create_subscription(
-                CompressedImage, '/camera_front/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
-            self.node.create_subscription(
-                CompressedImage, '/camera_back/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
+            # RealSense cameras (front and rear) - can be toggled
+            if self.realsense_enabled:
+                self._enable_realsense_subscriptions()
+            
+            # Fisheye camera - always enabled
             self.node.create_subscription(
                 CompressedImage, '/camera_fisheye/color/image_compressed',
                 lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 10)
@@ -245,6 +250,54 @@ class RobotInterface:
                 self.on_camera_update(camera_name, cv_image)
         except Exception as e:
             self.log.failure(f'{camera_name.capitalize()} camera error: {e}')
+    
+    def _enable_realsense_subscriptions(self):
+        """Enable RealSense camera subscriptions (front and rear)"""
+        if not CV_AVAILABLE:
+            return
+        
+        if self.front_camera_sub is None:
+            self.front_camera_sub = self.node.create_subscription(
+                CompressedImage, '/camera_front/color/image_compressed',
+                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
+            self.log.info('Front RealSense camera subscription enabled')
+        
+        if self.rear_camera_sub is None:
+            self.rear_camera_sub = self.node.create_subscription(
+                CompressedImage, '/camera_back/color/image_compressed',
+                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
+            self.log.info('Rear RealSense camera subscription enabled')
+    
+    def _disable_realsense_subscriptions(self):
+        """Disable RealSense camera subscriptions (front and rear)"""
+        if self.front_camera_sub is not None:
+            self.node.destroy_subscription(self.front_camera_sub)
+            self.front_camera_sub = None
+            self.front_camera_image = None  # Clear the image
+            self.log.info('Front RealSense camera subscription disabled')
+        
+        if self.rear_camera_sub is not None:
+            self.node.destroy_subscription(self.rear_camera_sub)
+            self.rear_camera_sub = None
+            self.rear_camera_image = None  # Clear the image
+            self.log.info('Rear RealSense camera subscription disabled')
+    
+    def toggle_realsense_cameras(self):
+        """Toggle RealSense camera subscriptions on/off"""
+        self.realsense_enabled = not self.realsense_enabled
+        
+        if self.realsense_enabled:
+            self._enable_realsense_subscriptions()
+            self.log.action('RealSense cameras enabled')
+        else:
+            self._disable_realsense_subscriptions()
+            self.log.action('RealSense cameras disabled')
+        
+        # Notify GUI of the toggle
+        if self.on_realsense_toggle:
+            self.on_realsense_toggle(self.realsense_enabled)
+        
+        return self.realsense_enabled
     
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x

@@ -1004,6 +1004,32 @@ def create_camera_control_group(app):
 
     layout.addLayout(button_row)
     
+    # Add RealSense toggle button
+    layout.addSpacing(8)
+    
+    realsense_toggle_btn = QPushButton("RealSense: ON")
+    realsense_toggle_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.STATUS_SUCCESS};
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 8px;
+            border: none;
+            border-radius: 3px;
+        }}
+        QPushButton:hover {{
+            background-color: #1ea834;
+        }}
+        QPushButton:pressed {{
+            background-color: #188a2a;
+        }}
+    """)
+    realsense_toggle_btn.setMaximumHeight(32)
+    realsense_toggle_btn.clicked.connect(app.toggle_realsense_cameras)
+    layout.addWidget(realsense_toggle_btn)
+    app.realsense_toggle_btn = realsense_toggle_btn
+    
     group.setLayout(layout)
     return group
 

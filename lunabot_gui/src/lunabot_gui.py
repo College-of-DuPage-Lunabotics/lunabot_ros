@@ -603,6 +603,50 @@ class LunabotGUI(QMainWindow):
         self.camera_pos_label.setText(f"Position: {degrees:.0f}°")
         self.robot.node.get_logger().info(f'Fisheye camera position set to {degrees:.1f}°')
     
+    def toggle_realsense_cameras(self):
+        """Toggle RealSense camera streaming on/off"""
+        enabled = self.robot.toggle_realsense_cameras()
+        
+        # Update button appearance
+        if enabled:
+            self.realsense_toggle_btn.setText("RealSense: ON")
+            self.realsense_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.STATUS_SUCCESS};
+                    color: white;
+                    font-size: 12px;
+                    font-weight: bold;
+                    padding: 8px;
+                    border: none;
+                    border-radius: 3px;
+                }}
+                QPushButton:hover {{
+                    background-color: #1ea834;
+                }}
+                QPushButton:pressed {{
+                    background-color: #188a2a;
+                }}
+            """)
+        else:
+            self.realsense_toggle_btn.setText("RealSense: OFF")
+            self.realsense_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.STATUS_ERROR};
+                    color: white;
+                    font-size: 12px;
+                    font-weight: bold;
+                    padding: 8px;
+                    border: none;
+                    border-radius: 3px;
+                }}
+                QPushButton:hover {{
+                    background-color: #cc1111;
+                }}
+                QPushButton:pressed {{
+                    background-color: #aa0000;
+                }}
+            """)
+    
     def adjust_speed(self, speed_type, multiplier):
         if speed_type == 'linear':
             self.linear_speed *= multiplier
