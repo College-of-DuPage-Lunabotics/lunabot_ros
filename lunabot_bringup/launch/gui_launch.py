@@ -148,7 +148,7 @@ def generate_launch_description():
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
-        default_value="v1_bot",
+        default_value="v2_bot",
         choices=["v1_bot", "v2_bot"],
         description="Which robot model to use (v1_bot or v2_bot)",
     )
