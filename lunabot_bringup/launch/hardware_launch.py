@@ -42,6 +42,8 @@ def generate_launch_description():
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
+            "pointcloud.enable": "false",
+            "align_depth.enable": "false",
         }.items(),
     )
 
@@ -62,6 +64,8 @@ def generate_launch_description():
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
+            "pointcloud.enable": "false",
+            "align_depth.enable": "false",
         }.items(),
     )
 
@@ -112,10 +116,10 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {"device_id": "/dev/webcam_fisheye"},
-            {"width": 640},
-            {"height": 480},
-            {"fps": 30},
-            {"jpeg_quality": 80},
+            {"width": 480},
+            {"height": 360},
+            {"fps": 15},
+            {"jpeg_quality": 60},
         ],
     )
  
@@ -155,8 +159,8 @@ def generate_launch_description():
         name="image_compressor",
         output="screen",
         parameters=[
-            {"jpeg_quality": 25},
-            {"scale": 1.0},
+            {"jpeg_quality": 15},
+            {"scale": 0.75},
         ],
     )
 
@@ -166,7 +170,7 @@ def generate_launch_description():
         name="rgbd_sync_front",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 100,
              "compressed_rate": 1.0,
              "rgb_image_transport": "compressed",
              "depth_image_transport": "compressedDepth"}
@@ -186,7 +190,7 @@ def generate_launch_description():
         name="rgbd_sync_back",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 1000,
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 100,
              "compressed_rate": 1.0,
              "rgb_image_transport": "compressed",
              "depth_image_transport": "compressedDepth"}

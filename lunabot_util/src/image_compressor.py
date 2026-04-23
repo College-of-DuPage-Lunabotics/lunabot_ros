@@ -16,7 +16,7 @@ class ImageCompressor(Node):
         self.log = Logger(self)
 
         self.declare_parameter('jpeg_quality', 40)  # Lower = more compression
-        self.declare_parameter('scale', 1.0)  # Additional downscaling if needed
+        self.declare_parameter('scale', 1.0)
         
         self.jpeg_quality = self.get_parameter('jpeg_quality').value
         self.scale = self.get_parameter('scale').value
@@ -44,18 +44,7 @@ class ImageCompressor(Node):
             CompressedImage,
             '/camera_back/color/image_compressed',
             10)
-        
-        # Fisheye camera compression
-        self.fisheye_sub = self.create_subscription(
-            Image,
-            '/camera_fisheye/color/image_raw',
-            self.fisheye_callback,
-            10)
-        self.fisheye_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_fisheye/color/image_compressed',
-            10)
-        
+
         self.log.success(
             f'Image compressor started: quality={self.jpeg_quality}, scale={self.scale}')
     
@@ -96,11 +85,6 @@ class ImageCompressor(Node):
         compressed = self.compress_image(msg)
         if compressed:
             self.back_pub.publish(compressed)
-    
-    def fisheye_callback(self, msg):
-        compressed = self.compress_image(msg)
-        if compressed:
-            self.fisheye_pub.publish(compressed)
 
 
 def main(args=None):

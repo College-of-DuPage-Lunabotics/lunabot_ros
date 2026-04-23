@@ -42,7 +42,7 @@ class PowerMonitorNode(Node):
         self.power_pub = self.create_publisher(PowerMonitor, '/power_monitor', 10)
 
         # Energy integration state
-        self.total_energy_kwh = 0.0
+        self.total_energy_wh = 0.0
         self.last_power_w = 0.0
         self.last_time = time.time()
 
@@ -94,15 +94,15 @@ class PowerMonitorNode(Node):
         return ", ".join(alert_msgs) if alert_msgs else "OK"
     
     def integrate_energy(self, power_w):
-        """Integrate power over time to calculate energy in kWh"""
+        """Integrate power over time to calculate energy in Wh"""
         current_time = time.time()
         dt = current_time - self.last_time
         
-        # Average power over interval * time in hours = energy in kWh
-        avg_power_kw = (power_w + self.last_power_w) / 2.0 / 1000.0
-        energy_kwh = avg_power_kw * (dt / 3600.0)
+        # Average power over interval * time in hours = energy in Wh
+        avg_power_w = (power_w + self.last_power_w) / 2.0
+        energy_wh = avg_power_w * (dt / 3600.0)
         
-        self.total_energy_kwh += energy_kwh
+        self.total_energy_wh += energy_wh
         self.last_power_w = power_w
         self.last_time = current_time
     
@@ -142,7 +142,7 @@ class PowerMonitorNode(Node):
             msg.current = current
             msg.power = power
             msg.temperature = temp
-            msg.energy_kwh = self.total_energy_kwh
+            msg.energy_wh = self.total_energy_wh
             msg.alert_flags = alert
             msg.alert_status = alert_status
             
@@ -155,7 +155,7 @@ class PowerMonitorNode(Node):
             if self.msg_count % 100 == 0:
                 self.log.info(
                     f'[Device {device_id}] V:{voltage:.2f} I:{current:.2f} '
-                    f'P:{power:.2f} T:{temp:.1f} E:{self.total_energy_kwh:.4f}kWh STATUS: {alert_status}'
+                    f'P:{power:.2f} T:{temp:.1f} E:{self.total_energy_wh:.2f}Wh STATUS: {alert_status}'
                 )
             
         except Exception as e:

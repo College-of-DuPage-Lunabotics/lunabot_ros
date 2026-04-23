@@ -30,7 +30,7 @@ def generate_launch_description():
             {
                 "use_sim_time": LaunchConfiguration("use_sim"),
                 "approx_sync": True,
-                "sync_queue_size": 1000,
+                "sync_queue_size": 100,
             }
         ],
         remappings=[
@@ -52,7 +52,7 @@ def generate_launch_description():
             {
                 "use_sim_time": LaunchConfiguration("use_sim"),
                 "approx_sync": True,
-                "sync_queue_size": 1000,
+                "sync_queue_size": 100,
             }
         ],
         remappings=[

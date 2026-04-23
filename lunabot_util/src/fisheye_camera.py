@@ -60,7 +60,17 @@ class FisheyeCameraDriver(Node):
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             self.cap.set(cv2.CAP_PROP_FPS, self.fps)
             
-            self.log.success(f'Opened camera {self.device_id}')
+            # Reduce buffer size to minimize latency
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            
+            # Get actual camera settings
+            actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            actual_fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+            
+            self.log.success(
+                f'Opened camera {self.device_id}: {actual_width}x{actual_height}@{actual_fps}fps, '
+                f'JPEG quality={self.jpeg_quality}')
             return True
             
         except Exception as e:

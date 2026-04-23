@@ -21,6 +21,9 @@
 static constexpr double wheel_radius = 0.095;
 static constexpr double wheel_base = 0.53;
 
+static constexpr double deposit_ready_pos = 6.0;
+static constexpr double excavation_ready_pos = 2.0;
+
 /**
  * @class ControllerTeleop
  * @brief Handles joystick/navigation commands and drives motors.
@@ -68,6 +71,7 @@ public:
     home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
     actuator_position_publisher_ =
       create_publisher<std_msgs::msg::Float64>("actuator_position", 10);
+    bucket_angle_publisher_ = create_publisher<std_msgs::msg::Float64>("bucket_angle", 10);
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -121,10 +125,15 @@ private:
   {
     left_actuator_motor_.Heartbeat();
 
-    // Always publish actuator position so the GUI can read bucket state
+    // Publish actuator position (raw encoder reading offset by home)
     auto pos_msg = std_msgs::msg::Float64();
     pos_msg.data = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
     actuator_position_publisher_->publish(pos_msg);
+
+    // Publish bucket angle (same as actuator position, in radians)
+    auto angle_msg = std_msgs::msg::Float64();
+    angle_msg.data = pos_msg.data;  // Use left actuator encoder reading offset by home
+    bucket_angle_publisher_->publish(angle_msg);
 
     if (robot_disabled_)
     {
@@ -145,8 +154,30 @@ private:
     right_wheel_motor_.SetDutyCycle(
       speed_multiplier_ * clamp(drive_sign * -(left_joystick_y_ + left_joystick_x_)));
 
-    // Drive actuators with right joystick
-    float actuator_cmd = clamp(right_joystick_y_);
+    // Drive actuators: check if moving to target position, otherwise use joystick
+    float actuator_cmd = 0.0;
+    if (target_position_active_)
+    {
+      double current_angle = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
+      double error = target_position_ - current_angle;
+
+      // Check if we've reached the target
+      if (std::abs(error) < 0.1)
+      {
+        target_position_active_ = false;
+        actuator_cmd = 0.0;
+        LOGGER_SUCCESS(get_logger(), "Reached target bucket position: %.3f rad", target_position_);
+      } else
+      {
+        // Move towards target with proportional control
+        actuator_cmd = std::clamp(error * 2.0, -1.0, 1.0);
+      }
+    } else
+    {
+      // Normal joystick control
+      actuator_cmd = clamp(right_joystick_y_);
+    }
+
     left_actuator_motor_.SetDutyCycle(actuator_cmd);
     right_actuator_motor_.SetDutyCycle(actuator_cmd);
 
@@ -175,14 +206,22 @@ private:
     bool y_pressed = detect_button_press(msg->buttons[get_button_index(6, 3)], prev_y_button_);
     bool a_pressed = detect_button_press(msg->buttons[0], prev_a_button_);
 
-    if (share_pressed)
+    // Plus (+) button enables manual, Minus (-) button enables auto
+    bool minus_pressed = detect_button_press(msg->buttons[6], prev_btn6_);
+    bool plus_pressed = detect_button_press(msg->buttons[7], prev_btn7_);
+
+    // D-pad up/down for preset bucket positions
+    bool dpad_up_pressed = detect_button_press(msg->axes[7] > 0.5, prev_dpad_up_);
+    bool dpad_down_pressed = detect_button_press(msg->axes[7] < -0.5, prev_dpad_down_);
+
+    if (share_pressed || plus_pressed)
     {
       manual_enabled_ = true;
       LOGGER_INFO(get_logger(), MAGENTA "Manual control:" RESET " " GREEN "Enabled" RESET);
       publish_state();
     }
 
-    if (menu_pressed)
+    if (menu_pressed || minus_pressed)
     {
       manual_enabled_ = false;
       vibration_enabled_ = false;
@@ -235,10 +274,25 @@ private:
       home_offset_publisher_->publish(offset_msg);
       LOGGER_SUCCESS(get_logger(), "Actuator zeroed at position: %.6f", actuator_zero_offset_);
     }
+
+    if (dpad_up_pressed)
+    {
+      target_position_ = deposit_ready_pos;
+      target_position_active_ = true;
+      LOGGER_INFO(get_logger(), "Moving to deposit bucket position: %.3f rad", deposit_ready_pos);
+    }
+
+    if (dpad_down_pressed)
+    {
+      target_position_ = excavation_ready_pos;
+      target_position_active_ = true;
+      LOGGER_INFO(
+        get_logger(), "Moving to excavation bucket position: %.3f rad", excavation_ready_pos);
+    }
   }
 
   /**
-   * @brief Inverts drive direction when camera is at 180 degrees (pi radians).
+   * @brief Inverts drive direction when camera is at 180 degrees.
    * @param msg Float64MultiArray with camera angle in radians.
    */
   void camera_position_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
@@ -341,6 +395,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr actuator_position_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr bucket_angle_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
@@ -360,12 +415,19 @@ private:
   bool prev_share_button_ = false;
   bool prev_menu_button_ = false;
   bool prev_home_button_ = false;
+  bool prev_dpad_up_ = false;
+  bool prev_dpad_down_ = false;
+  bool prev_btn6_ = false;
+  bool prev_btn7_ = false;
 
   float speed_multiplier_ = 0.6f;
   double actuator_zero_offset_ = 0.0;
   double left_joystick_x_ = 0.0;
   double left_joystick_y_ = 0.0;
   double right_joystick_y_ = 0.0;
+
+  bool target_position_active_ = false;
+  double target_position_ = 0.0;
 };
 
 /**

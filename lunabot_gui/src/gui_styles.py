@@ -176,7 +176,6 @@ class Styles:
             QPushButton {{
                 background-color: {bg};
                 color: white;
-                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};
@@ -224,7 +223,6 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_RED};
                 color: white;
-                font-family: Monospace;
                 font-size: 16px;
                 font-weight: bold;
                 padding: 20px;
@@ -246,7 +244,6 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_INACTIVE};
                 color: white;
-                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 10px 20px;
@@ -273,7 +270,6 @@ class Styles:
             QPushButton {{
                 background-color: {Colors.BTN_INACTIVE};
                 color: white;
-                font-family: Monospace;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};

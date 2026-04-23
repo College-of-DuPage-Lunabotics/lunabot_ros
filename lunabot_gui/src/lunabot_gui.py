@@ -46,8 +46,9 @@ TELEOP_BUCKET_LIMIT_MIN      = -1.57  # rad (down)
 TELEOP_BUCKET_LIMIT_MAX      = 0.1    # rad (up)
 
 # --- Timer Intervals ---
-ROS_SPIN_INTERVAL_MS = 10    # 100 Hz
-UI_UPDATE_INTERVAL_MS = 100  # 10 Hz
+ROS_SPIN_INTERVAL_MS = 10      # 100 Hz for ROS callbacks
+UI_UPDATE_INTERVAL_MS = 100    # 10 Hz for UI stats
+CAMERA_UPDATE_INTERVAL_MS = 66 # 15 Hz for camera displays
 
 # --- Bandwidth Thresholds ---
 BANDWIDTH_MAX_MBPS           = 4.0
@@ -88,6 +89,13 @@ class LunabotGUI(QMainWindow):
         self.max_linear_speed = TELEOP_MAX_LINEAR_SPEED
         self.max_angular_speed = TELEOP_MAX_ANGULAR_SPEED
         
+        # Camera frame tracking
+        self.last_camera_frame_ids = {
+            'front': None,
+            'rear': None,
+            'fisheye': None
+        }
+        
         self.init_ui()
 
         self.ros_timer = QTimer()
@@ -97,6 +105,11 @@ class LunabotGUI(QMainWindow):
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
         self.ui_timer.start(UI_UPDATE_INTERVAL_MS)
+        
+        # Separate timer for camera updates (less frequent)
+        self.camera_timer = QTimer()
+        self.camera_timer.timeout.connect(self.update_cameras)
+        self.camera_timer.start(CAMERA_UPDATE_INTERVAL_MS)
     
     def init_ui(self):
         self.setWindowTitle('Lunabot Control Panel')
@@ -160,11 +173,30 @@ class LunabotGUI(QMainWindow):
         top_row_layout.setSpacing(10)
         top_row.setLayout(top_row_layout)
         
-        # Swappable camera (Front/Rear)
         swappable_container = QWidget()
         swappable_layout = QVBoxLayout()
         swappable_layout.setContentsMargins(0, 0, 0, 0)
         swappable_container.setLayout(swappable_layout)
+        
+        self.realsense_toggle_btn = QPushButton("RealSense: OFF")
+        self.realsense_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BG_MAIN};
+                color: #ee2222;
+                border: none;
+                border-top: 2px solid #ee2222;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 5px;
+            }}
+            QPushButton:hover {{
+                background-color: #3a3a3a;
+                color: #ee2222;
+            }}
+        """)
+        self.realsense_toggle_btn.setMaximumHeight(30)
+        self.realsense_toggle_btn.clicked.connect(self.toggle_realsense_cameras)
+        swappable_layout.addWidget(self.realsense_toggle_btn)
         
         self.swappable_camera_group = QGroupBox("Front Camera")
         self.swappable_camera_group.setAutoFillBackground(True)
@@ -220,7 +252,7 @@ class LunabotGUI(QMainWindow):
         bottom_row = QWidget()
         bottom_row_layout = QHBoxLayout()
         bottom_row_layout.setContentsMargins(0, 0, 0, 0)
-        bottom_row_layout.setSpacing(10)
+        bottom_row_layout.setSpacing(3)
         bottom_row_layout.setAlignment(Qt.AlignBottom)
         bottom_row.setLayout(bottom_row_layout)
         
@@ -275,13 +307,12 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget = QWidget()
         self.sidebar_widget.setStyleSheet("background-color: #1a1a1a;")
         self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.sidebar_widget.setMinimumWidth(240)  # Prevent controls from compressing
+        self.sidebar_widget.setMinimumWidth(240)
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
-        sidebar_layout.setSpacing(6)  # Reduced spacing to give more room to buttons
+        sidebar_layout.setSpacing(6)
         self.sidebar_widget.setLayout(sidebar_layout)
         
-        # Push controls toward bottom
         sidebar_layout.addStretch(1)
 
         hardware_group = ui_widgets.create_hardware_group(self)
@@ -303,7 +334,6 @@ class LunabotGUI(QMainWindow):
         
         sidebar_container_layout.addWidget(self.sidebar_widget)
         
-        # Edge tab container - positions toggle button at bottom
         edge_tab_container = QWidget()
         edge_tab_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         edge_tab_container.setMaximumWidth(30)
@@ -607,43 +637,38 @@ class LunabotGUI(QMainWindow):
         """Toggle RealSense camera streaming on/off"""
         enabled = self.robot.toggle_realsense_cameras()
         
-        # Update button appearance
         if enabled:
             self.realsense_toggle_btn.setText("RealSense: ON")
             self.realsense_toggle_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.STATUS_SUCCESS};
-                    color: white;
-                    font-size: 12px;
-                    font-weight: bold;
-                    padding: 8px;
+                    background-color: {Colors.BG_MAIN};
+                    color: {Colors.STATUS_SUCCESS};
                     border: none;
-                    border-radius: 3px;
+                    border-top: 2px solid {Colors.STATUS_SUCCESS};
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding: 5px;
                 }}
                 QPushButton:hover {{
-                    background-color: #1ea834;
-                }}
-                QPushButton:pressed {{
-                    background-color: #188a2a;
+                    background-color: #3a3a3a;
+                    color: {Colors.STATUS_SUCCESS};
                 }}
             """)
         else:
             self.realsense_toggle_btn.setText("RealSense: OFF")
             self.realsense_toggle_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.STATUS_ERROR};
-                    color: white;
-                    font-size: 12px;
-                    font-weight: bold;
-                    padding: 8px;
+                    background-color: {Colors.BG_MAIN};
+                    color: #ee2222;
                     border: none;
-                    border-radius: 3px;
+                    border-top: 2px solid #ee2222;
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding: 5px;
                 }}
                 QPushButton:hover {{
-                    background-color: #cc1111;
-                }}
-                QPushButton:pressed {{
-                    background-color: #aa0000;
+                    background-color: #3a3a3a;
+                    color: #ee2222;
                 }}
             """)
     
@@ -691,7 +716,6 @@ class LunabotGUI(QMainWindow):
         
         self.robot.publish_velocity(linear_x, angular_z)
         
-        # Handle bucket control
         if self.teleop_keys['up']:
             new_position = max(self.robot.bucket_position - TELEOP_BUCKET_SPEED, TELEOP_BUCKET_LIMIT_MIN)
             self.robot.publish_bucket_position(new_position)
@@ -773,13 +797,11 @@ class LunabotGUI(QMainWindow):
         self.robot.spin_once()
     
     def update_ui(self):
-        # Show total average bandwidth (since startup)
         self.bandwidth_total_label.setText(f"{self.robot.bandwidth_avg_total:.2f} Mbps")
         self.bandwidth_total_current_label.setText(f"{self.robot.bandwidth_total:.2f} Mbps")
         self.bandwidth_rx_current_label.setText(f"{self.robot.bandwidth_rx:.2f} Mbps")
         self.bandwidth_tx_current_label.setText(f"{self.robot.bandwidth_tx:.2f} Mbps")
 
-        # Use total average for progress bar
         bandwidth_percent = min(100, int((self.robot.bandwidth_avg_total / BANDWIDTH_MAX_MBPS) * 100))
         self.bandwidth_progress.setValue(bandwidth_percent)
 
@@ -795,11 +817,13 @@ class LunabotGUI(QMainWindow):
 
         self.position_x_label.setText(f"{self.robot.position_x:.2f}")
         self.position_y_label.setText(f"{self.robot.position_y:.2f}")
+        self.position_z_label.setText(f"{self.robot.position_z:.2f}")
+        self.orientation_roll_label.setText(f"{self.robot.orientation_roll:.2f}")
+        self.orientation_pitch_label.setText(f"{self.robot.orientation_pitch:.2f}")
+        self.orientation_yaw_label.setText(f"{self.robot.orientation_yaw:.2f}")
 
-        bucket_angle_deg = -math.degrees(self.robot.bucket_position)
-        self.bucket_angle_label.setText(f"{bucket_angle_deg:.1f}°")
+        self.bucket_angle_label.setText(f"{self.robot.bucket_position:.2f} rad")
 
-        # Update vibration state based on duty cycle
         if self.robot.vibration_duty_cycle > 0.01:
             self.vibration_state_label.setText(f"ON ({self.robot.vibration_duty_cycle:.2f})")
             self.vibration_state_label.setStyleSheet(f"background-color: transparent; color: {Colors.STATUS_SUCCESS};")
@@ -810,27 +834,39 @@ class LunabotGUI(QMainWindow):
         self.power_voltage_label.setText(f"{self.robot.power_voltage:.2f}")
         self.power_current_label.setText(f"{self.robot.power_current:.2f}")
         self.power_watts_label.setText(f"{self.robot.power_watts:.2f}")
-        self.power_energy_label.setText(f"{self.robot.power_energy_kwh:.4f}")
+        self.power_energy_label.setText(f"{self.robot.power_energy_wh:.2f}")
+        self.power_temp_label.setText(f"{self.robot.power_temp:.1f}")
         
         if not self.robot.is_real_mode and any(self.teleop_keys.values()):
             self.publish_teleop_velocity()
 
         self.update_bucket_leds()
-
-        if CV_AVAILABLE:
-            if self.swappable_camera_showing_front:
-                self.update_camera_display(self.swappable_camera_label, self.robot.front_camera_image)
-            else:
-                self.update_camera_display(self.swappable_camera_label, self.robot.rear_camera_image)
-            self.update_camera_display(self.fisheye_camera_label, self.robot.fisheye_camera_image)
+    
+    def update_cameras(self):
+        """Separate camera update loop - runs less frequently than stats"""
+        if not CV_AVAILABLE:
+            return
+        
+        if self.swappable_camera_showing_front:
+            self.update_camera_display(self.swappable_camera_label, self.robot.front_camera_image, 'front')
+        else:
+            self.update_camera_display(self.swappable_camera_label, self.robot.rear_camera_image, 'rear')
+        
+        self.update_camera_display(self.fisheye_camera_label, self.robot.fisheye_camera_image, 'fisheye')
     
     def update_bucket_leds(self):
-        pos = self.robot.actuator_position
+        pos = self.robot.bucket_position
         self.bucket_slider.set_position(pos)
 
-    def update_camera_display(self, label, cv_image):
+    def update_camera_display(self, label, cv_image, camera_name):
+        """Update camera display with frame tracking to avoid reprocessing same frame"""
         if cv_image is None:
             return
+        
+        frame_id = id(cv_image)
+        if self.last_camera_frame_ids.get(camera_name) == frame_id:
+            return
+        self.last_camera_frame_ids[camera_name] = frame_id
         
         height, width = cv_image.shape[:2]
         label_width = label.width()
@@ -840,8 +876,9 @@ class LunabotGUI(QMainWindow):
         new_width = int(width * scale)
         new_height = int(height * scale)
         
-        resized = cv2.resize(cv_image, (new_width, new_height))
+        resized = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
         rgb_image = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        
         h, w, ch = rgb_image.shape
         bytes_per_line = ch * w
         qt_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
@@ -930,6 +967,7 @@ class LunabotGUI(QMainWindow):
     def _do_shutdown(self):
         self.ros_timer.stop()
         self.ui_timer.stop()
+        self.camera_timer.stop()
         QApplication.processEvents()
         self.robot.shutdown()
 
@@ -952,7 +990,6 @@ def main(args=None):
     except Exception as e:
         print(f"Could not load application icon: {e}")
     
-    # Set dark theme
     app.setStyle('Fusion')
     
     dark_palette = QPalette()
@@ -972,7 +1009,6 @@ def main(args=None):
     
     app.setPalette(dark_palette)
     
-    # Signal handling
     def signal_handler(sig, frame):
         app.quit()
     

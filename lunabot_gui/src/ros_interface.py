@@ -106,7 +106,7 @@ class RobotInterface:
         self.power_current = 0.0
         self.power_watts = 0.0
         self.power_temp = 0.0
-        self.power_energy_kwh = 0.0
+        self.power_energy_wh = 0.0
         self.power_alert_status = "Unknown"
         
         # Data storage - robot state
@@ -117,11 +117,15 @@ class RobotInterface:
         self.angular_velocity = 0.0
         self.position_x = 0.0
         self.position_y = 0.0
+        self.position_z = 0.0
+        self.orientation_roll = 0.0
+        self.orientation_pitch = 0.0
+        self.orientation_yaw = 0.0
         self.bucket_position = -0.2
         self.actuator_position = -5.25
         
         # RealSense camera subscription control
-        self.realsense_enabled = True  # Start with RealSense enabled
+        self.realsense_enabled = False  # Start with RealSense disabled
         self.front_camera_sub = None
         self.rear_camera_sub = None
         
@@ -212,7 +216,7 @@ class RobotInterface:
             # Fisheye camera - always enabled
             self.node.create_subscription(
                 CompressedImage, '/camera_fisheye/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 10)
+                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 1)
         
         self.node.create_subscription(
             Odometry, '/odometry/filtered', self._odom_callback, 10)
@@ -236,6 +240,11 @@ class RobotInterface:
         self.node.create_subscription(
             Float64, '/actuator_position',
             lambda msg: setattr(self, 'actuator_position', msg.data), 10)
+        
+        # Subscribe to bucket angle (in radians) from controller_teleop
+        self.node.create_subscription(
+            Float64, '/bucket_angle',
+            lambda msg: setattr(self, 'bucket_position', msg.data), 10)
 
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
@@ -256,16 +265,17 @@ class RobotInterface:
         if not CV_AVAILABLE:
             return
         
+        # Queue size = 1 for minimal latency (we only care about latest frame)
         if self.front_camera_sub is None:
             self.front_camera_sub = self.node.create_subscription(
                 CompressedImage, '/camera_front/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
+                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 1)
             self.log.info('Front RealSense camera subscription enabled')
         
         if self.rear_camera_sub is None:
             self.rear_camera_sub = self.node.create_subscription(
                 CompressedImage, '/camera_back/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
+                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 1)
             self.log.info('Rear RealSense camera subscription enabled')
     
     def _disable_realsense_subscriptions(self):
@@ -302,6 +312,28 @@ class RobotInterface:
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x
         self.position_y = msg.pose.pose.position.y
+        self.position_z = msg.pose.pose.position.z
+        
+        # Convert quaternion to euler angles (roll, pitch, yaw)
+        q = msg.pose.pose.orientation
+        import math
+        # Roll (x-axis rotation)
+        sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+        cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+        self.orientation_roll = math.atan2(sinr_cosp, cosr_cosp)
+        
+        # Pitch (y-axis rotation)
+        sinp = 2 * (q.w * q.y - q.z * q.x)
+        if abs(sinp) >= 1:
+            self.orientation_pitch = math.copysign(math.pi / 2, sinp)
+        else:
+            self.orientation_pitch = math.asin(sinp)
+        
+        # Yaw (z-axis rotation)
+        siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+        self.orientation_yaw = math.atan2(siny_cosp, cosy_cosp)
+        
         self.linear_velocity = msg.twist.twist.linear.x
         self.angular_velocity = msg.twist.twist.angular.z
         if self.on_robot_state_update:
