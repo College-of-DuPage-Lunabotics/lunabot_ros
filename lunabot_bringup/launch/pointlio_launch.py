@@ -45,7 +45,7 @@ def launch_setup(context, *args, **kwargs):
                 "runtime_pos_log_enable": False,
                 "publish.tf_send_en": False,
                 "publish.odom_frame_id": "odom",
-                "publish.base_frame_id": "base_footprint",
+                "publish.base_frame_id": "base_link",
             },
         ],
         remappings=[
