@@ -66,7 +66,7 @@ MAIN_STYLESHEET = f"""
         background-color: {Colors.BG_MAIN};
     }}
     QGroupBox {{
-        background-color: {Colors.BG_BOX};
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a2a2a, stop:1 #252525);
         border: none;
         border-top: 2px solid {Colors.LABEL_SECTION};
         margin: 0px;
@@ -78,7 +78,7 @@ MAIN_STYLESHEET = f"""
         color: {Colors.TEXT_MAIN};
     }}
     QGroupBox:disabled {{
-        background-color: {Colors.BG_DISABLED};
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #242424, stop:1 #1f1f1f);
         border: none;
         border-top: 2px solid {Colors.LABEL_SECTION};
         color: {Colors.TEXT_DISABLED};
@@ -110,8 +110,8 @@ MAIN_STYLESHEET = f"""
         border-color: {Colors.BORDER_DISABLED};
     }}
     QProgressBar {{
-        background-color: {Colors.BG_MAIN};
-        border: 1px solid {Colors.BORDER};
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e1e1e, stop:1 #1a1a1a);
+        border: 1px solid #3e3e3e;
         border-radius: 3px;
         text-align: center;
         color: {Colors.TEXT_MAIN};
@@ -119,7 +119,7 @@ MAIN_STYLESHEET = f"""
         height: 20px;
     }}
     QProgressBar::chunk {{
-        background-color: {Colors.STATUS_INFO};
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #42a5f5, stop:1 #1976d2);
         border-radius: 2px;
     }}
 """
@@ -171,22 +171,37 @@ class Styles:
     
     @staticmethod
     def _make_button(bg, hover, pressed, size, padding="4px"):
-        """Build a standard colored button stylesheet"""
+        """Build a gradient button stylesheet"""
+        # Create slightly darker version for bottom of gradient
+        def darken(hex_color, amount=0.1):
+            hex_color = hex_color.lstrip('#')
+            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            r = max(0, int(r * (1 - amount)))
+            g = max(0, int(g * (1 - amount)))
+            b = max(0, int(b * (1 - amount)))
+            return f"#{r:02x}{g:02x}{b:02x}"
+        
+        bg_dark = darken(bg, 0.15)
+        hover_dark = darken(hover, 0.15)
+        pressed_dark = darken(pressed, 0.15)
+        
         return f"""
             QPushButton {{
-                background-color: {bg};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {bg}, stop:1 {bg_dark});
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};
-                border: none;
-                border-radius: 2px;
+                border: 1px solid {darken(bg, 0.3)};
+                border-radius: 4px;
             }}
             QPushButton:hover {{
-                background-color: {hover};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {hover}, stop:1 {hover_dark});
+                border: 1px solid {darken(hover, 0.3)};
             }}
             QPushButton:pressed {{
-                background-color: {pressed};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {pressed}, stop:1 {pressed_dark});
+                border: 1px solid {darken(pressed, 0.3)};
             }}
             {Styles._DISABLED_BTN_CSS}
         """
@@ -239,55 +254,60 @@ class Styles:
     
     @staticmethod
     def teleop_button(size=14):
-        """Teleop control button style"""
+        """Teleop control button style with gradient"""
         return f"""
             QPushButton {{
-                background-color: {Colors.BTN_INACTIVE};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 10px 20px;
-                border: none;
-                border-radius: 2px;
+                border: 1px solid #3e3e3e;
+                border-radius: 4px;
                 min-width: 50px;
                 min-height: 50px;
             }}
             QPushButton:hover {{
-                background-color: {Colors.BTN_HOVER};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+                border: 1px solid #484848;
             }}
             QPushButton:pressed {{
-                background-color: {Colors.BTN_PRESSED};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+                border: 1px solid #2e2e2e;
             }}
             QPushButton:checked {{
-                background-color: {Colors.BTN_ACTIVE};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5a8fbf, stop:1 #4a7ba7);
+                border: 1px solid #3e6e97;
             }}
         """
     
     @staticmethod
     def camera_button(size=14, padding="20px 15px"):
-        """Camera control button style"""
+        """Camera control button style with gradient"""
         return f"""
             QPushButton {{
-                background-color: {Colors.BTN_INACTIVE};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};
-                border: none;
-                border-radius: 2px;
+                border: 1px solid #3e3e3e;
+                border-radius: 4px;
             }}
             QPushButton:hover {{
-                background-color: {Colors.BTN_HOVER};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+                border: 1px solid #484848;
             }}
             QPushButton:pressed {{
-                background-color: {Colors.BTN_PRESSED};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+                border: 1px solid #2e2e2e;
             }}
         """
     
     @staticmethod
     def subbox():
-        """Sub-box group style - no border for nested boxes"""
-        return f"QGroupBox {{ background-color: {Colors.BG_BOX}; border: none; font-size: 10pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
+        """Sub-box group style with gradient - no border for nested boxes"""
+        return f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); border: none; font-size: 10pt; }} QGroupBox::title {{ color: {Colors.TEXT_SECONDARY}; top: 1px; }}"
     
     @staticmethod
     def transparent_label(color=None, font_size=11, italic=False):

@@ -17,7 +17,7 @@ _FONT_MD = 10   # subbox data values / status labels
 def create_condensed_telemetry_group(app):
     group = QGroupBox("Telemetry")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; padding-top: 16px; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }}")
     main_layout = QHBoxLayout()
     main_layout.setContentsMargins(3, 6, 3, 2)
     main_layout.setSpacing(8)
@@ -29,7 +29,7 @@ def create_condensed_telemetry_group(app):
     power_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
     power_layout = QVBoxLayout()
     power_layout.setSpacing(1)
-    power_layout.setContentsMargins(3, 2, 3, 2)
+    power_layout.setContentsMargins(3, 4, 3, 2)
     
     power_grid = QGridLayout()
     power_grid.setSpacing(1)
@@ -119,7 +119,7 @@ def create_condensed_telemetry_group(app):
     velocity_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
     velocity_layout = QVBoxLayout()
     velocity_layout.setSpacing(1)
-    velocity_layout.setContentsMargins(3, 2, 3, 2)
+    velocity_layout.setContentsMargins(3, 4, 3, 2)
 
     vel_layout = QGridLayout()
     vel_layout.setSpacing(1)
@@ -170,7 +170,7 @@ def create_condensed_telemetry_group(app):
     position_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
     position_layout = QVBoxLayout()
     position_layout.setSpacing(1)
-    position_layout.setContentsMargins(3, 2, 3, 2)
+    position_layout.setContentsMargins(3, 4, 3, 2)
 
     pos_layout = QGridLayout()
     pos_layout.setSpacing(1)
@@ -274,7 +274,7 @@ def create_condensed_telemetry_group(app):
     vibration_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
     vibration_layout = QVBoxLayout()
     vibration_layout.setSpacing(1)
-    vibration_layout.setContentsMargins(3, 2, 3, 2)
+    vibration_layout.setContentsMargins(3, 4, 3, 2)
 
     vibration_value_container = QHBoxLayout()
     app.vibration_state_label = QLabel("OFF")
@@ -283,17 +283,18 @@ def create_condensed_telemetry_group(app):
     vibration_value_container.addWidget(app.vibration_state_label)
     vibration_value_container.addStretch()
     vibration_layout.addLayout(vibration_value_container)
+    vibration_layout.addStretch()
     
     vibration_group.setLayout(vibration_layout)
     main_layout.addWidget(vibration_group, 0)
     
-    bucket_group = QGroupBox("Bucket Angle")
-    bucket_group.setAutoFillBackground(True)
-    bucket_group.setStyleSheet(Styles.subbox())
-    bucket_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-    bucket_layout = QVBoxLayout()
-    bucket_layout.setSpacing(1)
-    bucket_layout.setContentsMargins(3, 2, 3, 2)
+    bucket_angle_group = QGroupBox("Bucket Angle")
+    bucket_angle_group.setAutoFillBackground(True)
+    bucket_angle_group.setStyleSheet(Styles.subbox())
+    bucket_angle_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    bucket_angle_layout = QVBoxLayout()
+    bucket_angle_layout.setSpacing(1)
+    bucket_angle_layout.setContentsMargins(3, 4, 3, 2)
 
     bucket_value_container = QHBoxLayout()
     app.bucket_angle_label = QLabel("0.00 rad")
@@ -301,31 +302,27 @@ def create_condensed_telemetry_group(app):
     app.bucket_angle_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
     bucket_value_container.addWidget(app.bucket_angle_label)
     bucket_value_container.addStretch()
-    bucket_layout.addLayout(bucket_value_container)
+    bucket_angle_layout.addLayout(bucket_value_container)
+    bucket_angle_layout.addStretch()
     
-    bucket_group.setLayout(bucket_layout)
-    main_layout.addWidget(bucket_group, 0)
+    bucket_angle_group.setLayout(bucket_angle_layout)
+    main_layout.addWidget(bucket_angle_group, 0)
     
     main_layout.addStretch()
     
     return group
 
 
-def create_network_group(app):
-    group = QGroupBox("Network")
+def create_bandwidth_group(app):
+    """Create bandwidth widget with stats and progress bar"""
+    group = QGroupBox("Bandwidth")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; padding-top: 16px; }}")
-    main_layout = QHBoxLayout()
-    main_layout.setContentsMargins(3, 6, 3, 2)
-    main_layout.setSpacing(4)
-    group.setLayout(main_layout)
-    
-    bandwidth_group = QGroupBox("Bandwidth")
-    bandwidth_group.setAutoFillBackground(True)
-    bandwidth_group.setStyleSheet(Styles.subbox())
-    bandwidth_layout = QVBoxLayout()
-    bandwidth_layout.setSpacing(1)
-    bandwidth_layout.setContentsMargins(3, 2, 3, 2)
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }}")
+    group.setMaximumHeight(100)
+    layout = QVBoxLayout()
+    layout.setContentsMargins(4, 6, 4, 2)
+    layout.setSpacing(1)
+    group.setLayout(layout)
     
     values_container = QHBoxLayout()
     values_container.setSpacing(6)
@@ -373,326 +370,74 @@ def create_network_group(app):
     values_container.addWidget(app.bandwidth_tx_current_label)
     
     values_container.addStretch()
-    bandwidth_layout.addLayout(values_container)
+    layout.addLayout(values_container)
     
-    bandwidth_layout.addSpacing(2)
-
+    layout.addSpacing(2)
+    
     app.bandwidth_progress = QProgressBar()
     app.bandwidth_progress.setMaximum(100)
     app.bandwidth_progress.setValue(0)
     app.bandwidth_progress.setTextVisible(False)
     app.bandwidth_progress.setMaximumHeight(8)
-    bandwidth_layout.addWidget(app.bandwidth_progress)
-
-    bandwidth_group.setLayout(bandwidth_layout)
-    bandwidth_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-    main_layout.addWidget(bandwidth_group, 0)  # Don't stretch bandwidth
-    
-    config_group = QGroupBox("Network Config")
-    config_group.setAutoFillBackground(True)
-    config_group.setStyleSheet(Styles.subbox())
-    config_layout = QHBoxLayout()
-    config_layout.setSpacing(5)
-    config_layout.setContentsMargins(3, 2, 3, 2)
-    
-    host_label = QLabel("Host:")
-    host_label.setFont(QFont("Monospace", _FONT_SM))
-    host_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    config_layout.addWidget(host_label)
-    
-    app.robot_host_edit = QLineEdit(app.robot.robot_host)
-    app.robot_host_edit.setFont(QFont("Monospace", _FONT_SM))
-    app.robot_host_edit.setStyleSheet(f"background-color: {Colors.BG_MAIN}; color: {Colors.TEXT_MAIN}; padding: 2px; border: 1px solid {Colors.BORDER_DARK};")
-    app.robot_host_edit.setMaximumHeight(20)
-    config_layout.addWidget(app.robot_host_edit)
-    
-    config_layout.addSpacing(6)
-
-    user_label = QLabel("User:")
-    user_label.setFont(QFont("Monospace", _FONT_SM))
-    user_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    config_layout.addWidget(user_label)
-    
-    app.robot_user_edit = QLineEdit(app.robot.robot_user)
-    app.robot_user_edit.setFont(QFont("Monospace", _FONT_SM))
-    app.robot_user_edit.setStyleSheet(f"background-color: {Colors.BG_MAIN}; color: {Colors.TEXT_MAIN}; padding: 2px; border: 1px solid {Colors.BORDER_DARK};")
-    app.robot_user_edit.setMaximumHeight(20)
-    config_layout.addWidget(app.robot_user_edit)
-    
-    config_layout.addSpacing(6)
-
-    app.network_apply_btn = QPushButton("Apply")
-    app.network_apply_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 4px 10px;
-            border: none;
-            border-radius: 2px;
-        }}
-        QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-        QPushButton:disabled {{
-            background-color: {Colors.BTN_DISABLED};
-            color: {Colors.TEXT_GRAY};
-            border: none;
-            border-radius: 2px;
-        }}
-    """)
-    app.network_apply_btn.setMinimumWidth(70)
-    app.network_apply_btn.setMaximumHeight(24)
-    config_layout.addWidget(app.network_apply_btn)
-    
-    config_layout.addStretch()
-    config_group.setLayout(config_layout)
-    config_group.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-    main_layout.addWidget(config_group, 1)  # Let config stretch more
+    layout.addWidget(app.bandwidth_progress)
     
     return group
 
 
-def create_combined_telemetry_group(app):
-    group = QGroupBox("Telemetry")
-    group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
-    main_layout = QHBoxLayout()
-    main_layout.setContentsMargins(4, 10, 4, 4)
-    main_layout.setSpacing(7)
-    group.setLayout(main_layout)
-    
-    # Column 1: Bucket Angle and Bandwidth
-    col1_layout = QVBoxLayout()
-    col1_layout.setSpacing(7)
+def create_bucket_state_widget(app):
+    """Create standalone bucket state slider widget"""
+    bucket_state_group = QGroupBox("Bucket State")
+    bucket_state_group.setAutoFillBackground(True)
+    bucket_state_group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }}")
+    bucket_state_layout = QVBoxLayout()
+    bucket_state_layout.setSpacing(6)
+    bucket_state_layout.setContentsMargins(3, 18, 3, 2)
 
-    bucket_group = QGroupBox("Bucket Angle")
-    bucket_group.setAutoFillBackground(True)
-    bucket_group.setStyleSheet(Styles.subbox())
-    bucket_layout = QVBoxLayout()
-    bucket_layout.setSpacing(2)
-    bucket_layout.setContentsMargins(6, 6, 6, 6)
+    # Progress bar style slider
+    app.bucket_slider = BucketSliderWidget()
+    app.bucket_slider.setMaximumHeight(8)
+    bucket_state_layout.addWidget(app.bucket_slider)
     
-    bucket_value_container = QHBoxLayout()
-    app.bucket_angle_label = QLabel("0.00 rad")
-    app.bucket_angle_label.setFont(QFont("Monospace", _FONT_MD))
-    app.bucket_angle_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    bucket_value_container.addWidget(app.bucket_angle_label)
-    bucket_value_container.addStretch()
-    bucket_layout.addLayout(bucket_value_container)
+    # Zone labels below slider (proportions automatically match slider zones)
+    zone_labels_row = QHBoxLayout()
+    zone_labels_row.setSpacing(0)
+    zone_labels_row.setContentsMargins(0, 4, 0, 0)
     
-    bucket_group.setLayout(bucket_layout)
-    col1_layout.addWidget(bucket_group, 1)
-
-    vibration_group = QGroupBox("Vibration State")
-    vibration_group.setAutoFillBackground(True)
-    vibration_group.setStyleSheet(Styles.subbox())
-    vibration_layout = QVBoxLayout()
-    vibration_layout.setSpacing(2)
-    vibration_layout.setContentsMargins(6, 6, 6, 6)
+    # Get zone proportions from slider widget
+    deposit_width, travel_width, excavate_width = BucketSliderWidget.get_zone_proportions()
     
-    vibration_value_container = QHBoxLayout()
-    app.vibration_state_label = QLabel("OFF")
-    app.vibration_state_label.setFont(QFont("Monospace", _FONT_MD))
-    app.vibration_state_label.setStyleSheet(f"background-color: transparent; color: {Colors.STATUS_ERROR};")  # Red for OFF
-    vibration_value_container.addWidget(app.vibration_state_label)
-    vibration_value_container.addStretch()
-    vibration_layout.addLayout(vibration_value_container)
+    deposit_lbl = QLabel("Deposit")
+    deposit_lbl.setAlignment(Qt.AlignCenter)
+    deposit_lbl.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-size: 12px; font-family: Monospace; background: transparent;")
+    zone_labels_row.addWidget(deposit_lbl, deposit_width)
     
-    vibration_group.setLayout(vibration_layout)
-    col1_layout.addWidget(vibration_group, 1)
-
-    bandwidth_group = QGroupBox("Bandwidth")
-    bandwidth_group.setAutoFillBackground(True)
-    bandwidth_group.setStyleSheet(Styles.subbox())
-    bandwidth_layout = QVBoxLayout()
-    bandwidth_layout.setSpacing(2)
-    bandwidth_layout.setContentsMargins(6, 6, 6, 6)
+    travel_lbl = QLabel("Travel")
+    travel_lbl.setAlignment(Qt.AlignCenter)
+    travel_lbl.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-size: 12px; font-family: Monospace; background: transparent;")
+    zone_labels_row.addWidget(travel_lbl, travel_width)
     
-    values_container = QHBoxLayout()
-    values_container.setSpacing(10)
-
-    total_label = QLabel("Total:")
-    total_label.setFont(QFont("Monospace", _FONT_MD))
-    total_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(total_label)
-    app.bandwidth_total_label = QLabel("0.00 Mbps")
-    app.bandwidth_total_label.setFont(QFont("Monospace", _FONT_MD))
-    app.bandwidth_total_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(app.bandwidth_total_label)
+    excavate_lbl = QLabel("Excavate")
+    excavate_lbl.setAlignment(Qt.AlignCenter)
+    excavate_lbl.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-size: 12px; font-family: Monospace; background: transparent;")
+    zone_labels_row.addWidget(excavate_lbl, excavate_width)
     
-    values_container.addSpacing(10)
-
-    rx_label = QLabel("RX:")
-    rx_label.setFont(QFont("Monospace", _FONT_MD))
-    rx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(rx_label)
-    app.bandwidth_rx_label = QLabel("0.00 Mbps")
-    app.bandwidth_rx_label.setFont(QFont("Monospace", _FONT_MD))
-    app.bandwidth_rx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(app.bandwidth_rx_label)
+    bucket_state_layout.addLayout(zone_labels_row)
     
-    values_container.addSpacing(10)
-
-    tx_label = QLabel("TX:")
-    tx_label.setFont(QFont("Monospace", _FONT_MD))
-    tx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(tx_label)
-    app.bandwidth_tx_label = QLabel("0.00 Mbps")
-    app.bandwidth_tx_label.setFont(QFont("Monospace", _FONT_MD))
-    app.bandwidth_tx_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    values_container.addWidget(app.bandwidth_tx_label)
-    
-    values_container.addStretch()
-    bandwidth_layout.addLayout(values_container)
-    
-    bandwidth_layout.addSpacing(4)
-    
-    app.bandwidth_progress = QProgressBar()
-    app.bandwidth_progress.setMaximum(100)
-    app.bandwidth_progress.setValue(0)
-    app.bandwidth_progress.setTextVisible(False)
-    app.bandwidth_progress.setMaximumHeight(10)
-    bandwidth_layout.addWidget(app.bandwidth_progress)
-
-    bandwidth_group.setLayout(bandwidth_layout)
-    col1_layout.addWidget(bandwidth_group, 1)
-
-    main_layout.addLayout(col1_layout, 1)
-
-    # Column 2: Velocity and Position
-    col2_layout = QVBoxLayout()
-    col2_layout.setSpacing(7)
-
-    velocity_group = QGroupBox("Velocity")
-    velocity_group.setAutoFillBackground(True)
-    velocity_group.setStyleSheet(Styles.subbox())
-    velocity_layout = QVBoxLayout()
-    velocity_layout.setSpacing(2)
-    velocity_layout.setContentsMargins(6, 6, 6, 6)
-    
-    vel_layout = QGridLayout()
-    vel_layout.setSpacing(2)
-    vel_layout.setHorizontalSpacing(3)
-    vel_layout.setColumnStretch(1, 0)
-    
-    linear_label = QLabel("Linear:")
-    linear_label.setFont(QFont("Monospace", _FONT_MD))
-    linear_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(linear_label, 0, 0)
-    app.linear_vel_label = QLabel("0.00")
-    app.linear_vel_label.setFont(QFont("Monospace", _FONT_MD))
-    app.linear_vel_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(app.linear_vel_label, 0, 1)
-    
-    linear_unit_label = QLabel("m/s")
-    linear_unit_label.setFont(QFont("Monospace", _FONT_MD))
-    linear_unit_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(linear_unit_label, 0, 2)
-    
-    angular_label = QLabel("Angular:")
-    angular_label.setFont(QFont("Monospace", _FONT_MD))
-    angular_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(angular_label, 1, 0)
-    app.angular_vel_label = QLabel("0.00")
-    app.angular_vel_label.setFont(QFont("Monospace", _FONT_MD))
-    app.angular_vel_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(app.angular_vel_label, 1, 1)
-    
-    angular_unit_label = QLabel("rad/s")
-    angular_unit_label.setFont(QFont("Monospace", _FONT_MD))
-    angular_unit_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    vel_layout.addWidget(angular_unit_label, 1, 2)
-    
-    vel_container = QHBoxLayout()
-    vel_container.addLayout(vel_layout)
-    vel_container.addStretch()
-    velocity_layout.addLayout(vel_container)
-    
-    velocity_group.setLayout(velocity_layout)
-    col2_layout.addWidget(velocity_group, 1)
-
-    position_group = QGroupBox("Position")
-    position_group.setAutoFillBackground(True)
-    position_group.setStyleSheet(Styles.subbox())
-    position_layout = QVBoxLayout()
-    position_layout.setSpacing(2)
-    position_layout.setContentsMargins(6, 6, 6, 6)
-    
-    pos_layout = QGridLayout()
-    pos_layout.setSpacing(2)
-    pos_layout.setHorizontalSpacing(3)
-    pos_layout.setColumnStretch(1, 0)
-    
-    x_label = QLabel("X:")
-    x_label.setFont(QFont("Monospace", _FONT_MD))
-    x_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(x_label, 0, 0)
-    app.position_x_label = QLabel("0.00")
-    app.position_x_label.setFont(QFont("Monospace", _FONT_MD))
-    app.position_x_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(app.position_x_label, 0, 1)
-    
-    x_unit_label = QLabel("m")
-    x_unit_label.setFont(QFont("Monospace", _FONT_MD))
-    x_unit_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(x_unit_label, 0, 2)
-    
-    y_label = QLabel("Y:")
-    y_label.setFont(QFont("Monospace", _FONT_MD))
-    y_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(y_label, 1, 0)
-    app.position_y_label = QLabel("0.00")
-    app.position_y_label.setFont(QFont("Monospace", _FONT_MD))
-    app.position_y_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(app.position_y_label, 1, 1)
-    
-    y_unit_label = QLabel("m")
-    y_unit_label.setFont(QFont("Monospace", _FONT_MD))
-    y_unit_label.setStyleSheet(f"background-color: transparent; color: {Colors.TEXT_MAIN};")
-    pos_layout.addWidget(y_unit_label, 1, 2)
-    
-    pos_container = QHBoxLayout()
-    pos_container.addLayout(pos_layout)
-    pos_container.addStretch()
-    position_layout.addLayout(pos_container)
-    
-    position_group.setLayout(position_layout)
-    col2_layout.addWidget(position_group, 1)
-    
-    main_layout.addLayout(col2_layout, 1)
-    
-    return group
-
-
-def create_status_group(app):
-    group = QGroupBox("Robot Status")
-    group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
-    layout = QVBoxLayout()
-    layout.setContentsMargins(4, 2, 4, 2)
-    
-    app.status_label = QLabel("Active")
-    app.status_label.setStyleSheet(f"color: {Colors.STATUS_SUCCESS}; font-weight: bold; background-color: transparent; font-size: 13px;")
-    
-    layout.addWidget(app.status_label)
-    group.setLayout(layout)
-    return group
+    bucket_state_group.setLayout(bucket_state_layout)
+    return bucket_state_group
 
 
 def create_mode_group(app):
     group = QGroupBox("Robot Mode")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); }}")
+    group.setMaximumHeight(100)
+    group.setMinimumWidth(220)
     layout = QHBoxLayout()
     layout.setSpacing(3)
-    layout.setContentsMargins(4, 2, 4, 2)
+    layout.setContentsMargins(4, 3, 4, 3)
     
-    # In sim mode, show "Simulation" in grey. In real mode, show Manual/AUTO with colors
+    # In sim mode, show "Simulation" in grey. In real mode, show Manual/Auto with colors
     if not app.robot.is_real_mode:
         mode_text = "Simulation"
         mode_color = Colors.TEXT_DARKER
@@ -705,7 +450,7 @@ def create_mode_group(app):
             mode_color = Colors.STATUS_SUCCESS
             button_text = "Switch to Auto"
         else:
-            mode_text = "AUTO"
+            mode_text = "Auto"
             mode_color = Colors.STATUS_ERROR
             button_text = "Switch to Manual"
     
@@ -748,7 +493,7 @@ def create_mode_group(app):
 def create_teleop_control_group(app):
     group = QGroupBox("Keyboard Teleop")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); }}")
     layout = QVBoxLayout()
     layout.setSpacing(4)
     layout.setContentsMargins(4, 4, 4, 4)
@@ -885,88 +630,105 @@ def create_teleop_control_group(app):
 def create_launch_group(app):
     group = QGroupBox("Launch")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(0)
-    layout.setContentsMargins(4, 4, 4, 4)
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
+    layout.setContentsMargins(4, 8, 4, 4)
     
     app.pointlio_btn = QPushButton("Point-LIO")
     app.pointlio_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.pointlio_btn.setMaximumHeight(30)
+    app.pointlio_btn.setMaximumHeight(32)
     app.pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
     layout.addWidget(app.pointlio_btn)
 
     app.mapping_btn = QPushButton("RTAB-Map")
     app.mapping_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.mapping_btn.setMaximumHeight(30)
+    app.mapping_btn.setMaximumHeight(32)
     app.mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
     layout.addWidget(app.mapping_btn)
 
     app.nav2_btn = QPushButton("Navigation2")
     app.nav2_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.nav2_btn.setMaximumHeight(30)
+    app.nav2_btn.setMaximumHeight(32)
     app.nav2_btn.clicked.connect(lambda: app.launch_system('nav2'))
     layout.addWidget(app.nav2_btn)
     
     rviz_btn = QPushButton("RViz2")
     rviz_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #44aaff;
-            border: none;
-            border-top: 2px solid #44aaff;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #44aaff;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    rviz_btn.setMaximumHeight(30)
+    rviz_btn.setMaximumHeight(32)
     rviz_btn.clicked.connect(app.launch_rviz)
     layout.addWidget(rviz_btn)
     
@@ -977,128 +739,102 @@ def create_launch_group(app):
 def create_action_control_group(app):
     group = QGroupBox("Actions")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(0)
-    layout.setContentsMargins(4, 4, 4, 4)
-    
-    app.home_btn = QPushButton("Home Actuators")
-    app.home_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #ffa500;
-            border: none;
-            border-top: 2px solid #ffa500;
-            font-size: 13px;
-            font-weight: bold;
-            padding: 5px;
-        }}
-        QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #ffa500;
-        }}
-    """)
-    app.home_btn.setMaximumHeight(30)
-    app.home_btn.clicked.connect(app.send_home_goal)
-    layout.addWidget(app.home_btn)
-    
-    app.localize_btn = QPushButton("Localization")
-    app.localize_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
-            font-size: 13px;
-            font-weight: bold;
-            padding: 5px;
-        }}
-        QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
-        }}
-    """)
-    app.localize_btn.setMaximumHeight(30)
-    app.localize_btn.clicked.connect(lambda: app.launch_system('localization'))
-    layout.addWidget(app.localize_btn)
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
     
     app.excavate_btn = QPushButton("Excavate")
     app.excavate_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #f5c400;
-            border: none;
-            border-top: 2px solid #f5c400;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #f5c400;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.excavate_btn.setMaximumHeight(30)
+    app.excavate_btn.setMaximumHeight(32)
     app.excavate_btn.clicked.connect(app.send_excavate_goal)
     layout.addWidget(app.excavate_btn)
     
     app.deposit_btn = QPushButton("Deposit")
     app.deposit_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #f5c400;
-            border: none;
-            border-top: 2px solid #f5c400;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #f5c400;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.deposit_btn.setMaximumHeight(30)
+    app.deposit_btn.setMaximumHeight(32)
     app.deposit_btn.clicked.connect(app.send_deposit_goal)
     layout.addWidget(app.deposit_btn)
     
     app.auto_btn = QPushButton("One Cycle Auto")
     app.auto_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #44aaff;
-            border: none;
-            border-top: 2px solid #44aaff;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #44aaff;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.auto_btn.setMaximumHeight(30)
+    app.auto_btn.setMaximumHeight(32)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
     app.emergency_stop_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: #ee2222;
+            background-color: #d32f2f;
+            color: white;
             border: none;
-            border-top: 2px solid #ee2222;
-            font-size: 13px;
+            border-radius: 5px;
+            font-size: 14px;
             font-weight: bold;
-            padding: 5px;
+            padding: 10px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: #ee2222;
+            background-color: #b71c1c;
+        }}
+        QPushButton:pressed {{
+            background-color: #9a0007;
         }}
     """)
-    app.emergency_stop_btn.setMaximumHeight(30)
+    app.emergency_stop_btn.setMaximumHeight(50)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
     app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
@@ -1120,7 +856,7 @@ def create_camera_control_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet(f"""
         QGroupBox {{ 
-            background-color: {Colors.BG_BOX}; 
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a2a2a, stop:1 #252525); 
             margin: 0px;
             font-weight: bold;
             padding-top: 8px;
@@ -1151,17 +887,33 @@ def create_camera_control_group(app):
     layout.addSpacing(2)
 
     button_row = QHBoxLayout()
-    button_row.setSpacing(6)
+    button_row.setSpacing(8)
 
     btn_0 = QPushButton("0°")
     btn_0.setStyleSheet(Styles.camera_button(padding="14px 10px"))
+    btn_0.setFixedWidth(80)
     btn_0.clicked.connect(lambda: app.set_fisheye_camera_position(0.0))
-    button_row.addWidget(btn_0)
+    button_row.addWidget(btn_0, 0)
+
+    rotation_label = QLabel("Fisheye Rotation")
+    rotation_label.setStyleSheet(f"""
+        color: #ffffff; 
+        font-size: 16px; 
+        font-weight: bold; 
+        background: #404040;
+        padding: 10px;
+        border-radius: 4px;
+    """)
+    rotation_label.setAlignment(Qt.AlignCenter)
+    rotation_label.setMinimumWidth(150)
+    rotation_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    button_row.addWidget(rotation_label, 1)
 
     btn_180 = QPushButton("180°")
     btn_180.setStyleSheet(Styles.camera_button(padding="14px 10px"))
+    btn_180.setFixedWidth(80)
     btn_180.clicked.connect(lambda: app.set_fisheye_camera_position(math.pi))
-    button_row.addWidget(btn_180)
+    button_row.addWidget(btn_180, 0)
 
     layout.addLayout(button_row)
     
@@ -1170,178 +922,133 @@ def create_camera_control_group(app):
 
 
 class BucketSliderWidget(QWidget):
-    """Vertical 3-zone bar with a white indicator line for current bucket position."""
+    """Horizontal 3-zone progress bar with position indicator, styled like bandwidth monitor."""
 
-    _DEPOSIT_COLOR  = "#f5c400"
-    _TRAVEL_COLOR   = "#22cc44"
-    _EXCAVATE_COLOR = "#ee2222"
-
+    # Zone boundaries (adjust these to change zone proportions)
     _MAX_POS = 0.0         # 0 rad (deposit)
     _MIN_POS = 1.5708      # π/2 rad (90 deg, excavation)
     _MID1    = 0.5236      # π/6 rad (30 deg, deposit ready threshold)
     _MID2    = 1.309       # 5π/12 rad (75 deg, excavation ready threshold)
 
+    @classmethod
+    def get_zone_proportions(cls):
+        """Calculate zone width proportions for label alignment.
+        Returns (deposit_width, travel_width, excavate_width) as integers."""
+        total = cls._MIN_POS - cls._MAX_POS
+        deposit_width = int(((cls._MID1 - cls._MAX_POS) / total) * 1000)
+        travel_width = int(((cls._MID2 - cls._MID1) / total) * 1000)
+        excavate_width = int(((cls._MIN_POS - cls._MID2) / total) * 1000)
+        return deposit_width, travel_width, excavate_width
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._position = 0.7854  # default to center of range (travel position)
-        self.setMinimumSize(24, 60)
-        self.setMaximumHeight(160)
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.setMinimumSize(100, 8)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def set_position(self, pos):
         self._position = max(self._MAX_POS, min(self._MIN_POS, pos))
         self.update()
 
-    _OVERHANG = 5  # px the indicator line extends past each side of the bar
-
     def paintEvent(self, event):
-        from PyQt5.QtGui import QPen
+        from PyQt5.QtGui import QPen, QLinearGradient
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
         w = self.width()
         h = self.height()
-        ox = self._OVERHANG
-        bx = ox          # bar left
-        bw = w - ox * 2  # bar width
-        total = self._MAX_POS - self._MIN_POS
+        total = self._MIN_POS - self._MAX_POS
 
-        def _y(pos):
-            return int((self._MAX_POS - pos) / total * h)
+        def _x(pos):
+            # Map position to x coordinate (left=0 rad, right=max rad)
+            return int((pos - self._MAX_POS) / total * w)
 
-        y1 = _y(self._MID1)
-        y2 = _y(self._MID2)
+        x1 = _x(self._MID1)
+        x2 = _x(self._MID2)
 
-        r = 3  # corner radius for bar
+        r = 3  # corner radius matching progress bar
 
-        # Draw colored zones clipped via painter save/restore
-        bar_rect = QRectF(bx, 0, bw, h)
-
-        # Clip to rounded bar shape
+        # Background gradient - dark black
         from PyQt5.QtGui import QPainterPath
+        bg_gradient = QLinearGradient(0, 0, 0, h)
+        bg_gradient.setColorAt(0, QColor("#0d0d0d"))
+        bg_gradient.setColorAt(1, QColor("#0a0a0a"))
+        
+        bar_rect = QRectF(0, 0, w, h)
         clip_path = QPainterPath()
         clip_path.addRoundedRect(bar_rect, r, r)
         painter.setClipPath(clip_path)
+        
+        painter.fillRect(bar_rect, bg_gradient)
 
-        painter.fillRect(bx, 0,   bw, y1,      QColor(self._DEPOSIT_COLOR))
-        painter.fillRect(bx, y1,  bw, y2 - y1, QColor(self._TRAVEL_COLOR))
-        painter.fillRect(bx, y2,  bw, h - y2,  QColor(self._EXCAVATE_COLOR))
+        # Draw colored zone gradients
+        def draw_zone_gradient(x_start, x_end, color_top, color_bottom):
+            zone_gradient = QLinearGradient(0, 0, 0, h)
+            zone_gradient.setColorAt(0, QColor(color_top))
+            zone_gradient.setColorAt(1, QColor(color_bottom))
+            painter.fillRect(QRectF(x_start, 0, x_end - x_start, h), zone_gradient)
+
+        # Deposit zone (yellow/orange gradient)
+        draw_zone_gradient(0, x1, "#ffa726", "#f57c00")
+        
+        # Travel zone (green gradient)
+        draw_zone_gradient(x1, x2, "#66bb6a", "#43a047")
+        
+        # Excavate zone (red gradient)
+        draw_zone_gradient(x2, w, "#ef5350", "#d32f2f")
 
         painter.setClipping(False)
 
-        iy = _y(self._position)
-        ind_h = 3
-
-        # Darker border outline around the bar
-        painter.setPen(QPen(QColor("#555555"), 2))
+        # Border matching QProgressBar
+        painter.setPen(QPen(QColor("#3e3e3e"), 1))
         painter.setBrush(Qt.NoBrush)
-        painter.drawRoundedRect(QRectF(bx + 1, 1, bw - 2, h - 2), r, r)
+        painter.drawRoundedRect(QRectF(0.5, 0.5, w - 1, h - 1), r, r)
 
-        # Lighter outer frame
-        painter.setPen(QPen(QColor("#d0d0d0"), 1))
-        painter.drawRoundedRect(QRectF(bx + 0.5, 0.5, bw - 1, h - 1), r, r)
+        # Position indicator line - taller and more prominent
+        ix = _x(self._position)
+        ind_w = 4
+        ind_x = max(ind_w // 2, min(w - ind_w // 2, ix))
+        
+        # Draw darker outline for contrast
+        painter.setPen(QPen(QColor("#000000"), ind_w + 2))
+        painter.drawLine(ind_x, -3, ind_x, h + 3)
+        
+        # Draw bright white indicator line on top
+        painter.setPen(QPen(QColor("#ffffff"), ind_w))
+        painter.drawLine(ind_x, -3, ind_x, h + 3)
 
-        ind_y = max(ind_h // 2, min(h - ind_h // 2, iy))
-        ind_rect = QRectF(0, ind_y - ind_h / 2, w, ind_h)
-        painter.setBrush(QColor("#e8e8e8"))
-        painter.setPen(QPen(QColor("#aaaaaa"), 1))
-        painter.drawRect(ind_rect)
 
-
-def create_bucket_led_group(app):
-    """Vertical slider indicator showing bucket position across 3 zones."""
-    group = QGroupBox("Bucket State")
-    group.setAutoFillBackground(True)
-    group.setStyleSheet(f"""
-        QGroupBox {{
-            background-color: {Colors.BG_BOX};
-            margin: 0px;
-            font-weight: bold;
-            padding-top: 8px;
-            padding-left: 4px;
-            padding-right: 4px;
-            padding-bottom: 4px;
-            color: {Colors.TEXT_MAIN};
-        }}
-        QGroupBox::title {{
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            padding: 0 5px;
-            top: 5px;
-            left: 2px;
-            color: {Colors.TEXT_MAIN};
-        }}
-    """)
-
-    outer = QVBoxLayout()
-    outer.setContentsMargins(10, 14, 10, 10)
-    outer.setSpacing(0)
-
-    # Bar + labels side by side, centered horizontally
-    center_row = QHBoxLayout()
-    center_row.setSpacing(0)
-    center_row.addStretch()
-
-    bar_row = QHBoxLayout()
-    bar_row.setSpacing(8)
-
-    label_col = QVBoxLayout()
-    label_col.setSpacing(0)
-
-    def _zone_label(text, alignment):
-        lbl = QLabel(text)
-        lbl.setAlignment(alignment | Qt.AlignRight)
-        lbl.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        lbl.setStyleSheet(
-            f"color: {Colors.TEXT_DIM}; font-size: 14px;"
-            f" font-weight: bold; background: transparent;")
-        return lbl
-
-    # Stretch proportional to zone size: deposit=2.0, travel=6.0, excavate=2.5
-    # Align each label toward its zone boundary so text sits inside the zone
-    label_col.addWidget(_zone_label("Deposit",  Qt.AlignBottom), 4)
-    label_col.addWidget(_zone_label("Travel",   Qt.AlignVCenter), 12)
-    label_col.addWidget(_zone_label("Excavate", Qt.AlignTop), 5)
-    bar_row.addLayout(label_col)
-
-    app.bucket_slider = BucketSliderWidget()
-    app.bucket_slider.setFixedWidth(28)  # 18px bar + 5px overhang each side
-    bar_row.addWidget(app.bucket_slider)
-
-    center_row.addLayout(bar_row)
-    center_row.addStretch()
-
-    outer.addLayout(center_row, 1)
-
-    group.setLayout(outer)
-    return group
 
 
 def create_hardware_group(app):
     group = QGroupBox("Hardware")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(0)
-    layout.setContentsMargins(4, 4, 4, 4)
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
     
     can_btn = QPushButton("Start CAN Interface")
     can_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    can_btn.setMaximumHeight(30)
+    can_btn.setMaximumHeight(32)
     can_btn.clicked.connect(app.start_can_interface)
     layout.addWidget(can_btn)
     
@@ -1349,40 +1056,48 @@ def create_hardware_group(app):
         app.can_restart_btn = QPushButton("Restart CAN")
         app.can_restart_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.BG_MAIN};
-                color: #ffa500;
-                border: none;
-                border-top: 2px solid #ffa500;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                color: {Colors.TEXT_MAIN};
+                border: 1px solid #3e3e3e;
+                border-radius: 4px;
                 font-size: 13px;
                 font-weight: bold;
-                padding: 5px;
+                padding: 6px 8px;
             }}
             QPushButton:hover {{
-                background-color: #3a3a3a;
-                color: #ffa500;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+                border: 1px solid #484848;
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+                border: 1px solid #2e2e2e;
             }}
         """)
-        app.can_restart_btn.setMaximumHeight(30)
+        app.can_restart_btn.setMaximumHeight(32)
         app.can_restart_btn.clicked.connect(app.restart_can)
         layout.addWidget(app.can_restart_btn)
     
     app.hardware_btn = QPushButton("Launch Hardware")
     app.hardware_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BG_MAIN};
-            color: {Colors.STATUS_SUCCESS};
-            border: none;
-            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+            color: {Colors.TEXT_MAIN};
+            border: 1px solid #3e3e3e;
+            border-radius: 4px;
             font-size: 13px;
             font-weight: bold;
-            padding: 5px;
+            padding: 6px 8px;
         }}
         QPushButton:hover {{
-            background-color: #3a3a3a;
-            color: {Colors.STATUS_SUCCESS};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+            border: 1px solid #484848;
+        }}
+        QPushButton:pressed {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+            border: 1px solid #2e2e2e;
         }}
     """)
-    app.hardware_btn.setMaximumHeight(30)
+    app.hardware_btn.setMaximumHeight(32)
     app.hardware_btn.clicked.connect(app.launch_hardware)
     layout.addWidget(app.hardware_btn)
     

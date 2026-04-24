@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import math
 import signal
 import sys
 
@@ -11,9 +10,9 @@ from gui_styles import Colors, MAIN_STYLESHEET, Styles
 from ros_interface import RobotInterface
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QIcon, QImage, QPalette, QPixmap
+from PyQt5.QtGui import QColor, QIcon, QImage, QPalette, QPixmap, QFont
 from PyQt5.QtWidgets import (QApplication, QGroupBox, QHBoxLayout, QLabel,
-                              QMainWindow, QPushButton, QSizePolicy, QVBoxLayout,
+                              QMainWindow, QTextEdit, QPushButton, QSizePolicy, QVBoxLayout,
                               QWidget)
 
 
@@ -29,7 +28,7 @@ WINDOW_DEFAULT_WIDTH   = 1600
 WINDOW_DEFAULT_HEIGHT  = 900
 WINDOW_MIN_WIDTH       = 1000
 WINDOW_MIN_HEIGHT      = 650
-SIDEBAR_MIN_WIDTH      = 250
+SIDEBAR_MIN_WIDTH      = 300
 SIDEBAR_COLLAPSED_WIDTH = 30
 CAMERA_MIN_WIDTH       = 320
 CAMERA_MIN_HEIGHT      = 240
@@ -72,10 +71,12 @@ class LunabotGUI(QMainWindow):
         
         self.robot.on_robot_state_update = self.handle_robot_state_update
         self.robot.on_control_state_update = self.handle_control_state_update
+        self.robot.on_log = self.append_log
         
         self.swappable_camera_showing_front = True
         self.sidebar_collapsed = False
         self.fisheye_camera_position = 0.0
+        self.fisheye_showing_deposit = True  # True = Deposit View (0 deg ), False = Bucket View (180 deg)
         self.full_auto_active = False
         self.emergency_stopped = False
         
@@ -181,27 +182,33 @@ class LunabotGUI(QMainWindow):
         self.realsense_toggle_btn = QPushButton("RealSense: OFF")
         self.realsense_toggle_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.BG_MAIN};
-                color: #ee2222;
-                border: none;
-                border-top: 2px solid #ee2222;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a3a3a, stop:1 #323232);
+                color: {Colors.TEXT_DIM};
+                border: 1px solid #4a4a4a;
+                border-radius: 4px;
                 font-size: 13px;
                 font-weight: bold;
-                padding: 5px;
+                padding: 6px 8px;
             }}
             QPushButton:hover {{
-                background-color: #3a3a3a;
-                color: #ee2222;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #444444, stop:1 #3c3c3c);
+                border: 1px solid #545454;
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                border: 1px solid #3a3a3a;
             }}
         """)
-        self.realsense_toggle_btn.setMaximumHeight(30)
+        self.realsense_toggle_btn.setMaximumHeight(32)
         self.realsense_toggle_btn.clicked.connect(self.toggle_realsense_cameras)
         swappable_layout.addWidget(self.realsense_toggle_btn)
         
         self.swappable_camera_group = QGroupBox("Front Camera")
         self.swappable_camera_group.setAutoFillBackground(True)
-        self.swappable_camera_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+        self.swappable_camera_group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a2a2a, stop:1 #252525); padding-top: 20px; }}")
         swappable_camera_layout = QVBoxLayout()
+        swappable_camera_layout.setContentsMargins(4, 4, 4, 4)
+        swappable_camera_layout.setSpacing(0)
         self.swappable_camera_label = QLabel("No camera feed")
         self.swappable_camera_label.setAlignment(Qt.AlignCenter)
         self.swappable_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
@@ -211,32 +218,45 @@ class LunabotGUI(QMainWindow):
         self.swappable_camera_group.setLayout(swappable_camera_layout)
         swappable_layout.addWidget(self.swappable_camera_group)
         
-        self.swap_camera_btn = QPushButton("Rear Camera")
+        self.swap_camera_btn = QPushButton("Switch to Rear Camera")
         self.swap_camera_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.BG_MAIN};
-                color: {Colors.STATUS_SUCCESS};
-                border: none;
-                border-top: 2px solid {Colors.STATUS_SUCCESS};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #252525, stop:1 #1d1d1d);
+                color: {Colors.TEXT_MAIN};
+                border: 1px solid #353535;
+                border-radius: 4px;
                 font-size: 13px;
                 font-weight: bold;
-                padding: 5px;
+                padding: 6px 8px;
             }}
             QPushButton:hover {{
-                background-color: #3a3a3a;
-                color: {Colors.STATUS_SUCCESS};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #303030, stop:1 #282828);
+                border: 1px solid #404040;
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1a1a1a, stop:1 #121212);
+                border: 1px solid #252525;
             }}
         """)
-        self.swap_camera_btn.setMaximumHeight(30)
+        self.swap_camera_btn.setMaximumHeight(32)
         self.swap_camera_btn.clicked.connect(self.swap_camera)
         swappable_layout.addWidget(self.swap_camera_btn)
         
         top_row_layout.addWidget(swappable_container, 1)
         
+        # Fisheye container with rotation controls
+        fisheye_container = QWidget()
+        fisheye_container_layout = QVBoxLayout()
+        fisheye_container_layout.setContentsMargins(0, 0, 0, 0)
+        fisheye_container_layout.setSpacing(4)
+        fisheye_container.setLayout(fisheye_container_layout)
+        
         fisheye_group = QGroupBox("Fisheye Camera")
         fisheye_group.setAutoFillBackground(True)
-        fisheye_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+        fisheye_group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a2a2a, stop:1 #252525); padding-top: 20px; }}")
         fisheye_layout = QVBoxLayout()
+        fisheye_layout.setContentsMargins(4, 4, 4, 4)
+        fisheye_layout.setSpacing(0)
         self.fisheye_camera_label = QLabel("No camera feed")
         self.fisheye_camera_label.setAlignment(Qt.AlignCenter)
         self.fisheye_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
@@ -244,7 +264,34 @@ class LunabotGUI(QMainWindow):
         self.fisheye_camera_label.setStyleSheet(Styles.camera_label())
         fisheye_layout.addWidget(self.fisheye_camera_label)
         fisheye_group.setLayout(fisheye_layout)
-        top_row_layout.addWidget(fisheye_group, 1)
+        
+        fisheye_container_layout.addWidget(fisheye_group)
+        
+        # Fisheye swap button (Bucket View / Deposit View)
+        self.swap_fisheye_btn = QPushButton("Switch to Bucket View")
+        self.swap_fisheye_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #252525, stop:1 #1d1d1d);
+                color: {Colors.TEXT_MAIN};
+                border: 1px solid #353535;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 6px 8px;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #303030, stop:1 #282828);
+                border: 1px solid #404040;
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1a1a1a, stop:1 #121212);
+                border: 1px solid #252525;
+            }}
+        """)
+        self.swap_fisheye_btn.setMaximumHeight(32)
+        self.swap_fisheye_btn.clicked.connect(self.swap_fisheye_view)
+        fisheye_container_layout.addWidget(self.swap_fisheye_btn)
+        top_row_layout.addWidget(fisheye_container, 1)
         
         return top_row
     
@@ -253,49 +300,98 @@ class LunabotGUI(QMainWindow):
         bottom_row_layout = QHBoxLayout()
         bottom_row_layout.setContentsMargins(0, 0, 0, 0)
         bottom_row_layout.setSpacing(3)
-        bottom_row_layout.setAlignment(Qt.AlignBottom)
         bottom_row.setLayout(bottom_row_layout)
         
+        # Left column: Mode/Bandwidth, Telemetry, Bucket State
         left_column = QWidget()
         left_column_layout = QVBoxLayout()
         left_column_layout.setContentsMargins(0, 0, 0, 0)
         left_column_layout.setSpacing(3)
         left_column.setLayout(left_column_layout)
         
-        status_mode_container = QWidget()
-        status_mode_layout = QHBoxLayout()
-        status_mode_layout.setContentsMargins(0, 0, 0, 0)
-        status_mode_layout.setSpacing(3)
-        status_mode_container.setLayout(status_mode_layout)
-        
-        status_group = ui_widgets.create_status_group(self)
-        status_mode_layout.addWidget(status_group, 1)
+        # Row 1: Mode + Bandwidth
+        mode_bandwidth_container = QWidget()
+        mode_bandwidth_layout = QHBoxLayout()
+        mode_bandwidth_layout.setContentsMargins(0, 0, 0, 0)
+        mode_bandwidth_layout.setSpacing(3)
+        mode_bandwidth_container.setLayout(mode_bandwidth_layout)
         
         mode_group = ui_widgets.create_mode_group(self)
-        status_mode_layout.addWidget(mode_group, 1)
         if not self.robot.is_real_mode:
             mode_group.setEnabled(False)
+        mode_bandwidth_layout.addWidget(mode_group, 2)
         
-        left_column_layout.addWidget(status_mode_container)
+        bandwidth_group = ui_widgets.create_bandwidth_group(self)
+        mode_bandwidth_layout.addWidget(bandwidth_group, 3)
         
-        network_group = ui_widgets.create_network_group(self)
-        self.network_apply_btn.clicked.connect(self.apply_network_config)
-        left_column_layout.addWidget(network_group)
+        left_column_layout.addWidget(mode_bandwidth_container)
         
+        # Row 2: Telemetry (without Status and Bucket State)
         telemetry_group = ui_widgets.create_condensed_telemetry_group(self)
         left_column_layout.addWidget(telemetry_group)
         
-        bottom_row_layout.addWidget(left_column, 2)
-
-        bucket_state_group = ui_widgets.create_bucket_led_group(self)
-        bucket_state_group.setMinimumWidth(125)
-        bucket_state_group.setMaximumWidth(125)
-        bottom_row_layout.addWidget(bucket_state_group, 1)
-
-        camera_group = ui_widgets.create_camera_control_group(self)
-        bottom_row_layout.addWidget(camera_group, 1)
+        # Row 3: Bucket State slider (full width)
+        bucket_state_group = ui_widgets.create_bucket_state_widget(self)
+        left_column_layout.addWidget(bucket_state_group)
+        
+        left_column_layout.addStretch()
+        
+        bottom_row_layout.addWidget(left_column, 1)
+        
+        # Right column: Terminal
+        terminal_widget = self.create_terminal_output()
+        bottom_row_layout.addWidget(terminal_widget, 1)
         
         return bottom_row
+    
+    def create_terminal_output(self):
+        terminal_group = QGroupBox("Terminal Output")
+        terminal_group.setAutoFillBackground(True)
+        terminal_group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }}")
+        terminal_layout = QVBoxLayout()
+        terminal_layout.setContentsMargins(3, 6, 3, 2)
+        terminal_layout.setSpacing(2)
+        terminal_group.setLayout(terminal_layout)
+        
+        self.terminal_text = QTextEdit()
+        self.terminal_text.setReadOnly(True)
+        self.terminal_text.document().setMaximumBlockCount(500)  # Limit to 500 lines
+        terminal_font = QFont("Monospace", 9)
+        self.terminal_text.setFont(terminal_font)
+        self.terminal_text.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: #0d0d0d;
+                color: {Colors.TEXT_MAIN};
+                border: 1px solid #2a2a2a;
+                border-radius: 2px;
+            }}
+            QScrollBar:vertical {{
+                background: #0d0d0d;
+                width: 10px;
+                border: none;
+                border-radius: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #2a2a2a;
+                min-height: 20px;
+                border-radius: 4px;
+                margin: 2px;
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: #3a3a3a;
+            }}
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+        """)
+        terminal_layout.addWidget(self.terminal_text)
+        
+        return terminal_group
     
     def create_sidebar(self):
         self.sidebar_container = QWidget()
@@ -307,7 +403,7 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget = QWidget()
         self.sidebar_widget.setStyleSheet("background-color: #1a1a1a;")
         self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.sidebar_widget.setMinimumWidth(240)
+        self.sidebar_widget.setMinimumWidth(300)
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
         sidebar_layout.setSpacing(6)
@@ -326,17 +422,18 @@ class LunabotGUI(QMainWindow):
         action_group = ui_widgets.create_action_control_group(self)
         sidebar_layout.addWidget(action_group)
         
-        teleop_group = ui_widgets.create_teleop_control_group(self)
-        teleop_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
-        sidebar_layout.addWidget(teleop_group, 0)  # stretch factor 0 = can shrink
-        if self.robot.is_real_mode:
-            teleop_group.setEnabled(False)
+        # Only show keyboard teleop in sim mode
+        if not self.robot.is_real_mode:
+            teleop_group = ui_widgets.create_teleop_control_group(self)
+            teleop_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
+            sidebar_layout.addWidget(teleop_group, 0)  # stretch factor 0 = can shrink
         
         sidebar_container_layout.addWidget(self.sidebar_widget)
         
+        # Controls toggle button (stays visible when sidebar collapses)
         edge_tab_container = QWidget()
         edge_tab_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        edge_tab_container.setMaximumWidth(30)
+        edge_tab_container.setFixedWidth(30)
         edge_tab_layout = QVBoxLayout()
         edge_tab_layout.setContentsMargins(0, 0, 0, 0)
         edge_tab_layout.setSpacing(0)
@@ -344,7 +441,7 @@ class LunabotGUI(QMainWindow):
         
         edge_tab_layout.addStretch(1)
 
-        self.edge_tab = QPushButton(">\n\nC\nO\nN\nT\nR\nO\nL\nS")
+        self.edge_tab = QPushButton("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
         self.edge_tab.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BG_MAIN};
@@ -356,16 +453,13 @@ class LunabotGUI(QMainWindow):
                 padding: 10px 5px;
                 letter-spacing: 2px;
             }}
-            QPushButton:hover {{
-                background-color: #3a3a3a;
-                color: {Colors.STATUS_SUCCESS};
-                border-left: 2px solid {Colors.STATUS_SUCCESS};
-            }}
         """)
-        self.edge_tab.setMaximumWidth(30)
+        self.edge_tab.setFixedWidth(30)
         self.edge_tab.setFixedHeight(200)  # Fixed height for the button
         self.edge_tab.clicked.connect(self.toggle_sidebar)
         edge_tab_layout.addWidget(self.edge_tab)
+        
+        edge_tab_layout.addStretch(1)
         
         sidebar_container_layout.addWidget(edge_tab_container)
         
@@ -375,31 +469,42 @@ class LunabotGUI(QMainWindow):
         self.swappable_camera_showing_front = not self.swappable_camera_showing_front
         if self.swappable_camera_showing_front:
             self.swappable_camera_group.setTitle("Front Camera")
-            self.swap_camera_btn.setText("Rear Camera")
+            self.swap_camera_btn.setText("Switch to Rear Camera")
         else:
             self.swappable_camera_group.setTitle("Rear Camera")
-            self.swap_camera_btn.setText("Front Camera")
+            self.swap_camera_btn.setText("Switch to Front Camera")
     
-    def apply_network_config(self):
-        self.robot.robot_host = self.robot_host_edit.text()
-        self.robot.robot_user = self.robot_user_edit.text()
-        # In real mode, remote execution is always enabled
-        self.robot.is_remote = self.robot.is_real_mode
-        
-        self.robot.node.get_logger().info(f'Network config updated: {self.robot.robot_user}@{self.robot.robot_host}:{self.robot.robot_workspace}')
+    def swap_fisheye_view(self):
+        """Toggle between Deposit View (0 deg) and Bucket View (180 deg)"""
+        self.fisheye_showing_deposit = not self.fisheye_showing_deposit
+        if self.fisheye_showing_deposit:
+            # Deposit View - 0 deg
+            self.set_fisheye_position(0)
+            self.swap_fisheye_btn.setText("Switch to Bucket View")
+        else:
+            # Bucket View - 180 deg
+            self.set_fisheye_position(180)
+            self.swap_fisheye_btn.setText("Switch to Deposit View")
+    
+    def set_fisheye_position(self, degrees):
+        """Set fisheye camera to specific position (0 or 180 degrees)"""
+        import math
+        position_radians = math.radians(degrees)
+        self.robot.publish_camera_position(position_radians)
+        self.robot.node.get_logger().info(f'Fisheye camera position set to {degrees} deg')
     
     def toggle_sidebar(self):
         self.sidebar_collapsed = not self.sidebar_collapsed
         if self.sidebar_collapsed:
             self.sidebar_widget.hide()
-            self.edge_tab.setText("<\n\nC\nO\nN\nT\nR\nO\nL\nS")
             self.sidebar_container.setMinimumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.sidebar_container.setMaximumWidth(SIDEBAR_COLLAPSED_WIDTH)
+            self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")  # Point right to open
         else:
             self.sidebar_widget.show()
-            self.edge_tab.setText(">\n\nC\nO\nN\nT\nR\nO\nL\nS")
             self.sidebar_container.setMinimumWidth(SIDEBAR_MIN_WIDTH)
             self.sidebar_container.setMaximumWidth(16777215)
+            self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")  # Point left to close
     
     def toggle_mode(self):
         self.robot.publish_mode_switch()
@@ -520,7 +625,6 @@ class LunabotGUI(QMainWindow):
             self.robot.cancel_home_goal(self.home_cancel_callback)
         else:
             self.robot.is_homing = True
-            self.home_btn.setText("Cancel Homing")
             self.operation_status_label.setText("Status: Homing...")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_home_goal(
@@ -533,7 +637,6 @@ class LunabotGUI(QMainWindow):
         if not goal_handle.accepted:
             self.robot.node.get_logger().error('Home goal rejected')
             self.robot.is_homing = False
-            self.home_btn.setText("Home Actuators")
             self.operation_status_label.setText("Status: Goal rejected")
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
         else:
@@ -542,7 +645,6 @@ class LunabotGUI(QMainWindow):
     def home_result_callback(self, future):
         result = future.result().result
         self.robot.is_homing = False
-        self.home_btn.setText("Home Actuators")
         
         if result.success:
             self.robot.node.get_logger().info(f'Homing completed: {result.message}')
@@ -556,13 +658,12 @@ class LunabotGUI(QMainWindow):
     def home_cancel_callback(self, future):
         self.robot.node.get_logger().info('Homing canceled')
         self.robot.is_homing = False
-        self.home_btn.setText("Home Actuators")
         self.operation_status_label.setText("Status: Homing canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def emergency_stop(self):
         if not self.emergency_stopped:
-            self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED FROM GUI!')
+            self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED!')
             self.robot.publish_emergency_stop()
             self.operation_status_label.setText("Status: EMERGENCY STOP")
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
@@ -580,7 +681,23 @@ class LunabotGUI(QMainWindow):
             
             self.emergency_stopped = True
             self.emergency_stop_btn.setText("Re-enable Robot")
-            self.emergency_stop_btn.setStyleSheet(Styles.orange_button())
+            self.emergency_stop_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #f57c00;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    padding: 10px 8px;
+                }}
+                QPushButton:hover {{
+                    background-color: #e65100;
+                }}
+                QPushButton:pressed {{
+                    background-color: #d84315;
+                }}
+            """)
         else:
             self.robot.node.get_logger().info('Re-enabling robot from emergency stop')
             self.robot.publish_re_enable()
@@ -589,7 +706,23 @@ class LunabotGUI(QMainWindow):
 
             self.emergency_stopped = False
             self.emergency_stop_btn.setText("Emergency Stop")
-            self.emergency_stop_btn.setStyleSheet(Styles.red_button())
+            self.emergency_stop_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #d32f2f;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    padding: 10px 8px;
+                }}
+                QPushButton:hover {{
+                    background-color: #b71c1c;
+                }}
+                QPushButton:pressed {{
+                    background-color: #9a0007;
+                }}
+            """)
     
     def send_full_auto_goal(self):
         if self.full_auto_active:
@@ -630,8 +763,8 @@ class LunabotGUI(QMainWindow):
         self.robot.publish_camera_position(position_radians)
         
         degrees = math.degrees(position_radians)
-        self.camera_pos_label.setText(f"Position: {degrees:.0f}°")
-        self.robot.node.get_logger().info(f'Fisheye camera position set to {degrees:.1f}°')
+        self.camera_pos_label.setText(f"Position: {degrees:.0f} deg")
+        self.robot.node.get_logger().info(f'Fisheye camera position set to {degrees:.1f} deg')
     
     def toggle_realsense_cameras(self):
         """Toggle RealSense camera streaming on/off"""
@@ -641,34 +774,42 @@ class LunabotGUI(QMainWindow):
             self.realsense_toggle_btn.setText("RealSense: ON")
             self.realsense_toggle_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.BG_MAIN};
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e4e3e, stop:1 #264636);
                     color: {Colors.STATUS_SUCCESS};
-                    border: none;
-                    border-top: 2px solid {Colors.STATUS_SUCCESS};
+                    border: 1px solid #3e5e4e;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
-                    padding: 5px;
+                    padding: 6px 8px;
                 }}
                 QPushButton:hover {{
-                    background-color: #3a3a3a;
-                    color: {Colors.STATUS_SUCCESS};
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #385848, stop:1 #305040);
+                    border: 1px solid #486858;
+                }}
+                QPushButton:pressed {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #224232, stop:1 #1a3a2a);
+                    border: 1px solid #2e4e3e;
                 }}
             """)
         else:
             self.realsense_toggle_btn.setText("RealSense: OFF")
             self.realsense_toggle_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.BG_MAIN};
-                    color: #ee2222;
-                    border: none;
-                    border-top: 2px solid #ee2222;
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a3a3a, stop:1 #323232);
+                    color: {Colors.TEXT_DIM};
+                    border: 1px solid #4a4a4a;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
-                    padding: 5px;
+                    padding: 6px 8px;
                 }}
                 QPushButton:hover {{
-                    background-color: #3a3a3a;
-                    color: #ee2222;
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #444444, stop:1 #3c3c3c);
+                    border: 1px solid #545454;
+                }}
+                QPushButton:pressed {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                    border: 1px solid #3a3a3a;
                 }}
             """)
     
@@ -679,32 +820,40 @@ class LunabotGUI(QMainWindow):
         if success and hasattr(self, 'can_restart_btn'):
             self.can_restart_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.BG_MAIN};
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e3e2e, stop:1 #263626);
                     color: {Colors.STATUS_SUCCESS};
-                    border: none;
-                    border-top: 2px solid {Colors.STATUS_SUCCESS};
+                    border: 1px solid #3e4e3e;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
-                    padding: 5px;
+                    padding: 6px 8px;
                 }}
                 QPushButton:hover {{
-                    background-color: #3a3a3a;
-                    color: {Colors.STATUS_SUCCESS};
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #384838, stop:1 #305030);
+                    border: 1px solid #486048;
+                }}
+                QPushButton:pressed {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #223222, stop:1 #1a2a1a);
+                    border: 1px solid #2e3e2e;
                 }}
             """)
             QTimer.singleShot(2000, lambda: self.can_restart_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.BG_MAIN};
-                    color: #ffa500;
-                    border: none;
-                    border-top: 2px solid #ffa500;
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                    color: {Colors.TEXT_MAIN};
+                    border: 1px solid #3e3e3e;
+                    border-radius: 4px;
                     font-size: 13px;
                     font-weight: bold;
-                    padding: 5px;
+                    padding: 6px 8px;
                 }}
                 QPushButton:hover {{
-                    background-color: #3a3a3a;
-                    color: #ffa500;
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+                    border: 1px solid #484848;
+                }}
+                QPushButton:pressed {{
+                    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+                    border: 1px solid #2e2e2e;
                 }}
             """))
     
@@ -783,9 +932,6 @@ class LunabotGUI(QMainWindow):
 
         if hasattr(self, 'nav2_btn'):
             self.nav2_btn.setText("Stop Navigation2" if self.robot.launch_processes.get('nav2') else "Navigation2")
-
-        if hasattr(self, 'localize_btn'):
-            self.localize_btn.setText("Stop Localization" if self.robot.launch_processes.get('localization') else "Localization")
         
         if hasattr(self, 'hardware_btn'):
             self.hardware_btn.setText("Stop Hardware" if self.robot.launch_processes.get('hardware') else "Launch Hardware")
@@ -1006,6 +1152,108 @@ class LunabotGUI(QMainWindow):
         self.camera_timer.stop()
         QApplication.processEvents()
         self.robot.shutdown()
+    
+    def append_log(self, message):
+        """Append a log message to the terminal output with ANSI color support"""
+        try:
+            # Color map for log levels
+            level_colors = {
+                'DEBUG': '#757575',   # Gray
+                'INFO': '#e0e0e0',    # Light gray/white
+                'WARN': '#ffca28',    # Yellow
+                'ERROR': '#ef5350',   # Red
+                'FATAL': '#ff5252',   # Bright red
+            }
+            
+            # Extract log level from message format: [LEVEL] node_name: message
+            import re
+            level_match = re.match(r'\[(\w+)\]', message)
+            
+            if level_match:
+                level = level_match.group(1)
+                color = level_colors.get(level, '#e0e0e0')  # Default to white
+                
+                # Convert ANSI codes in the message, then wrap entire line in level color
+                html_message = self.ansi_to_html(message)
+                html_message = f'<span style="color:{color}">{html_message}</span>'
+            else:
+                # No level found, just convert ANSI codes
+                html_message = self.ansi_to_html(message)
+            
+            self.terminal_text.append(html_message)
+            # Auto-scroll to bottom
+            self.terminal_text.verticalScrollBar().setValue(
+                self.terminal_text.verticalScrollBar().maximum()
+            )
+        except Exception as e:
+            # Fallback: append plain text if conversion fails
+            print(f"Error converting log message: {e}")
+            self.terminal_text.append(message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
+
+    
+    def ansi_to_html(self, text):
+        """Convert ANSI color codes to HTML"""
+        import re
+        
+        # ANSI color map to HTML colors
+        ansi_colors = {
+            '30': '#000000',  # Black
+            '31': '#ef5350',  # Red
+            '32': '#66bb6a',  # Green
+            '33': '#ffca28',  # Yellow
+            '34': '#42a5f5',  # Blue
+            '35': '#ab47bc',  # Magenta
+            '36': '#26c6da',  # Cyan
+            '37': '#e0e0e0',  # White
+            '90': '#757575',  # Bright Black (Gray)
+            '91': '#ff5252',  # Bright Red
+            '92': '#69f0ae',  # Bright Green
+            '93': '#ffd54f',  # Bright Yellow
+            '94': '#448aff',  # Bright Blue
+            '95': '#e040fb',  # Bright Magenta
+            '96': '#18ffff',  # Bright Cyan
+            '97': '#ffffff',  # Bright White
+        }
+        
+        # First escape HTML characters
+        result = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        
+        # Track open spans
+        open_spans = 0
+        
+        # Replace ANSI color codes with HTML spans
+        def replace_color(match):
+            nonlocal open_spans
+            codes = match.group(1).split(';')
+            
+            # Check for reset
+            if '0' in codes or codes == ['']:
+                if open_spans > 0:
+                    open_spans -= 1
+                    return '</span>'
+                return ''
+            
+            # Build style attributes
+            styles = []
+            for code in codes:
+                if code == '1':  # Bold
+                    styles.append('font-weight:bold')
+                elif code in ansi_colors:
+                    styles.append(f'color:{ansi_colors[code]}')
+            
+            if styles:
+                open_spans += 1
+                return f'<span style="{";".join(styles)}">'
+            return ''
+        
+        result = re.sub(r'\x1b\[([0-9;]*)m', replace_color, result)
+        
+        # Close any unclosed spans
+        while open_spans > 0:
+            result += '</span>'
+            open_spans -= 1
+        
+        return result
 
     def closeEvent(self, event):
         self._do_shutdown()

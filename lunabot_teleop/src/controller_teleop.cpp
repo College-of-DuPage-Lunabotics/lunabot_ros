@@ -72,6 +72,8 @@ public:
     vibration_duty_cycle_publisher_ =
       create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
     home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
+    camera_position_publisher_ =
+      create_publisher<std_msgs::msg::Float64MultiArray>("/camera_controller/commands", 10);
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -187,16 +189,21 @@ private:
       detect_button_press(msg->buttons[get_button_index(14, 10)], prev_menu_button_);
     bool home_pressed =
       detect_button_press(msg->buttons[get_button_index(11, 8)], prev_home_button_);
-    bool x_pressed = detect_button_press(msg->buttons[get_button_index(5, 2)], prev_x_button_);
-    bool y_pressed = detect_button_press(msg->buttons[get_button_index(6, 3)], prev_y_button_);
+
+    bool left_paddle_pressed = detect_button_press(msg->buttons[4], prev_left_paddle_);
+    bool right_paddle_pressed = detect_button_press(msg->buttons[5], prev_right_paddle_);
 
     // Plus (+) button enables manual, Minus (-) button enables auto
-    bool minus_pressed = detect_button_press(msg->buttons[6], prev_btn6_);
-    bool plus_pressed = detect_button_press(msg->buttons[7], prev_btn7_);
+    bool minus_pressed = detect_button_press(msg->buttons[6], prev_btn_minus_);
+    bool plus_pressed = detect_button_press(msg->buttons[7], prev_btn_plus__);
 
     // D-pad up/down for preset bucket positions
     bool dpad_up_pressed = detect_button_press(msg->axes[7] > 0.5, prev_dpad_up_);
     bool dpad_down_pressed = detect_button_press(msg->axes[7] < -0.5, prev_dpad_down_);
+
+    // D-pad left/right for servo control
+    bool dpad_left_pressed = detect_button_press(msg->axes[6] < -0.5, prev_dpad_left_);
+    bool dpad_right_pressed = detect_button_press(msg->axes[6] > 0.5, prev_dpad_right_);
 
     if (share_pressed || plus_pressed)
     {
@@ -234,20 +241,20 @@ private:
     left_joystick_y_ = msg->axes[1];
     right_joystick_y_ = -(steam_mode_ ? msg->axes[3] : msg->axes[4]);
 
-    if (x_pressed)
-    {
-      vibration_enabled_ = !vibration_enabled_;
-      LOGGER_INFO(
-        get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
-      publish_state();
-    }
-
-    if (y_pressed)
+    if (left_paddle_pressed)
     {
       speed_multiplier_ = (speed_multiplier_ == 0.6f) ? 0.9f : 0.6f;
       LOGGER_INFO(
         get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)",
         speed_multiplier_ == 0.9 ? "Turbo" : "Slow", speed_multiplier_);
+    }
+
+    if (right_paddle_pressed)
+    {
+      vibration_enabled_ = !vibration_enabled_;
+      LOGGER_INFO(
+        get_logger(), "Vibration: %s", vibration_enabled_ ? GREEN "ON" RESET : RED "OFF" RESET);
+      publish_state();
     }
 
     if (dpad_up_pressed)
@@ -263,6 +270,22 @@ private:
       target_position_active_ = true;
       LOGGER_INFO(
         get_logger(), "Moving to excavation bucket position: %.3f rad", excavation_ready_pos);
+    }
+
+    // D-pad left/right to set camera servo to 0 or 180 degrees
+    double target_angle_deg = (msg->axes[6] < 0) ? 0.0 : 180.0;
+    double target_angle_rad = target_angle_deg * M_PI / 180.0;
+
+    // Only publish if position changed
+    if (std::abs(current_servo_position_ - target_angle_rad) > 0.01)
+    {
+      current_servo_position_ = target_angle_rad;
+
+      auto servo_msg = std_msgs::msg::Float64MultiArray();
+      servo_msg.data.push_back(target_angle_rad);
+      camera_position_publisher_->publish(servo_msg);
+
+      LOGGER_INFO(get_logger(), "Servo position: %.0f°", target_angle_deg);
     }
   }
 
@@ -379,6 +402,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
@@ -392,16 +416,18 @@ private:
   bool steam_mode_ = false;
   bool camera_inverted_ = false;
 
-  bool prev_x_button_ = false;
-  bool prev_y_button_ = false;
+  bool prev_left_paddle_ = false;
+  bool prev_right_paddle_ = false;
   bool prev_a_button_ = false;
   bool prev_share_button_ = false;
   bool prev_menu_button_ = false;
   bool prev_home_button_ = false;
   bool prev_dpad_up_ = false;
   bool prev_dpad_down_ = false;
-  bool prev_btn6_ = false;
-  bool prev_btn7_ = false;
+  bool prev_dpad_left_ = false;
+  bool prev_dpad_right_ = false;
+  bool prev_btn_minus_ = false;
+  bool prev_btn_plus__ = false;
 
   float speed_multiplier_ = 0.6f;
   double actuator_zero_offset_ = 0.0;
@@ -411,7 +437,8 @@ private:
 
   bool target_position_active_ = false;
   double target_position_ = 0.0;
-  double current_encoder_position_ = 0.0;  // Position from absolute encoder
+  double current_encoder_position_ = 0.0;
+  double current_servo_position_ = 0.0;
 };
 
 /**

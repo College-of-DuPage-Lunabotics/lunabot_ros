@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import re
 import signal
 import subprocess
 import time
@@ -8,8 +9,10 @@ import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from PyQt5.QtCore import QCoreApplication
+from rcl_interfaces.msg import Log
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import CompressedImage, JointState
 from std_msgs.msg import Bool, Float32, Float64MultiArray
 
@@ -121,7 +124,7 @@ class RobotInterface:
         self.orientation_roll = 0.0
         self.orientation_pitch = 0.0
         self.orientation_yaw = 0.0
-        self.bucket_position = -0.2
+        self.bucket_position = 0.0
         self.actuator_position = -5.25
         
         # RealSense camera subscription control
@@ -184,6 +187,7 @@ class RobotInterface:
         self.on_robot_state_update = None
         self.on_control_state_update = None
         self.on_realsense_toggle = None
+        self.on_log = None
     
     def _create_subscriptions(self):
         # Bandwidth monitoring - Current
@@ -248,6 +252,18 @@ class RobotInterface:
 
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
+        
+        # Subscribe to ROS logs - match publishers' QoS profile
+        # All /rosout publishers use RELIABLE + TRANSIENT_LOCAL
+        rosout_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1000
+        )
+        
+        self.node.create_subscription(
+            Log, '/rosout', self._log_callback, rosout_qos)
     
     def _camera_callback(self, msg, camera_name, attr_name):
         """Generic handler for compressed camera image messages"""
@@ -391,6 +407,31 @@ class RobotInterface:
                     self.bucket_position = msg.position[idx]
         except Exception as e:
             self.log.warning(f'Error processing joint states: {e}', throttle_duration_sec=5.0)
+    
+    def _log_callback(self, msg):
+        """Process ROS log messages and forward to GUI"""
+        if self.on_log:
+            # Map ROS 2 log severity levels to names
+            # ROS 2 uses: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50
+            level_map = {
+                10: 'DEBUG',
+                20: 'INFO',
+                30: 'WARN',
+                40: 'ERROR',
+                50: 'FATAL'
+            }
+            level = level_map.get(msg.level, 'UNKNOWN')
+            
+            # Format: [LEVEL] node_name: message
+            # Keep ANSI codes intact - they will be converted to HTML in the GUI
+            log_text = f"[{level}] {msg.name}: {msg.msg}"
+            
+            try:
+                self.on_log(log_text)
+            except Exception as e:
+                # If logging fails, print to stderr so we can debug
+                import sys
+                print(f"Failed to log message from {msg.name}: {e}", file=sys.stderr)
     
     def _control_state_callback(self, msg):
         self.robot_mode = "MANUAL" if msg.mode == 0 else "AUTO"
