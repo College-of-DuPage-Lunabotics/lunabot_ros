@@ -330,20 +330,33 @@ class RobotInterface:
         import subprocess
         import os
         
-        script_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            'scripts', 'canable_restart.sh'
-        )
-        
         try:
-            self.log.action('Restarting CAN interface...')
-            result = subprocess.run(['bash', script_path], capture_output=True, text=True, timeout=10)
+            script_path = f'{self.robot_workspace}/src/lunabot_ros/scripts/canable_restart.sh'
+            
+            if self.is_remote:
+                self.log.action(f'Restarting CAN interface on {self.robot_user}@{self.robot_host}')
+                # Use bash -l to ensure proper environment and sudoers is loaded
+                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
+            else:
+                self.log.action(f'Restarting CAN interface: {script_path}')
+                cmd = ['bash', os.path.expanduser(script_path)]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            
+            if result.stdout:
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        self.log.info(f'CAN: {line}')
+            if result.stderr:
+                for line in result.stderr.strip().split('\n'):
+                    if line:
+                        self.log.warning(f'CAN: {line}')
             
             if result.returncode == 0:
                 self.log.success('CAN interface restarted successfully')
                 return True
             else:
-                self.log.failure(f'CAN restart failed: {result.stderr}')
+                self.log.failure(f'CAN restart failed with exit code {result.returncode}')
                 return False
         except subprocess.TimeoutExpired:
             self.log.failure('CAN restart timed out')

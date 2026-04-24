@@ -19,17 +19,24 @@ class EncoderReader(Node):
         self.log = Logger(self)
 
         self.declare_parameter('can_interface', 'can0')
+        self.declare_parameter('home_offset', 3.11)  # Preset home offset (deposit position)
+        
         self.can_interface = self.get_parameter('can_interface').value
+        self.home_offset = self.get_parameter('home_offset').value
 
         self.actuator_position_pub = self.create_publisher(Float64, 'actuator_position', 10)
         self.bucket_angle_pub = self.create_publisher(Float64, 'bucket_angle', 10)
+        
+        # Subscribe to home offset updates from homing server
+        self.home_offset_sub = self.create_subscription(
+            Float64, 'actuator_home_offset', self.home_offset_callback, 10)
 
         if not self.init_can():
             self.log.failure('Failed to initialize CAN interface')
             raise RuntimeError('CAN initialization failed')
 
         self.timer = self.create_timer(0.1, self.update_loop)
-        self.log.success(f'Encoder reader initialized on {self.can_interface}')
+        self.log.success(f'Encoder reader initialized on {self.can_interface} (home offset: {self.home_offset:.2f} rad)')
 
     def init_can(self):
         """Initialize the CAN socket interface"""
@@ -54,6 +61,11 @@ class EncoderReader(Node):
             self.log.warning(f'Error receiving CAN frame: {e}')
             return None, None
 
+    def home_offset_callback(self, msg):
+        """Update home offset when homing procedure is run"""
+        self.home_offset = msg.data
+        self.log.success(f'Home offset updated: {self.home_offset:.6f} rad')
+
     def update_loop(self):
         """Main update loop, receives and publishes encoder position"""
         while True:
@@ -64,9 +76,12 @@ class EncoderReader(Node):
             
             if can_id == ENCODER_CAN_ID and data and len(data) >= 4:
                 try:
-                    position = struct.unpack('<f', data[:4])[0]
+                    raw_position = struct.unpack('<f', data[:4])[0]
+                    # Apply home offset to get corrected position
+                    corrected_position = raw_position - self.home_offset
+                    
                     msg = Float64()
-                    msg.data = position
+                    msg.data = corrected_position
                     self.actuator_position_pub.publish(msg)
                     self.bucket_angle_pub.publish(msg)
                 except Exception as e:
