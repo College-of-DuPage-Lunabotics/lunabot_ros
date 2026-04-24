@@ -23,8 +23,8 @@
 #include <memory>
 #include <thread>
 
-static constexpr double excavation_pos = 10.5;
-static constexpr double travel_pos = 6.0;
+static constexpr double excavation_pos = 1.5708;
+static constexpr double travel_pos = 0.7854;
 static constexpr int forward_seconds = 5;
 
 /**
@@ -79,12 +79,12 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket...");
 
-    double target_position = -excavation_pos;
+    double target_position = excavation_pos;
 
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.5);
 
-    while (current_encoder_position_ > target_position)
+    while (current_encoder_position_ < target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -160,13 +160,13 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket...");
 
-    double target_position = -travel_pos;
+    double target_position = travel_pos;
 
     // Turn on vibration while lifting to help settle material in bucket
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
-    while (current_encoder_position_ < target_position)
+    while (current_encoder_position_ > target_position)
     {
       if (goal_handle->is_canceling())
       {

@@ -17,7 +17,7 @@
 #include <thread>
 
 static constexpr double deposit_pos = 0.0;
-static constexpr double travel_pos = 6.0;
+static constexpr double travel_pos = 0.7854;
 static constexpr double deposit_seconds = 7.0;
 
 /**
@@ -68,7 +68,7 @@ private:
 
     double target_position = deposit_pos;
 
-    while (current_encoder_position_ < target_position)
+    while (current_encoder_position_ > target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -131,9 +131,9 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket to travel position...");
 
-    double target_position = -travel_pos;
+    double target_position = travel_pos;
 
-    while (current_encoder_position_ > target_position)
+    while (current_encoder_position_ < target_position)
     {
       if (goal_handle->is_canceling())
       {

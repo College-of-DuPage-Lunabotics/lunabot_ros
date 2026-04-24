@@ -21,8 +21,8 @@
 static constexpr double wheel_radius = 0.095;
 static constexpr double wheel_base = 0.53;
 
-static constexpr double deposit_ready_pos = 6.0;
-static constexpr double excavation_ready_pos = 2.0;
+static constexpr double deposit_ready_pos = 0.5236;
+static constexpr double excavation_ready_pos = 1.309;
 
 /**
  * @class ControllerTeleop

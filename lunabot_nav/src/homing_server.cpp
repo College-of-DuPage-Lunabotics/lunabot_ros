@@ -19,7 +19,7 @@
 static constexpr double homing_speed = 1.0;
 static constexpr double position_threshold = 0.02;
 static constexpr int stall_duration_sec = 3;
-static constexpr double travel_pos = 6.0;
+static constexpr double travel_pos = 0.7854;  // π/4 rad (45 deg)
 
 /**
  * @class HomingServer
@@ -149,9 +149,9 @@ private:
     LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
     double initial_position = current_encoder_position_;
-    double target_position = initial_position - travel_pos;
+    double target_position = initial_position + travel_pos;
 
-    while (current_encoder_position_ > target_position)
+    while (current_encoder_position_ < target_position)
     {
       if (goal_handle->is_canceling())
       {

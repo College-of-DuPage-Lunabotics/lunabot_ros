@@ -748,7 +748,7 @@ def create_mode_group(app):
 def create_teleop_control_group(app):
     group = QGroupBox("Keyboard Teleop")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
     layout = QVBoxLayout()
     layout.setSpacing(4)
     layout.setContentsMargins(4, 4, 4, 4)
@@ -885,36 +885,88 @@ def create_teleop_control_group(app):
 def create_launch_group(app):
     group = QGroupBox("Launch")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(4)  # Spacing between buttons
+    layout.setSpacing(0)
     layout.setContentsMargins(4, 4, 4, 4)
     
     app.pointlio_btn = QPushButton("Point-LIO")
-    app.pointlio_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.pointlio_btn.setMinimumHeight(24)
-    app.pointlio_btn.setMaximumHeight(26)
+    app.pointlio_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    app.pointlio_btn.setMaximumHeight(30)
     app.pointlio_btn.clicked.connect(lambda: app.launch_system('pointlio'))
     layout.addWidget(app.pointlio_btn)
 
     app.mapping_btn = QPushButton("RTAB-Map")
-    app.mapping_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.mapping_btn.setMinimumHeight(24)
-    app.mapping_btn.setMaximumHeight(26)
+    app.mapping_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    app.mapping_btn.setMaximumHeight(30)
     app.mapping_btn.clicked.connect(lambda: app.launch_system('mapping'))
     layout.addWidget(app.mapping_btn)
 
     app.nav2_btn = QPushButton("Navigation2")
-    app.nav2_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.nav2_btn.setMinimumHeight(24)
-    app.nav2_btn.setMaximumHeight(26)
+    app.nav2_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    app.nav2_btn.setMaximumHeight(30)
     app.nav2_btn.clicked.connect(lambda: app.launch_system('nav2'))
     layout.addWidget(app.nav2_btn)
     
     rviz_btn = QPushButton("RViz2")
-    rviz_btn.setStyleSheet(Styles.light_blue_button(size=12))
-    rviz_btn.setMinimumHeight(24)
-    rviz_btn.setMaximumHeight(26)
+    rviz_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: #44aaff;
+            border: none;
+            border-top: 2px solid #44aaff;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: #44aaff;
+        }}
+    """)
+    rviz_btn.setMaximumHeight(30)
     rviz_btn.clicked.connect(app.launch_rviz)
     layout.addWidget(rviz_btn)
     
@@ -925,94 +977,128 @@ def create_launch_group(app):
 def create_action_control_group(app):
     group = QGroupBox("Actions")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(4)  # Spacing between buttons
+    layout.setSpacing(0)
     layout.setContentsMargins(4, 4, 4, 4)
     
     app.home_btn = QPushButton("Home Actuators")
-    app.home_btn.setStyleSheet(Styles.orange_button(size=12))
-    app.home_btn.setMinimumHeight(24)
-    app.home_btn.setMaximumHeight(26)
+    app.home_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: #ffa500;
+            border: none;
+            border-top: 2px solid #ffa500;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: #ffa500;
+        }}
+    """)
+    app.home_btn.setMaximumHeight(30)
     app.home_btn.clicked.connect(app.send_home_goal)
     layout.addWidget(app.home_btn)
     
     app.localize_btn = QPushButton("Localization")
-    app.localize_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.localize_btn.setMinimumHeight(24)
-    app.localize_btn.setMaximumHeight(26)
+    app.localize_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    app.localize_btn.setMaximumHeight(30)
     app.localize_btn.clicked.connect(lambda: app.launch_system('localization'))
     layout.addWidget(app.localize_btn)
     
     app.excavate_btn = QPushButton("Excavate")
-    app.excavate_btn.setMinimumHeight(24)
-    app.excavate_btn.setMaximumHeight(26)
     app.excavate_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 4px;
+            background-color: {Colors.BG_MAIN};
+            color: #f5c400;
             border: none;
-            border-radius: 2px;
+            border-top: 2px solid #f5c400;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
         }}
         QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-        QPushButton:disabled {{
-            background-color: {Colors.BTN_DISABLED};
-            color: {Colors.TEXT_GRAY};
-            border: none;
-            border-radius: 2px;
+            background-color: #3a3a3a;
+            color: #f5c400;
         }}
     """)
+    app.excavate_btn.setMaximumHeight(30)
     app.excavate_btn.clicked.connect(app.send_excavate_goal)
     layout.addWidget(app.excavate_btn)
     
     app.deposit_btn = QPushButton("Deposit")
-    app.deposit_btn.setMinimumHeight(24)
-    app.deposit_btn.setMaximumHeight(26)
     app.deposit_btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 4px;
+            background-color: {Colors.BG_MAIN};
+            color: #f5c400;
             border: none;
-            border-radius: 2px;
+            border-top: 2px solid #f5c400;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
         }}
         QPushButton:hover {{
-            background-color: {Colors.BTN_HOVER};
-        }}
-        QPushButton:pressed {{
-            background-color: {Colors.BTN_PRESSED};
-        }}
-        QPushButton:disabled {{
-            background-color: {Colors.BTN_DISABLED};
-            color: {Colors.TEXT_GRAY};
-            border: none;
-            border-radius: 2px;
+            background-color: #3a3a3a;
+            color: #f5c400;
         }}
     """)
+    app.deposit_btn.setMaximumHeight(30)
     app.deposit_btn.clicked.connect(app.send_deposit_goal)
     layout.addWidget(app.deposit_btn)
     
     app.auto_btn = QPushButton("One Cycle Auto")
-    app.auto_btn.setStyleSheet(Styles.blue_button(size=12))
-    app.auto_btn.setMinimumHeight(24)
-    app.auto_btn.setMaximumHeight(26)
+    app.auto_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: #44aaff;
+            border: none;
+            border-top: 2px solid #44aaff;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: #44aaff;
+        }}
+    """)
+    app.auto_btn.setMaximumHeight(30)
     app.auto_btn.clicked.connect(app.send_full_auto_goal)
     layout.addWidget(app.auto_btn)
     
     app.emergency_stop_btn = QPushButton("Emergency Stop")
-    app.emergency_stop_btn.setStyleSheet(Styles.red_button(size=12))
-    app.emergency_stop_btn.setMinimumHeight(24)
-    app.emergency_stop_btn.setMaximumHeight(26)
+    app.emergency_stop_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: #ee2222;
+            border: none;
+            border-top: 2px solid #ee2222;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: #ee2222;
+        }}
+    """)
+    app.emergency_stop_btn.setMaximumHeight(30)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
     app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
@@ -1090,20 +1176,20 @@ class BucketSliderWidget(QWidget):
     _TRAVEL_COLOR   = "#22cc44"
     _EXCAVATE_COLOR = "#ee2222"
 
-    _MAX_POS = 0.0
-    _MIN_POS = -10.5
-    _MID1    = -2.0   # deposit / travel boundary
-    _MID2    = -8.0   # travel / excavate boundary
+    _MAX_POS = 0.0         # 0 rad (deposit)
+    _MIN_POS = 1.5708      # π/2 rad (90 deg, excavation)
+    _MID1    = 0.5236      # π/6 rad (30 deg, deposit ready threshold)
+    _MID2    = 1.309       # 5π/12 rad (75 deg, excavation ready threshold)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._position = -5.25  # default to center of range
+        self._position = 0.7854  # default to center of range (travel position)
         self.setMinimumSize(24, 60)
         self.setMaximumHeight(160)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
     def set_position(self, pos):
-        self._position = max(self._MIN_POS, min(self._MAX_POS, pos))
+        self._position = max(self._MAX_POS, min(self._MIN_POS, pos))
         self.update()
 
     _OVERHANG = 5  # px the indicator line extends past each side of the bar
@@ -1234,20 +1320,69 @@ def create_bucket_led_group(app):
 def create_hardware_group(app):
     group = QGroupBox("Hardware")
     group.setAutoFillBackground(True)
-    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
+    group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_MAIN}; }}")
     layout = QVBoxLayout()
-    layout.setSpacing(4)  # Spacing between buttons
+    layout.setSpacing(0)
     layout.setContentsMargins(4, 4, 4, 4)
     
     can_btn = QPushButton("Start CAN Interface")
-    can_btn.setStyleSheet(Styles.standard_button(size=12))
-    can_btn.setMinimumHeight(32)
+    can_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    can_btn.setMaximumHeight(30)
     can_btn.clicked.connect(app.start_can_interface)
     layout.addWidget(can_btn)
     
+    if app.robot.is_real_mode:
+        app.can_restart_btn = QPushButton("Restart CAN")
+        app.can_restart_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BG_MAIN};
+                color: #ffa500;
+                border: none;
+                border-top: 2px solid #ffa500;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 5px;
+            }}
+            QPushButton:hover {{
+                background-color: #3a3a3a;
+                color: #ffa500;
+            }}
+        """)
+        app.can_restart_btn.setMaximumHeight(30)
+        app.can_restart_btn.clicked.connect(app.restart_can)
+        layout.addWidget(app.can_restart_btn)
+    
     app.hardware_btn = QPushButton("Launch Hardware")
-    app.hardware_btn.setStyleSheet(Styles.standard_button(size=12))
-    app.hardware_btn.setMinimumHeight(32)
+    app.hardware_btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {Colors.BG_MAIN};
+            color: {Colors.STATUS_SUCCESS};
+            border: none;
+            border-top: 2px solid {Colors.STATUS_SUCCESS};
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px;
+        }}
+        QPushButton:hover {{
+            background-color: #3a3a3a;
+            color: {Colors.STATUS_SUCCESS};
+        }}
+    """)
+    app.hardware_btn.setMaximumHeight(30)
     app.hardware_btn.clicked.connect(app.launch_hardware)
     layout.addWidget(app.hardware_btn)
     

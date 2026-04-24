@@ -198,27 +198,6 @@ class LunabotGUI(QMainWindow):
         self.realsense_toggle_btn.clicked.connect(self.toggle_realsense_cameras)
         swappable_layout.addWidget(self.realsense_toggle_btn)
         
-        if self.robot.is_real_mode:
-            self.can_restart_btn = QPushButton("Restart CAN")
-            self.can_restart_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.BG_MAIN};
-                    color: #ffa500;
-                    border: none;
-                    border-top: 2px solid #ffa500;
-                    font-size: 13px;
-                    font-weight: bold;
-                    padding: 5px;
-                }}
-                QPushButton:hover {{
-                    background-color: #3a3a3a;
-                    color: #ffa500;
-                }}
-            """)
-            self.can_restart_btn.setMaximumHeight(30)
-            self.can_restart_btn.clicked.connect(self.restart_can)
-            swappable_layout.addWidget(self.can_restart_btn)
-        
         self.swappable_camera_group = QGroupBox("Front Camera")
         self.swappable_camera_group.setAutoFillBackground(True)
         self.swappable_camera_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -697,7 +676,7 @@ class LunabotGUI(QMainWindow):
         """Restart CAN interface"""
         success = self.robot.restart_can_interface()
         
-        if success:
+        if success and hasattr(self, 'can_restart_btn'):
             self.can_restart_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.BG_MAIN};
