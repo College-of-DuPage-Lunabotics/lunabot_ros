@@ -97,6 +97,13 @@ def generate_launch_description():
             {"publish_rate": 10.0},
         ],
     )
+    
+    encoder_reader_node = Node(
+        package="lunabot_util",
+        executable="encoder_reader.py",
+        name="encoder_reader",
+        output="screen",
+    )
 
     fisheye_rotation = Node(
         package="lunabot_util",
@@ -213,6 +220,7 @@ def generate_launch_description():
         actions_launch,
         controller_teleop_node,
         power_monitor_node,
+        encoder_reader_node,
         fisheye_rotation,
         fisheye_camera,
         apriltag_d456_node,

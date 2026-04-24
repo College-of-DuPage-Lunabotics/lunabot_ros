@@ -198,6 +198,27 @@ class LunabotGUI(QMainWindow):
         self.realsense_toggle_btn.clicked.connect(self.toggle_realsense_cameras)
         swappable_layout.addWidget(self.realsense_toggle_btn)
         
+        if self.robot.is_real_mode:
+            self.can_restart_btn = QPushButton("Restart CAN")
+            self.can_restart_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.BG_MAIN};
+                    color: #ffa500;
+                    border: none;
+                    border-top: 2px solid #ffa500;
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding: 5px;
+                }}
+                QPushButton:hover {{
+                    background-color: #3a3a3a;
+                    color: #ffa500;
+                }}
+            """)
+            self.can_restart_btn.setMaximumHeight(30)
+            self.can_restart_btn.clicked.connect(self.restart_can)
+            swappable_layout.addWidget(self.can_restart_btn)
+        
         self.swappable_camera_group = QGroupBox("Front Camera")
         self.swappable_camera_group.setAutoFillBackground(True)
         self.swappable_camera_group.setStyleSheet(f"QGroupBox {{ background-color: {Colors.BG_BOX}; }}")
@@ -211,7 +232,7 @@ class LunabotGUI(QMainWindow):
         self.swappable_camera_group.setLayout(swappable_camera_layout)
         swappable_layout.addWidget(self.swappable_camera_group)
         
-        self.swap_camera_btn = QPushButton("⇄  Rear Camera")
+        self.swap_camera_btn = QPushButton("Rear Camera")
         self.swap_camera_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BG_MAIN};
@@ -344,7 +365,7 @@ class LunabotGUI(QMainWindow):
         
         edge_tab_layout.addStretch(1)
 
-        self.edge_tab = QPushButton("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
+        self.edge_tab = QPushButton(">\n\nC\nO\nN\nT\nR\nO\nL\nS")
         self.edge_tab.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BG_MAIN};
@@ -375,10 +396,10 @@ class LunabotGUI(QMainWindow):
         self.swappable_camera_showing_front = not self.swappable_camera_showing_front
         if self.swappable_camera_showing_front:
             self.swappable_camera_group.setTitle("Front Camera")
-            self.swap_camera_btn.setText("⇄  Rear Camera")
+            self.swap_camera_btn.setText("Rear Camera")
         else:
             self.swappable_camera_group.setTitle("Rear Camera")
-            self.swap_camera_btn.setText("⇄  Front Camera")
+            self.swap_camera_btn.setText("Front Camera")
     
     def apply_network_config(self):
         self.robot.robot_host = self.robot_host_edit.text()
@@ -392,12 +413,12 @@ class LunabotGUI(QMainWindow):
         self.sidebar_collapsed = not self.sidebar_collapsed
         if self.sidebar_collapsed:
             self.sidebar_widget.hide()
-            self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
+            self.edge_tab.setText("<\n\nC\nO\nN\nT\nR\nO\nL\nS")
             self.sidebar_container.setMinimumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.sidebar_container.setMaximumWidth(SIDEBAR_COLLAPSED_WIDTH)
         else:
             self.sidebar_widget.show()
-            self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
+            self.edge_tab.setText(">\n\nC\nO\nN\nT\nR\nO\nL\nS")
             self.sidebar_container.setMinimumWidth(SIDEBAR_MIN_WIDTH)
             self.sidebar_container.setMaximumWidth(16777215)
     
@@ -671,6 +692,42 @@ class LunabotGUI(QMainWindow):
                     color: #ee2222;
                 }}
             """)
+    
+    def restart_can(self):
+        """Restart CAN interface"""
+        success = self.robot.restart_can_interface()
+        
+        if success:
+            self.can_restart_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.BG_MAIN};
+                    color: {Colors.STATUS_SUCCESS};
+                    border: none;
+                    border-top: 2px solid {Colors.STATUS_SUCCESS};
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding: 5px;
+                }}
+                QPushButton:hover {{
+                    background-color: #3a3a3a;
+                    color: {Colors.STATUS_SUCCESS};
+                }}
+            """)
+            QTimer.singleShot(2000, lambda: self.can_restart_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.BG_MAIN};
+                    color: #ffa500;
+                    border: none;
+                    border-top: 2px solid #ffa500;
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding: 5px;
+                }}
+                QPushButton:hover {{
+                    background-color: #3a3a3a;
+                    color: #ffa500;
+                }}
+            """))
     
     def adjust_speed(self, speed_type, multiplier):
         if speed_type == 'linear':

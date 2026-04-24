@@ -50,6 +50,11 @@ public:
         std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
       });
 
+    encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
+      "bucket_angle", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
+        current_encoder_position_ = msg->data;
+      });
+
     home_offset_publisher_ =
       this->create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
 
@@ -60,17 +65,6 @@ public:
 
 private:
   /**
-   * @brief Gets the position of the left bucket actuator.
-   * @return Left encoder position in radians.
-   */
-  double get_actuator_position()
-  {
-    left_actuator_motor_.Heartbeat();
-    double left_pos = left_actuator_motor_.GetPosition();
-    return left_pos;
-  }
-
-  /**
    * @brief Extends actuators to hard stop and sets zero position.
    * @return true if successful, false if cancelled
    */
@@ -78,7 +72,7 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Extending actuators to hard stop...");
 
-    double previous_position = get_actuator_position();
+    double previous_position = current_encoder_position_;
     auto last_check_time = std::chrono::steady_clock::now();
     auto stall_start_time = std::chrono::steady_clock::now();
     bool is_stalled = false;
@@ -103,7 +97,7 @@ private:
 
       if (elapsed_since_check.count() >= 100)  // Check every 100ms if stalled
       {
-        double current_position = get_actuator_position();
+        double current_position = current_encoder_position_;
         double position_change = std::abs(current_position - previous_position);
 
         if (position_change < position_threshold)
@@ -136,7 +130,7 @@ private:
 
     LOGGER_SUCCESS(this->get_logger(), "Hard stop reached");
 
-    double home_offset = get_actuator_position();
+    double home_offset = current_encoder_position_;
 
     auto msg = std_msgs::msg::Float64();
     msg.data = home_offset;
@@ -154,10 +148,10 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Returning to neutral position...");
 
-    double initial_position = get_actuator_position();
+    double initial_position = current_encoder_position_;
     double target_position = initial_position - travel_pos;
 
-    while (get_actuator_position() > target_position)
+    while (current_encoder_position_ > target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -175,7 +169,7 @@ private:
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    LOGGER_SUCCESS(this->get_logger(), "Travel position reached: %.2f", get_actuator_position());
+    LOGGER_SUCCESS(this->get_logger(), "Travel position reached: %.2f", current_encoder_position_);
     return true;
   }
 
@@ -228,7 +222,9 @@ private:
 
   rclcpp_action::Server<Homing>::SharedPtr action_server_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
 
+  double current_encoder_position_ = 0.0;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
   bool goal_active_ = false;

@@ -49,26 +49,15 @@ public:
         std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
       });
 
-    home_offset_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
-      "actuator_home_offset", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-        home_offset_ = msg->data;
-        LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
+    encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
+      "bucket_angle", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
+        current_encoder_position_ = msg->data;
       });
 
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
 
 private:
-  /**
-   * @brief Gets the position of the left bucket actuator (right encoder not working).
-   * @return Left encoder position in radians.
-   */
-  double get_actuator_position()
-  {
-    left_actuator_motor_.Heartbeat();
-    return left_actuator_motor_.GetPosition() - home_offset_;
-  }
-
   /**
    * @brief Lifts bucket to deposit position.
    * @return true if successful, false if cancelled
@@ -79,7 +68,7 @@ private:
 
     double target_position = deposit_pos;
 
-    while (get_actuator_position() < target_position)
+    while (current_encoder_position_ < target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -96,7 +85,7 @@ private:
 
       LOGGER_INFO(
         this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f",
-        get_actuator_position(), target_position);
+        current_encoder_position_, target_position);
     }
 
     left_actuator_motor_.SetDutyCycle(0.0);
@@ -144,7 +133,7 @@ private:
 
     double target_position = -travel_pos;
 
-    while (get_actuator_position() > target_position)
+    while (current_encoder_position_ > target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -237,9 +226,9 @@ private:
   }
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;
-  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
 
-  double home_offset_ = 0.0;
+  double current_encoder_position_ = 0.0;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
   SparkMax vibration_motor_;

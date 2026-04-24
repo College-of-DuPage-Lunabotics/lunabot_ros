@@ -309,6 +309,33 @@ class RobotInterface:
         
         return self.realsense_enabled
     
+    def restart_can_interface(self):
+        """Restart CAN interface using canable_restart.sh script"""
+        import subprocess
+        import os
+        
+        script_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'scripts', 'canable_restart.sh'
+        )
+        
+        try:
+            self.log.action('Restarting CAN interface...')
+            result = subprocess.run(['bash', script_path], capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                self.log.success('CAN interface restarted successfully')
+                return True
+            else:
+                self.log.failure(f'CAN restart failed: {result.stderr}')
+                return False
+        except subprocess.TimeoutExpired:
+            self.log.failure('CAN restart timed out')
+            return False
+        except Exception as e:
+            self.log.failure(f'Error restarting CAN: {e}')
+            return False
+    
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x
         self.position_y = msg.pose.pose.position.y
@@ -356,8 +383,9 @@ class RobotInterface:
             self.on_robot_state_update()
     
     def _joint_states_callback(self, msg):
+        """Process joint states, only used in simulation mode for bucket position"""
         try:
-            if 'base_bucket_joint' in msg.name:
+            if not self.is_real_mode and 'base_bucket_joint' in msg.name:
                 idx = msg.name.index('base_bucket_joint')
                 if idx < len(msg.position):
                     self.bucket_position = msg.position[idx]

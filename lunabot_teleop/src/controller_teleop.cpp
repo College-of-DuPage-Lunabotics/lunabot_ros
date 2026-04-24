@@ -63,15 +63,15 @@ public:
     home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
       "actuator_home_offset", 10,
       std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
+    encoder_position_subscriber_ = create_subscription<std_msgs::msg::Float64>(
+      "bucket_angle", 10,
+      std::bind(&ControllerTeleop::encoder_position_callback, this, std::placeholders::_1));
 
     manual_mode_publisher_ = create_publisher<std_msgs::msg::Bool>("manual_mode", 10);
     robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
     vibration_duty_cycle_publisher_ =
       create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
     home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
-    actuator_position_publisher_ =
-      create_publisher<std_msgs::msg::Float64>("actuator_position", 10);
-    bucket_angle_publisher_ = create_publisher<std_msgs::msg::Float64>("bucket_angle", 10);
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -125,16 +125,6 @@ private:
   {
     left_actuator_motor_.Heartbeat();
 
-    // Publish actuator position (raw encoder reading offset by home)
-    auto pos_msg = std_msgs::msg::Float64();
-    pos_msg.data = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
-    actuator_position_publisher_->publish(pos_msg);
-
-    // Publish bucket angle (same as actuator position, in radians)
-    auto angle_msg = std_msgs::msg::Float64();
-    angle_msg.data = pos_msg.data;  // Use left actuator encoder reading offset by home
-    bucket_angle_publisher_->publish(angle_msg);
-
     if (robot_disabled_)
     {
       left_wheel_motor_.SetDutyCycle(0.0);
@@ -148,7 +138,7 @@ private:
     if (!manual_enabled_) return;
 
     // Drive wheels with left joystick (invert direction when fisheye camera is at 180 degrees)
-    double drive_sign = camera_inverted_ ? -1.0 : 1.0;
+    double drive_sign = camera_inverted_ ? 1.0 : -1.0;
     left_wheel_motor_.SetDutyCycle(
       speed_multiplier_ * clamp(drive_sign * (left_joystick_y_ - left_joystick_x_)));
     right_wheel_motor_.SetDutyCycle(
@@ -158,8 +148,8 @@ private:
     float actuator_cmd = 0.0;
     if (target_position_active_)
     {
-      double current_angle = left_actuator_motor_.GetPosition() - actuator_zero_offset_;
-      double error = target_position_ - current_angle;
+      // Use encoder position from absolute encoder
+      double error = target_position_ - current_encoder_position_;
 
       // Check if we've reached the target
       if (std::abs(error) < 0.1)
@@ -181,11 +171,6 @@ private:
     left_actuator_motor_.SetDutyCycle(actuator_cmd);
     right_actuator_motor_.SetDutyCycle(actuator_cmd);
 
-    LOGGER_INFO(
-      get_logger(), "Actuator positions - Left: %.6f, Right: %.6f",
-      left_actuator_motor_.GetPosition() - actuator_zero_offset_,
-      right_actuator_motor_.GetPosition() - actuator_zero_offset_);
-
     vibration_motor_.SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
   }
 
@@ -204,7 +189,6 @@ private:
       detect_button_press(msg->buttons[get_button_index(11, 8)], prev_home_button_);
     bool x_pressed = detect_button_press(msg->buttons[get_button_index(5, 2)], prev_x_button_);
     bool y_pressed = detect_button_press(msg->buttons[get_button_index(6, 3)], prev_y_button_);
-    bool a_pressed = detect_button_press(msg->buttons[0], prev_a_button_);
 
     // Plus (+) button enables manual, Minus (-) button enables auto
     bool minus_pressed = detect_button_press(msg->buttons[6], prev_btn6_);
@@ -264,15 +248,6 @@ private:
       LOGGER_INFO(
         get_logger(), "Speed: " YELLOW "%s" RESET " (%.1fx)",
         speed_multiplier_ == 0.9 ? "Turbo" : "Slow", speed_multiplier_);
-    }
-
-    if (a_pressed)
-    {
-      actuator_zero_offset_ = left_actuator_motor_.GetPosition();
-      auto offset_msg = std_msgs::msg::Float64();
-      offset_msg.data = actuator_zero_offset_;
-      home_offset_publisher_->publish(offset_msg);
-      LOGGER_SUCCESS(get_logger(), "Actuator zeroed at position: %.6f", actuator_zero_offset_);
     }
 
     if (dpad_up_pressed)
@@ -366,6 +341,15 @@ private:
   }
 
   /**
+   * @brief Updates current encoder position from encoder_reader.
+   * @param msg Float64 message with encoder position in radians.
+   */
+  void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
+  }
+
+  /**
    * @brief Publishes manual mode, disabled state, and vibration duty cycle.
    */
   void publish_state()
@@ -389,13 +373,12 @@ private:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr actuator_position_publisher_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr bucket_angle_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
@@ -428,6 +411,7 @@ private:
 
   bool target_position_active_ = false;
   double target_position_ = 0.0;
+  double current_encoder_position_ = 0.0;  // Position from absolute encoder
 };
 
 /**
