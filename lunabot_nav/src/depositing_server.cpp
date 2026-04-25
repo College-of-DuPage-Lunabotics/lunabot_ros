@@ -39,6 +39,8 @@ public:
     left_actuator_motor_("can0", 2),
     vibration_motor_("can0", 4)
   {
+    encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
     action_server_ = rclcpp_action::create_server<Depositing>(
       this, "depositing_action",
       [this](const auto &, const auto &) {
@@ -49,9 +51,13 @@ public:
         std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
       });
 
+    auto sub_options = rclcpp::SubscriptionOptions();
+    sub_options.callback_group = encoder_callback_group_;
+
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
       "bucket_angle", 10,
-      std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1));
+      std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1),
+      sub_options);
 
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
@@ -224,10 +230,6 @@ private:
     goal_active_ = false;
   }
 
-  /**
-   * @brief Updates current encoder position from encoder_reader.
-   * @param msg Float64 message with encoder position in radians.
-   */
   void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
   {
     current_encoder_position_ = msg->data;
@@ -235,6 +237,7 @@ private:
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
   SparkMax left_actuator_motor_;
@@ -243,14 +246,15 @@ private:
   bool goal_active_ = false;
 };
 
-/**
- * @brief Main function.
- * Initializes and runs the DepositingServer node.
- */
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DepositingServer>());
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<DepositingServer>();
+  executor.add_node(node);
+  executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }

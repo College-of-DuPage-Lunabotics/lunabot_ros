@@ -50,6 +50,8 @@ public:
     left_wheel_motor_("can0", 1),
     vibration_motor_("can0", 4)
   {
+    encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
     action_server_ = rclcpp_action::create_server<Excavation>(
       this, "excavation_action",
       [this](const auto &, const auto &) {
@@ -62,9 +64,13 @@ public:
 
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
+    auto sub_options = rclcpp::SubscriptionOptions();
+    sub_options.callback_group = encoder_callback_group_;
+
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
       "bucket_angle", 10,
-      std::bind(&ExcavationServer::encoder_position_callback, this, std::placeholders::_1));
+      std::bind(&ExcavationServer::encoder_position_callback, this, std::placeholders::_1),
+      sub_options);
 
     LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
   }
@@ -135,7 +141,6 @@ private:
     {
       if (goal_handle->is_canceling())
       {
-        // Stop all motion immediately
         right_wheel_motor_.SetDutyCycle(0.0);
         left_wheel_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
@@ -143,14 +148,12 @@ private:
         return false;
       }
 
-      // Drive forward with vibration to help break up material
       vibration_motor_.Heartbeat();
       right_wheel_motor_.SetDutyCycle(-1.0);
       left_wheel_motor_.SetDutyCycle(1.0);
       vibration_motor_.SetDutyCycle(1.0);
     }
 
-    // Stop all motion after driving forward
     vibration_motor_.Heartbeat();
     right_wheel_motor_.SetDutyCycle(0.0);
     left_wheel_motor_.SetDutyCycle(0.0);
@@ -170,7 +173,6 @@ private:
 
     double target_position = travel_pos;
 
-    // Turn on vibration while lifting to help settle material in bucket
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
@@ -178,14 +180,12 @@ private:
     {
       if (goal_handle->is_canceling())
       {
-        // Stop all motion immediately
         left_actuator_motor_.SetDutyCycle(0.0);
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         return false;
       }
 
-      // Lift bucket
       vibration_motor_.Heartbeat();
 
       double error = target_position - current_encoder_position_;
@@ -200,7 +200,6 @@ private:
       }
     }
 
-    // Stop all motion after lifting
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.0);
     left_actuator_motor_.SetDutyCycle(0.0);
@@ -285,10 +284,6 @@ private:
     goal_active_ = false;
   }
 
-  /**
-   * @brief Updates current encoder position from encoder_reader.
-   * @param msg Float64 message with encoder position in radians.
-   */
   void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
   {
     current_encoder_position_ = msg->data;
@@ -297,6 +292,7 @@ private:
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
   bool goal_active_ = false;
@@ -307,14 +303,15 @@ private:
   SparkMax vibration_motor_;
 };
 
-/**
- * @brief Main function.
- * Initializes and runs the ExcavationServer node.
- */
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<ExcavationServer>());
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<ExcavationServer>();
+  executor.add_node(node);
+  executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }
