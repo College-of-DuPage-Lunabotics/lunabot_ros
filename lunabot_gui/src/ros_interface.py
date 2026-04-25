@@ -17,7 +17,7 @@ from sensor_msgs.msg import CompressedImage, JointState
 from std_msgs.msg import Bool, Float32, Float64MultiArray
 
 from lunabot_logger import Logger
-from lunabot_msgs.action import Depositing, Excavation, Homing
+from lunabot_msgs.action import Depositing, Excavation
 from lunabot_msgs.msg import ControlState, PowerMonitor
 from lunabot_msgs.srv import LaunchSystem, StopSystem
 
@@ -143,7 +143,6 @@ class RobotInterface:
         self.robot_mode = "MANUAL"
         self.is_excavating = False
         self.is_depositing = False
-        self.is_homing = False
         self.is_navigating = False
         self.robot_disabled = False
         self.vibration_state = False
@@ -162,11 +161,9 @@ class RobotInterface:
         # Action clients and goal handles
         self.excavation_client = ActionClient(self.node, Excavation, 'excavation_action')
         self.depositing_client = ActionClient(self.node, Depositing, 'depositing_action')
-        self.homing_client = ActionClient(self.node, Homing, 'homing_action')
         
         self.excavation_goal_handle = None
         self.depositing_goal_handle = None
-        self.homing_goal_handle = None
         self.navigation_client_process = None
         
         self.emergency_stop_pub = self.node.create_publisher(Bool, '/emergency_stop', 10)
@@ -813,34 +810,6 @@ class RobotInterface:
             cancel_future.add_done_callback(cancel_callback)
         else:
             self.log.warning('No active depositing goal to cancel')
-            # Still call the callback to reset GUI state
-            cancel_callback(None)
-    
-    def send_home_goal(self, response_callback, result_callback, cancel_callback):
-        """Send homing action goal"""
-        self.log.action('Sending home goal')
-        goal_msg = Homing.Goal()
-        send_goal_future = self.homing_client.send_goal_async(goal_msg)
-        send_goal_future.add_done_callback(
-            lambda future: self._handle_home_response(future, response_callback, result_callback))
-        return send_goal_future
-    
-    def _handle_home_response(self, future, response_callback, result_callback):
-        goal_handle = future.result()
-        self.homing_goal_handle = goal_handle
-        response_callback(goal_handle)
-        if goal_handle.accepted:
-            get_result_future = goal_handle.get_result_async()
-            get_result_future.add_done_callback(result_callback)
-    
-    def cancel_home_goal(self, cancel_callback):
-        """Cancel homing action"""
-        if self.homing_goal_handle is not None and self.homing_goal_handle.accepted:
-            self.log.action('Canceling homing goal')
-            cancel_future = self.homing_goal_handle.cancel_goal_async()
-            cancel_future.add_done_callback(cancel_callback)
-        else:
-            self.log.warning('No active homing goal to cancel')
             # Still call the callback to reset GUI state
             cancel_callback(None)
     

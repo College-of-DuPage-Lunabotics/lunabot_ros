@@ -20,7 +20,7 @@ world_files = {
 ### Component Launch Files
 These are launched individually via GUI buttons or for specific subsystems:
 - **hardware_launch.py**: Launches hardware drivers, cameras, LiDAR, and controller input for real robot
-- **actions_launch.py**: Launches action servers for excavation, dumping, and homing operations
+- **actions_launch.py**: Launches action servers for excavation and dumping operations
 - **pointlio_launch.py**: Launches Point-LIO SLAM system
 - **mapping_launch.py**: Launches RTAB-Map for dense 3D mapping
 - **nav2_stack_launch.py**: Launches Nav2 navigation stack

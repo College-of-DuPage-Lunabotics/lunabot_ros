@@ -21,8 +21,8 @@
 static constexpr double wheel_radius = 0.095;
 static constexpr double wheel_base = 0.53;
 
-static constexpr double deposit_ready_pos = 0.5236;
-static constexpr double excavation_ready_pos = 1.309;
+static constexpr double deposit_ready_pos = 0.6;
+static constexpr double excavation_ready_pos = 1.4;
 
 /**
  * @class ControllerTeleop
@@ -60,9 +60,6 @@ public:
     camera_position_subscriber_ = create_subscription<std_msgs::msg::Float64MultiArray>(
       "/camera_controller/commands", 10,
       std::bind(&ControllerTeleop::camera_position_callback, this, std::placeholders::_1));
-    home_offset_subscriber_ = create_subscription<std_msgs::msg::Float64>(
-      "actuator_home_offset", 10,
-      std::bind(&ControllerTeleop::home_offset_callback, this, std::placeholders::_1));
     encoder_position_subscriber_ = create_subscription<std_msgs::msg::Float64>(
       "bucket_angle", 10,
       std::bind(&ControllerTeleop::encoder_position_callback, this, std::placeholders::_1));
@@ -71,7 +68,6 @@ public:
     robot_disabled_publisher_ = create_publisher<std_msgs::msg::Bool>("robot_disabled", 10);
     vibration_duty_cycle_publisher_ =
       create_publisher<std_msgs::msg::Float32>("vibration_duty_cycle", 10);
-    home_offset_publisher_ = create_publisher<std_msgs::msg::Float64>("actuator_home_offset", 10);
     camera_position_publisher_ =
       create_publisher<std_msgs::msg::Float64MultiArray>("/camera_controller/commands", 10);
 
@@ -161,8 +157,8 @@ private:
         LOGGER_SUCCESS(get_logger(), "Reached target bucket position: %.3f rad", target_position_);
       } else
       {
-        // Move towards target with proportional control
-        actuator_cmd = std::clamp(error * 2.0, -1.0, 1.0);
+        // Move towards target at max speed
+        actuator_cmd = (error > 0) ? 1.0 : -1.0;
       }
     } else
     {
@@ -272,20 +268,29 @@ private:
         get_logger(), "Moving to excavation bucket position: %.3f rad", excavation_ready_pos);
     }
 
-    // D-pad left/right to set camera servo to 0 or 180 degrees
-    double target_angle_deg = (msg->axes[6] < 0) ? 0.0 : 180.0;
-    double target_angle_rad = target_angle_deg * M_PI / 180.0;
-
-    // Only publish if position changed
-    if (std::abs(current_servo_position_ - target_angle_rad) > 0.01)
+    // D-pad left/right to toggle camera servo between 0 and 180 degrees
+    if (dpad_left_pressed)
     {
+      double target_angle_rad = 0.0;  // 0 degrees
       current_servo_position_ = target_angle_rad;
 
       auto servo_msg = std_msgs::msg::Float64MultiArray();
       servo_msg.data.push_back(target_angle_rad);
       camera_position_publisher_->publish(servo_msg);
 
-      LOGGER_INFO(get_logger(), "Servo position: %.0f°", target_angle_deg);
+      LOGGER_INFO(get_logger(), "Servo position: 0°");
+    }
+
+    if (dpad_right_pressed)
+    {
+      double target_angle_rad = M_PI;  // 180 degrees
+      current_servo_position_ = target_angle_rad;
+
+      auto servo_msg = std_msgs::msg::Float64MultiArray();
+      servo_msg.data.push_back(target_angle_rad);
+      camera_position_publisher_->publish(servo_msg);
+
+      LOGGER_INFO(get_logger(), "Servo position: 180°");
     }
   }
 
@@ -354,16 +359,6 @@ private:
   }
 
   /**
-   * @brief Updates the actuator zero offset.
-   * @param msg Float64 message with the new offset value.
-   */
-  void home_offset_callback(const std_msgs::msg::Float64::SharedPtr msg)
-  {
-    actuator_zero_offset_ = msg->data;
-    LOGGER_SUCCESS(get_logger(), "Actuator offset updated: %.6f", actuator_zero_offset_);
-  }
-
-  /**
    * @brief Updates current encoder position from encoder_reader.
    * @param msg Float64 message with encoder position in radians.
    */
@@ -395,13 +390,11 @@ private:
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr emergency_stop_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr mode_switch_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_subscriber_;
-  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
 
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr manual_mode_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
-  rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr home_offset_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_publisher_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
@@ -430,7 +423,6 @@ private:
   bool prev_btn_plus__ = false;
 
   float speed_multiplier_ = 0.6f;
-  double actuator_zero_offset_ = 0.0;
   double left_joystick_x_ = 0.0;
   double left_joystick_y_ = 0.0;
   double right_joystick_y_ = 0.0;

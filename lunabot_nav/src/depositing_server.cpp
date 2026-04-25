@@ -50,9 +50,8 @@ public:
       });
 
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
-      "bucket_angle", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-        current_encoder_position_ = msg->data;
-      });
+      "bucket_angle", 10,
+      std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1));
 
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
@@ -60,7 +59,7 @@ public:
 private:
   /**
    * @brief Lifts bucket to deposit position.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lift_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
@@ -125,7 +124,7 @@ private:
 
   /**
    * @brief Lowers bucket back to travel position.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lower_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
@@ -185,9 +184,9 @@ private:
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         result->success = false;
-        result->message = "Depositing cancelled";
+        result->message = "Depositing canceled";
         goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        LOGGER_WARN(this->get_logger(), "Depositing canceled");
         goal_active_ = false;
         return;
       }
@@ -200,9 +199,9 @@ private:
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         result->success = false;
-        result->message = "Depositing cancelled";
+        result->message = "Depositing canceled";
         goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        LOGGER_WARN(this->get_logger(), "Depositing canceled");
         goal_active_ = false;
         return;
       }
@@ -223,6 +222,15 @@ private:
     }
 
     goal_active_ = false;
+  }
+
+  /**
+   * @brief Updates current encoder position from encoder_reader.
+   * @param msg Float64 message with encoder position in radians.
+   */
+  void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
   }
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;

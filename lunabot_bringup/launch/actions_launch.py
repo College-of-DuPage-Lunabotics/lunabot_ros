@@ -30,13 +30,6 @@ def generate_launch_description():
                 output="screen",
                 parameters=[{"use_sim_time": True}],
             ),
-            Node(
-                package="lunabot_nav",
-                executable="homing_server_sim",
-                name="homing_server",
-                output="screen",
-                parameters=[{"use_sim_time": True}],
-            ),
         ],
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
@@ -55,13 +48,6 @@ def generate_launch_description():
                 package="lunabot_nav",
                 executable="depositing_server",
                 name="depositing_server",
-                output="screen",
-                parameters=[{"use_sim_time": False}],
-            ),
-            Node(
-                package="lunabot_nav",
-                executable="homing_server",
-                name="homing_server",
                 output="screen",
                 parameters=[{"use_sim_time": False}],
             ),

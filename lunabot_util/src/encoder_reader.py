@@ -19,17 +19,12 @@ class EncoderReader(Node):
         self.log = Logger(self)
 
         self.declare_parameter('can_interface', 'can0')
-        self.declare_parameter('home_offset', 3.11)  # Preset home offset (deposit position)
         
         self.can_interface = self.get_parameter('can_interface').value
-        self.home_offset = self.get_parameter('home_offset').value
+        self.home_offset = 3.1  # Calibrated home position offset
 
         self.actuator_position_pub = self.create_publisher(Float64, 'actuator_position', 10)
         self.bucket_angle_pub = self.create_publisher(Float64, 'bucket_angle', 10)
-        
-        # Subscribe to home offset updates from homing server
-        self.home_offset_sub = self.create_subscription(
-            Float64, 'actuator_home_offset', self.home_offset_callback, 10)
 
         if not self.init_can():
             self.log.failure('Failed to initialize CAN interface')
@@ -60,11 +55,6 @@ class EncoderReader(Node):
         except Exception as e:
             self.log.warning(f'Error receiving CAN frame: {e}')
             return None, None
-
-    def home_offset_callback(self, msg):
-        """Update home offset when homing procedure is run"""
-        self.home_offset = msg.data
-        self.log.success(f'Home offset updated: {self.home_offset:.6f} rad')
 
     def update_loop(self):
         """Main update loop, receives and publishes encoder position"""

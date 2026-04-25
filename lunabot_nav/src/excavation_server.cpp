@@ -23,7 +23,7 @@
 #include <memory>
 #include <thread>
 
-static constexpr double excavation_pos = 1.5708;
+static constexpr double excavation_pos = 1.5;
 static constexpr double travel_pos = 0.7854;
 static constexpr int forward_seconds = 5;
 
@@ -63,9 +63,8 @@ public:
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
-      "bucket_angle", 10, [this](const std_msgs::msg::Float64::SharedPtr msg) {
-        current_encoder_position_ = msg->data;
-      });
+      "bucket_angle", 10,
+      std::bind(&ExcavationServer::encoder_position_callback, this, std::placeholders::_1));
 
     LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
   }
@@ -73,7 +72,7 @@ public:
 private:
   /**
    * @brief Lowers bucket for excavation.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lower_bucket(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
@@ -84,7 +83,7 @@ private:
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.5);
 
-    while (current_encoder_position_ < target_position)
+    while (std::abs(target_position - current_encoder_position_) > 0.1)
     {
       if (goal_handle->is_canceling())
       {
@@ -95,8 +94,17 @@ private:
       }
 
       left_actuator_motor_.Heartbeat();
-      left_actuator_motor_.SetDutyCycle(1.0);
-      right_actuator_motor_.SetDutyCycle(1.0);
+
+      double error = target_position - current_encoder_position_;
+      if (error > 0)
+      {
+        left_actuator_motor_.SetDutyCycle(1.0);
+        right_actuator_motor_.SetDutyCycle(1.0);
+      } else
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+      }
     }
 
     left_actuator_motor_.Heartbeat();
@@ -113,7 +121,7 @@ private:
 
   /**
    * @brief Drives robot forward to excavate material.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool drive_forward(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
@@ -131,7 +139,7 @@ private:
         right_wheel_motor_.SetDutyCycle(0.0);
         left_wheel_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
-        LOGGER_WARN(this->get_logger(), "Drive forward cancelled");
+        LOGGER_WARN(this->get_logger(), "Drive forward canceled");
         return false;
       }
 
@@ -154,7 +162,7 @@ private:
 
   /**
    * @brief Lifts bucket up after excavation.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lift_bucket(const std::shared_ptr<GoalHandleExcavation> goal_handle)
   {
@@ -166,7 +174,7 @@ private:
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
-    while (current_encoder_position_ > target_position)
+    while (std::abs(target_position - current_encoder_position_) > 0.1)
     {
       if (goal_handle->is_canceling())
       {
@@ -179,8 +187,17 @@ private:
 
       // Lift bucket
       vibration_motor_.Heartbeat();
-      left_actuator_motor_.SetDutyCycle(-1.0);
-      right_actuator_motor_.SetDutyCycle(-1.0);
+
+      double error = target_position - current_encoder_position_;
+      if (error < 0)
+      {
+        left_actuator_motor_.SetDutyCycle(-1.0);
+        right_actuator_motor_.SetDutyCycle(-1.0);
+      } else
+      {
+        left_actuator_motor_.SetDutyCycle(0.0);
+        right_actuator_motor_.SetDutyCycle(0.0);
+      }
     }
 
     // Stop all motion after lifting
@@ -224,9 +241,9 @@ private:
       right_actuator_motor_.SetDutyCycle(0.0);
       vibration_motor_.SetDutyCycle(0.0);
       result->success = false;
-      result->message = "Excavation cancelled";
+      result->message = "Excavation canceled";
       goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Excavation cancelled during lower_bucket");
+      LOGGER_WARN(this->get_logger(), "Excavation canceled during lower_bucket");
       goal_active_ = false;
       return;
     }
@@ -239,9 +256,9 @@ private:
       left_wheel_motor_.SetDutyCycle(0.0);
       vibration_motor_.SetDutyCycle(0.0);
       result->success = false;
-      result->message = "Excavation cancelled";
+      result->message = "Excavation canceled";
       goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Excavation cancelled during drive_forward");
+      LOGGER_WARN(this->get_logger(), "Excavation canceled during drive_forward");
       goal_active_ = false;
       return;
     }
@@ -254,9 +271,9 @@ private:
       right_actuator_motor_.SetDutyCycle(0.0);
       vibration_motor_.SetDutyCycle(0.0);
       result->success = false;
-      result->message = "Excavation cancelled";
+      result->message = "Excavation canceled";
       goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Excavation cancelled during lift_bucket");
+      LOGGER_WARN(this->get_logger(), "Excavation canceled during lift_bucket");
       goal_active_ = false;
       return;
     }
@@ -266,6 +283,15 @@ private:
     goal_handle->succeed(result);
     LOGGER_SUCCESS(this->get_logger(), "Excavation completed successfully");
     goal_active_ = false;
+  }
+
+  /**
+   * @brief Updates current encoder position from encoder_reader.
+   * @param msg Float64 message with encoder position in radians.
+   */
+  void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
   }
 
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;

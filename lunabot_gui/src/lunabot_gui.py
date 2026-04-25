@@ -619,48 +619,6 @@ class LunabotGUI(QMainWindow):
         self.operation_status_label.setText("Status: Depositing canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
-    def send_home_goal(self):
-        if self.robot.is_homing:
-            self.robot.node.get_logger().info('Canceling homing')
-            self.robot.cancel_home_goal(self.home_cancel_callback)
-        else:
-            self.robot.is_homing = True
-            self.operation_status_label.setText("Status: Homing...")
-            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
-            self.robot.send_home_goal(
-                self.home_goal_response_callback,
-                self.home_result_callback,
-                self.home_cancel_callback
-            )
-    
-    def home_goal_response_callback(self, goal_handle):
-        if not goal_handle.accepted:
-            self.robot.node.get_logger().error('Home goal rejected')
-            self.robot.is_homing = False
-            self.operation_status_label.setText("Status: Goal rejected")
-            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
-        else:
-            self.robot.node.get_logger().info('Home goal accepted')
-    
-    def home_result_callback(self, future):
-        result = future.result().result
-        self.robot.is_homing = False
-        
-        if result.success:
-            self.robot.node.get_logger().info(f'Homing completed: {result.message}')
-            self.operation_status_label.setText(f"Status: {result.message}")
-            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
-        else:
-            self.robot.node.get_logger().error(f'Homing failed: {result.message}')
-            self.operation_status_label.setText(f"Status: Failed - {result.message}")
-            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
-    
-    def home_cancel_callback(self, future):
-        self.robot.node.get_logger().info('Homing canceled')
-        self.robot.is_homing = False
-        self.operation_status_label.setText("Status: Homing canceled")
-        self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
-    
     def emergency_stop(self):
         if not self.emergency_stopped:
             self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED!')
@@ -672,8 +630,6 @@ class LunabotGUI(QMainWindow):
                 self.robot.cancel_excavate_goal(lambda f: None)
             if self.robot.is_depositing:
                 self.robot.cancel_deposit_goal(lambda f: None)
-            if self.robot.is_homing:
-                self.robot.cancel_home_goal(lambda f: None)
             if self.full_auto_active:
                 self.robot.stop_navigation_client()
                 self.full_auto_active = False
@@ -734,7 +690,7 @@ class LunabotGUI(QMainWindow):
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             return
         
-        if self.robot.is_excavating or self.robot.is_depositing or self.robot.is_homing:
+        if self.robot.is_excavating or self.robot.is_depositing:
             self.robot.node.get_logger().warning('Operation already in progress')
             return
         
@@ -937,14 +893,14 @@ class LunabotGUI(QMainWindow):
             self.hardware_btn.setText("Stop Hardware" if self.robot.launch_processes.get('hardware') else "Launch Hardware")
         
         if self.robot.robot_disabled:
-            self.status_label.setText("Robot: DISABLED")
-            self.status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
+            self.operation_status_label.setText("Robot: DISABLED")
+            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
             self.excavate_btn.setEnabled(False)
             self.deposit_btn.setEnabled(False)
             self.auto_btn.setEnabled(False)
         else:
-            self.status_label.setText("Active")
-            self.status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
+            self.operation_status_label.setText("Active")
+            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
             if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
                 self.excavate_btn.setEnabled(True)
                 self.deposit_btn.setEnabled(True)
