@@ -268,8 +268,6 @@ class RobotInterface:
             np_arr = np.frombuffer(msg.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             setattr(self, attr_name, cv_image)
-            if self.on_camera_update:
-                self.on_camera_update(camera_name, cv_image)
         except Exception as e:
             self.log.failure(f'{camera_name.capitalize()} camera error: {e}')
     

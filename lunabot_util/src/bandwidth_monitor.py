@@ -14,8 +14,8 @@ class BandwidthMonitor(Node):
         super().__init__("bandwidth_monitor")
         self.log = Logger(self)
 
-        self.declare_parameter("interface", "auto")  # 'auto' or specific like 'eth0'
-        self.declare_parameter("update_rate", 1.0)  # Hz
+        self.declare_parameter("interface", "auto")
+        self.declare_parameter("update_rate", 0.5)
 
         interface = self.get_parameter("interface").value
         update_rate = self.get_parameter("update_rate").value

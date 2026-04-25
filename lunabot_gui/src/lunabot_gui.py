@@ -45,9 +45,9 @@ TELEOP_BUCKET_LIMIT_MIN      = -1.57  # rad (down)
 TELEOP_BUCKET_LIMIT_MAX      = 0.1    # rad (up)
 
 # --- Timer Intervals ---
-ROS_SPIN_INTERVAL_MS = 10      # 100 Hz for ROS callbacks
-UI_UPDATE_INTERVAL_MS = 100    # 10 Hz for UI stats
-CAMERA_UPDATE_INTERVAL_MS = 66 # 15 Hz for camera displays
+ROS_SPIN_INTERVAL_MS = 10
+UI_UPDATE_INTERVAL_MS = 100
+CAMERA_UPDATE_INTERVAL_MS = 100
 
 # --- Bandwidth Thresholds ---
 BANDWIDTH_MAX_MBPS           = 4.0
@@ -623,7 +623,7 @@ class LunabotGUI(QMainWindow):
         if not self.emergency_stopped:
             self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED!')
             self.robot.publish_emergency_stop()
-            self.operation_status_label.setText("Status: EMERGENCY STOP")
+            self.operation_status_label.setText("Status: Emergency Stop")
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
 
             if self.robot.is_excavating:
@@ -686,7 +686,7 @@ class LunabotGUI(QMainWindow):
             self.robot.stop_navigation_client()
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
-            self.operation_status_label.setText("Status: One cycle auto stopped")
+            self.operation_status_label.setText("Status: One Cycle Auto Stopped")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             return
         
@@ -870,7 +870,7 @@ class LunabotGUI(QMainWindow):
     def handle_robot_state_update(self):
         if hasattr(self, 'mode_label') and self.robot.is_real_mode:
             is_manual = (self.robot.robot_mode == "MANUAL")
-            display_text = "Manual" if is_manual else "AUTO"
+            display_text = "Manual" if is_manual else "Auto"
             self.mode_label.setText(display_text)
             
             if is_manual:
@@ -893,13 +893,13 @@ class LunabotGUI(QMainWindow):
             self.hardware_btn.setText("Stop Hardware" if self.robot.launch_processes.get('hardware') else "Launch Hardware")
         
         if self.robot.robot_disabled:
-            self.operation_status_label.setText("Robot: DISABLED")
+            self.operation_status_label.setText("Status: Disabled")
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
             self.excavate_btn.setEnabled(False)
             self.deposit_btn.setEnabled(False)
             self.auto_btn.setEnabled(False)
         else:
-            self.operation_status_label.setText("Active")
+            self.operation_status_label.setText("Status: Active")
             self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
             if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
                 self.excavate_btn.setEnabled(True)
@@ -1014,7 +1014,7 @@ class LunabotGUI(QMainWindow):
         new_width = int(width * scale)
         new_height = int(height * scale)
         
-        resized = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+        resized = cv2.resize(cv_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
         rgb_image = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         
         h, w, ch = rgb_image.shape
@@ -1137,6 +1137,14 @@ class LunabotGUI(QMainWindow):
                 html_message = self.ansi_to_html(message)
             
             self.terminal_text.append(html_message)
+            
+            doc = self.terminal_text.document()
+            if doc.blockCount() > 500:
+                cursor = self.terminal_text.textCursor()
+                cursor.movePosition(cursor.Start)
+                cursor.movePosition(cursor.Down, cursor.KeepAnchor, doc.blockCount() - 500)
+                cursor.removeSelectedText()
+            
             # Auto-scroll to bottom
             self.terminal_text.verticalScrollBar().setValue(
                 self.terminal_text.verticalScrollBar().maximum()

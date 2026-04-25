@@ -26,7 +26,7 @@ class PowerMonitorNode(Node):
 
         self.declare_parameter('serial_port', '/dev/ttyACM0')
         self.declare_parameter('baud_rate', 9600)
-        self.declare_parameter('publish_rate', 10.0)  # Hz
+        self.declare_parameter('publish_rate', 5.0)  # Hz
 
         serial_port = self.get_parameter('serial_port').value
         baud_rate = self.get_parameter('baud_rate').value
