@@ -325,19 +325,26 @@ private:
 
   /**
    * @brief Immediately stops all motors on emergency stop.
-   * @param msg Bool message; true triggers the stop.
+   * @param msg Bool message; true triggers the stop, false re-enables.
    */
   void emergency_stop_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
-    if (!msg->data) return;
-
-    robot_disabled_ = true;
-    LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
-    left_wheel_motor_.SetDutyCycle(0.0);
-    right_wheel_motor_.SetDutyCycle(0.0);
-    left_actuator_motor_.SetDutyCycle(0.0);
-    right_actuator_motor_.SetDutyCycle(0.0);
-    vibration_motor_.SetDutyCycle(0.0);
+    if (msg->data)
+    {
+      // Emergency stop triggered
+      robot_disabled_ = true;
+      LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
+      left_wheel_motor_.SetDutyCycle(0.0);
+      right_wheel_motor_.SetDutyCycle(0.0);
+      left_actuator_motor_.SetDutyCycle(0.0);
+      right_actuator_motor_.SetDutyCycle(0.0);
+      vibration_motor_.SetDutyCycle(0.0);
+    } else
+    {
+      // Re-enable robot
+      robot_disabled_ = false;
+      LOGGER_INFO(get_logger(), GREEN "Robot re-enabled from emergency stop" RESET);
+    }
     publish_state();
   }
 

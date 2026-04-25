@@ -73,7 +73,7 @@ private:
 
     double target_position = deposit_pos;
 
-    while (current_encoder_position_ > target_position)
+    while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
@@ -83,14 +83,11 @@ private:
       }
 
       left_actuator_motor_.Heartbeat();
-      right_actuator_motor_.Heartbeat();
 
       left_actuator_motor_.SetDutyCycle(-1.0);
       right_actuator_motor_.SetDutyCycle(-1.0);
 
-      LOGGER_INFO(
-        this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f",
-        current_encoder_position_, target_position);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     left_actuator_motor_.SetDutyCycle(0.0);
@@ -123,6 +120,8 @@ private:
         vibration_motor_.Heartbeat();
         vibration_motor_.SetDutyCycle(0.0);
       }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     return true;
@@ -138,7 +137,7 @@ private:
 
     double target_position = travel_pos;
 
-    while (current_encoder_position_ < target_position)
+    while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
@@ -150,6 +149,8 @@ private:
       left_actuator_motor_.Heartbeat();
       left_actuator_motor_.SetDutyCycle(1.0);
       right_actuator_motor_.SetDutyCycle(1.0);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     left_actuator_motor_.SetDutyCycle(0.0);

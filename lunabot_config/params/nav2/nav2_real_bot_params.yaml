@@ -270,6 +270,22 @@ planner_server:
       max_planning_time: 1.0
       cost_travel_multiplier: 5.0
       use_final_approach_orientation: false
+      # Robot configuration for collision checking
+      # Using approximate circular radius based on 0.8m x 0.8m footprint
+      max_planning_time: 3.5
+      motion_model_for_search: "DUBIN"
+      angle_quantization_bins: 72
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_length: 3.0
+      minimum_turning_radius: 0.40
+      reverse_penalty: 2.0
+      change_penalty: 0.0
+      non_straight_penalty: 1.2
+      cost_penalty: 2.0
+      retrospective_penalty: 0.015
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: false
+      smooth_path: true
       smoother:
         max_iterations: 5000
         w_smooth: 0.3

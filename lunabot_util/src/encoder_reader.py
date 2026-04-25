@@ -30,7 +30,7 @@ class EncoderReader(Node):
             self.log.failure('Failed to initialize CAN interface')
             raise RuntimeError('CAN initialization failed')
 
-        self.timer = self.create_timer(0.1, self.update_loop)
+        self.timer = self.create_timer(0.005, self.update_loop)
         self.log.success(f'Encoder reader initialized on {self.can_interface} (home offset: {self.home_offset:.2f} rad)')
 
     def init_can(self):

@@ -89,7 +89,7 @@ private:
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(0.5);
 
-    while (std::abs(target_position - current_encoder_position_) > 0.1)
+    while (std::abs(target_position - current_encoder_position_) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
@@ -101,16 +101,10 @@ private:
 
       left_actuator_motor_.Heartbeat();
 
-      double error = target_position - current_encoder_position_;
-      if (error > 0)
-      {
-        left_actuator_motor_.SetDutyCycle(1.0);
-        right_actuator_motor_.SetDutyCycle(1.0);
-      } else
-      {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-      }
+      left_actuator_motor_.SetDutyCycle(1.0);
+      right_actuator_motor_.SetDutyCycle(1.0);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     left_actuator_motor_.Heartbeat();
@@ -152,6 +146,8 @@ private:
       right_wheel_motor_.SetDutyCycle(-1.0);
       left_wheel_motor_.SetDutyCycle(1.0);
       vibration_motor_.SetDutyCycle(1.0);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     vibration_motor_.Heartbeat();
@@ -176,7 +172,7 @@ private:
     vibration_motor_.Heartbeat();
     vibration_motor_.SetDutyCycle(1.0);
 
-    while (std::abs(target_position - current_encoder_position_) > 0.1)
+    while (std::abs(target_position - current_encoder_position_) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
@@ -186,18 +182,12 @@ private:
         return false;
       }
 
-      vibration_motor_.Heartbeat();
+      left_actuator_motor_.Heartbeat();
 
-      double error = target_position - current_encoder_position_;
-      if (error < 0)
-      {
-        left_actuator_motor_.SetDutyCycle(-1.0);
-        right_actuator_motor_.SetDutyCycle(-1.0);
-      } else
-      {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-      }
+      left_actuator_motor_.SetDutyCycle(-1.0);
+      right_actuator_motor_.SetDutyCycle(-1.0);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     vibration_motor_.Heartbeat();
