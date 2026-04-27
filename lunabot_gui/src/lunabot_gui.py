@@ -413,8 +413,6 @@ class LunabotGUI(QMainWindow):
 
         hardware_group = ui_widgets.create_hardware_group(self)
         sidebar_layout.addWidget(hardware_group)
-        if not self.robot.is_real_mode:
-            hardware_group.setEnabled(False)
         
         system_group = ui_widgets.create_launch_group(self)
         sidebar_layout.addWidget(system_group)

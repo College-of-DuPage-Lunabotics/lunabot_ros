@@ -1028,8 +1028,7 @@ def create_hardware_group(app):
     layout.setSpacing(6)
     layout.setContentsMargins(4, 8, 4, 4)
     
-    can_btn = QPushButton("Start CAN Interface")
-    can_btn.setStyleSheet(f"""
+    button_style = f"""
         QPushButton {{
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
             color: {Colors.TEXT_MAIN};
@@ -1047,57 +1046,31 @@ def create_hardware_group(app):
             background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
             border: 1px solid #2e2e2e;
         }}
-    """)
-    can_btn.setMaximumHeight(32)
-    can_btn.clicked.connect(app.start_can_interface)
-    layout.addWidget(can_btn)
+        QPushButton:disabled {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e1e1e, stop:1 #1a1a1a);
+            color: #505050;
+            border: 1px solid #2e2e2e;
+        }}
+    """
     
-    if app.robot.is_real_mode:
-        app.can_restart_btn = QPushButton("Restart CAN")
-        app.can_restart_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
-                color: {Colors.TEXT_MAIN};
-                border: 1px solid #3e3e3e;
-                border-radius: 4px;
-                font-size: 13px;
-                font-weight: bold;
-                padding: 6px 8px;
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
-                border: 1px solid #484848;
-            }}
-            QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
-                border: 1px solid #2e2e2e;
-            }}
-        """)
-        app.can_restart_btn.setMaximumHeight(32)
-        app.can_restart_btn.clicked.connect(app.restart_can)
-        layout.addWidget(app.can_restart_btn)
+    app.can_btn = QPushButton("Start CAN")
+    app.can_btn.setStyleSheet(button_style)
+    app.can_btn.setMaximumHeight(32)
+    app.can_btn.setEnabled(False)  # Greyed out by default
+    app.can_btn.clicked.connect(app.start_can_interface)
+    layout.addWidget(app.can_btn)
+    
+    app.can_restart_btn = QPushButton("Restart CAN")
+    app.can_restart_btn.setStyleSheet(button_style)
+    app.can_restart_btn.setMaximumHeight(32)
+    app.can_restart_btn.setEnabled(False)  # Greyed out by default
+    app.can_restart_btn.clicked.connect(app.restart_can)
+    layout.addWidget(app.can_restart_btn)
     
     app.hardware_btn = QPushButton("Launch Hardware")
-    app.hardware_btn.setStyleSheet(f"""
-        QPushButton {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
-            color: {Colors.TEXT_MAIN};
-            border: 1px solid #3e3e3e;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: bold;
-            padding: 6px 8px;
-        }}
-        QPushButton:hover {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
-            border: 1px solid #484848;
-        }}
-        QPushButton:pressed {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
-            border: 1px solid #2e2e2e;
-        }}
-    """)
+    app.hardware_btn.setStyleSheet(button_style)
     app.hardware_btn.setMaximumHeight(32)
+    app.hardware_btn.setEnabled(False)  # Greyed out by default
     app.hardware_btn.clicked.connect(app.launch_hardware)
     layout.addWidget(app.hardware_btn)
     

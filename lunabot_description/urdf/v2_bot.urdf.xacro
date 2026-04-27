@@ -54,13 +54,13 @@
       <origin xyz="0.2 0 0" rpy="0 0 1.5708" />
       <material name="camera_grey" />
     </visual>
-    <collision>
+    <!-- <collision>
       <geometry>
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_bucket.stl" />
       </geometry>
       <origin xyz="0.2 0 0" rpy="1.5708 0 1.5708" />
-    </collision>
+    </collision> -->
     <inertial>
       <mass value="3.0" />
       <origin xyz="0.2 0 0" />
@@ -667,7 +667,7 @@
           <param name="max">0.75</param>
         </command_interface>
         <state_interface name="position">
-          <param name="initial_value">-0.2</param>
+          <param name="initial_value">0.0</param>
         </state_interface>
         <state_interface name="velocity" />
       </joint>

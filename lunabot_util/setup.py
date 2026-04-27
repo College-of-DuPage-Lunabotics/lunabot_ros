@@ -21,6 +21,7 @@ setup(
             "image_compressor = image_compressor:main",
             "bandwidth_monitor = bandwidth_monitor:main",
             "power_monitor = power_monitor:main",
+            "livox_to_pointcloud = livox_to_pointcloud:main",
         ],
     },
 )

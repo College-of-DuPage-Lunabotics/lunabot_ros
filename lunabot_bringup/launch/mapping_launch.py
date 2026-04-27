@@ -6,6 +6,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition
 from launch.substitutions import EqualsSubstitution
+from launch.actions import GroupAction
 
 
 def generate_launch_description():
@@ -19,6 +20,12 @@ def generate_launch_description():
         "use_sim",
         default_value="false",
         description="Whether we are in simulation or not",
+    )
+    
+    declare_use_lidar = DeclareLaunchArgument(
+        "use_lidar",
+        default_value="true",
+        description="Whether to use LiDAR for mapping",
     )
 
     rgbd_sync_front = Node(
@@ -65,6 +72,23 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
 
+    livox_converter = Node(
+        package="lunabot_util",
+        executable="livox_to_pointcloud.py",
+        name="livox_to_pointcloud",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": LaunchConfiguration("use_sim"),
+                "input_topic": "/livox/lidar",
+                "output_topic": "/livox/pointcloud",
+                "min_range": 0.8,
+                "max_range": 50.0,
+            }
+        ],
+        arguments=["--ros-args", "--log-level", "info"],
+    )
+
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
@@ -87,8 +111,8 @@ def generate_launch_description():
                 "database_path": "",
                 "approx_sync": True,
                 "sync_queue_size": 30,
-                "wait_for_transform": 0.2,
-                "subscribe_scan_cloud": False,  # Disabled - only using cameras
+                "wait_for_transform": 1.0,
+                "subscribe_scan_cloud": LaunchConfiguration("use_lidar"),
                 "subscribe_scan": False,
                 "wait_imu_to_init": False,
                 "subscribe_odom": True,
@@ -99,13 +123,16 @@ def generate_launch_description():
             ("rgbd_image0", "/camera_front/rgbd_image"),
             ("rgbd_image1", "/camera_back/rgbd_image"),
             ("odom", "/odometry/filtered"),
+            ("scan_cloud", "/livox/pointcloud"),
         ],
-        arguments=["--ros-args", "--log-level", "error"],
+        arguments=["--ros-args", "--log-level", "warn"],
     )
-
+    
     return LaunchDescription([
         declare_use_sim,
+        declare_use_lidar,
         rgbd_sync_front,
         rgbd_sync_back,
+        livox_converter,
         slam_node,
     ])
