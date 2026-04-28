@@ -10,23 +10,19 @@
 
 #include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/action/excavation.hpp"
-#include "lunabot_msgs/action/localization.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 
 #include <chrono>
 
 /**
  * @class NavigationClient
- * @brief Runs autonomous one cycle sequence: localization, navigation, excavation, and depositing
- * actions.
+ * @brief Runs autonomous one cycle sequence: navigation, excavation, and depositing actions.
  */
 class NavigationClient : public rclcpp::Node
 {
 public:
   using NavigateToPose = nav2_msgs::action::NavigateToPose;
   using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
-  using Localization = lunabot_msgs::action::Localization;
-  using GoalHandleLocalization = rclcpp_action::ClientGoalHandle<Localization>;
   using Excavation = lunabot_msgs::action::Excavation;
   using GoalHandleExcavation = rclcpp_action::ClientGoalHandle<Excavation>;
   using Depositing = lunabot_msgs::action::Depositing;
@@ -34,7 +30,6 @@ public:
 
   enum class State {
     IDLE,
-    LOCALIZATION,
     NAVIGATING_TO_EXCAVATION,
     EXCAVATING,
     NAVIGATING_TO_CONSTRUCTION,
@@ -47,15 +42,9 @@ public:
    */
   NavigationClient() : Node("navigation_client")
   {
-    // Declare parameter for whether to use localization
-    this->declare_parameter<bool>("use_localization", false);
-    bool use_localization = this->get_parameter("use_localization").as_bool();
-
-    // Set initial state based on whether localization is needed
-    current_state_ = use_localization ? State::LOCALIZATION : State::NAVIGATING_TO_EXCAVATION;
+    current_state_ = State::NAVIGATING_TO_EXCAVATION;
 
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
-    localization_client_ = rclcpp_action::create_client<Localization>(this, "localization_action");
     excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
     depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
 
@@ -72,10 +61,6 @@ private:
     switch (current_state_)
     {
       case State::IDLE:
-        break;
-      case State::LOCALIZATION:
-        request_localization();
-        current_state_ = State::IDLE;
         break;
       case State::NAVIGATING_TO_EXCAVATION:
         request_navigation();
@@ -97,46 +82,6 @@ private:
         LOGGER_SUCCESS(this->get_logger(), "Cycle complete!");
         execution_timer_->cancel();
         break;
-    }
-  }
-
-  /**
-   * @brief Sends localization request to localization server.
-   */
-  void request_localization()
-  {
-    if (!localization_client_->wait_for_action_server(std::chrono::seconds(1)))
-    {
-      LOGGER_WARN_ONCE(this->get_logger(), "Localization action server not available.");
-      return;
-    }
-
-    auto goal_msg = Localization::Goal();
-    auto send_goal_options = rclcpp_action::Client<Localization>::SendGoalOptions();
-    send_goal_options.result_callback =
-      std::bind(&NavigationClient::handle_localization_result, this, std::placeholders::_1);
-
-    localization_client_->async_send_goal(goal_msg, send_goal_options);
-  }
-
-  /**
-   * @brief Handles the result from the localization server.
-   * @param result The result from the localization action.
-   */
-  void handle_localization_result(const GoalHandleLocalization::WrappedResult & result)
-  {
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-    {
-      initial_x_ = result.result->x;
-      initial_y_ = result.result->y;
-      LOGGER_SUCCESS(
-        this->get_logger(), "Localization complete. Initial pose: [%.2f, %.2f]", initial_x_,
-        initial_y_);
-      current_state_ = State::NAVIGATING_TO_EXCAVATION;
-    } else
-    {
-      LOGGER_FAILURE(this->get_logger(), "Localization failed.");
-      current_state_ = State::IDLE;
     }
   }
 
@@ -373,13 +318,11 @@ private:
   }
 
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
-  rclcpp_action::Client<Localization>::SharedPtr localization_client_;
   rclcpp_action::Client<Excavation>::SharedPtr excavation_client_;
   rclcpp_action::Client<Depositing>::SharedPtr depositing_client_;
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;
-  double initial_x_, initial_y_;
 };
 
 /**

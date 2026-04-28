@@ -5,7 +5,6 @@ import time
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Header
 
 from lunabot_logger import Logger
 from lunabot_msgs.msg import PowerMonitor
@@ -26,7 +25,7 @@ class PowerMonitorNode(Node):
 
         self.declare_parameter('serial_port', '/dev/ttyACM0')
         self.declare_parameter('baud_rate', 9600)
-        self.declare_parameter('publish_rate', 10.0)  # Hz
+        self.declare_parameter('publish_rate', 5.0)  # Hz
 
         serial_port = self.get_parameter('serial_port').value
         baud_rate = self.get_parameter('baud_rate').value
@@ -41,17 +40,16 @@ class PowerMonitorNode(Node):
 
         self.power_pub = self.create_publisher(PowerMonitor, '/power_monitor', 10)
 
-        # Energy integration state
         self.total_energy_wh = 0.0
         self.last_power_w = 0.0
         self.last_time = time.time()
+        self.msg_count = 0
 
         self.timer = self.create_timer(1.0 / publish_rate, self.timer_callback)
-        
+
         self.log.success('Power monitor initialized')
     
     def find_sync(self):
-        """Find the 0xBEEF sync header"""
         if not self.serial:
             return False
             
@@ -69,14 +67,12 @@ class PowerMonitorNode(Node):
             return False
     
     def validate_checksum(self, data, checksum):
-        """Validate XOR checksum"""
         calc_checksum = 0
         for byte in data:
             calc_checksum ^= byte
         return calc_checksum == checksum
     
     def decode_alert_flags(self, alert):
-        """Decode alert flags into readable string"""
         alert_msgs = []
         if alert & TEMPOL:
             alert_msgs.append("OVER TEMP")
@@ -94,11 +90,8 @@ class PowerMonitorNode(Node):
         return ", ".join(alert_msgs) if alert_msgs else "OK"
     
     def integrate_energy(self, power_w):
-        """Integrate power over time to calculate energy in Wh"""
         current_time = time.time()
         dt = current_time - self.last_time
-        
-        # Average power over interval * time in hours = energy in Wh
         avg_power_w = (power_w + self.last_power_w) / 2.0
         energy_wh = avg_power_w * (dt / 3600.0)
         
@@ -133,10 +126,8 @@ class PowerMonitorNode(Node):
             alert_status = self.decode_alert_flags(alert)
 
             msg = PowerMonitor()
-            msg.header = Header()
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = 'power_monitor'
-            
             msg.device_id = device_id
             msg.voltage = voltage
             msg.current = current
@@ -145,12 +136,8 @@ class PowerMonitorNode(Node):
             msg.energy_wh = self.total_energy_wh
             msg.alert_flags = alert
             msg.alert_status = alert_status
-            
             self.power_pub.publish(msg)
             
-            # Log occasionally (every 100 messages = 10 seconds at 10 Hz)
-            if not hasattr(self, 'msg_count'):
-                self.msg_count = 0
             self.msg_count += 1
             if self.msg_count % 100 == 0:
                 self.log.info(

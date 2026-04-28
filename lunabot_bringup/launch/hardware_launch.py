@@ -37,8 +37,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640,480,15",
-            "rgb_camera.color_profile": "640,480,15",
+            "depth_module.depth_profile": "640,480,10",
+            "rgb_camera.color_profile": "640,480,10",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -59,8 +59,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "640,480,15",
-            "rgb_camera.color_profile": "640,480,15",
+            "depth_module.depth_profile": "640,480,10",
+            "rgb_camera.color_profile": "640,480,10",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -94,7 +94,7 @@ def generate_launch_description():
         parameters=[
             {"serial_port": "/dev/ttyACM0"},
             {"baud_rate": 9600},
-            {"publish_rate": 10.0},
+            {"publish_rate": 5.0},
         ],
     )
     
@@ -125,8 +125,8 @@ def generate_launch_description():
             {"device_id": "/dev/webcam_fisheye"},
             {"width": 480},
             {"height": 360},
-            {"fps": 15},
-            {"jpeg_quality": 60},
+            {"fps": 10},
+            {"jpeg_quality": 45},
         ],
     )
  
@@ -166,7 +166,7 @@ def generate_launch_description():
         name="image_compressor",
         output="screen",
         parameters=[
-            {"jpeg_quality": 15},
+            {"jpeg_quality": 25},
             {"scale": 0.75},
         ],
     )
@@ -177,8 +177,8 @@ def generate_launch_description():
         name="rgbd_sync_front",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 100,
-             "compressed_rate": 1.0,
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 30,
+             "compressed_rate": 0.5,
              "rgb_image_transport": "compressed",
              "depth_image_transport": "compressedDepth"}
         ],
@@ -197,8 +197,8 @@ def generate_launch_description():
         name="rgbd_sync_back",
         output="screen",
         parameters=[
-            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 100,
-             "compressed_rate": 1.0,
+            {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 30,
+             "compressed_rate": 0.5,
              "rgb_image_transport": "compressed",
              "depth_image_transport": "compressedDepth"}
         ],

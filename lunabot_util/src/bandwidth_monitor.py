@@ -14,8 +14,8 @@ class BandwidthMonitor(Node):
         super().__init__("bandwidth_monitor")
         self.log = Logger(self)
 
-        self.declare_parameter("interface", "auto")  # 'auto' or specific like 'eth0'
-        self.declare_parameter("update_rate", 1.0)  # Hz
+        self.declare_parameter("interface", "auto")
+        self.declare_parameter("update_rate", 0.5)
 
         interface = self.get_parameter("interface").value
         update_rate = self.get_parameter("update_rate").value
@@ -28,24 +28,16 @@ class BandwidthMonitor(Node):
 
         self.log.info(f"Monitoring interface: {self.interface}")
 
-        # Publishers - Current bandwidth (instantaneous)
-        self.rx_pub = self.create_publisher(Float32, "bandwidth/rx_mbps", 10)
-        self.tx_pub = self.create_publisher(Float32, "bandwidth/tx_mbps", 10)
-        self.total_pub = self.create_publisher(Float32, "bandwidth/total_mbps", 10)
+        self.rx_pub       = self.create_publisher(Float32, "bandwidth/rx_mbps",       10)
+        self.tx_pub       = self.create_publisher(Float32, "bandwidth/tx_mbps",       10)
+        self.total_pub    = self.create_publisher(Float32, "bandwidth/total_mbps",    10)
+        self.avg_rx_pub   = self.create_publisher(Float32, "bandwidth/avg_rx_mbps",   10)
+        self.avg_tx_pub   = self.create_publisher(Float32, "bandwidth/avg_tx_mbps",   10)
+        self.avg_total_pub = self.create_publisher(Float32, "bandwidth/avg_total_mbps", 10)
 
-        # Publishers - Total average bandwidth (since startup)
-        self.avg_rx_pub = self.create_publisher(Float32, "bandwidth/avg_rx_mbps", 10)
-        self.avg_tx_pub = self.create_publisher(Float32, "bandwidth/avg_tx_mbps", 10)
-        self.avg_total_pub = self.create_publisher(
-            Float32, "bandwidth/avg_total_mbps", 10
-        )
-
-        # State - Current
         self.last_rx_bytes = self.get_bytes("rx")
         self.last_tx_bytes = self.get_bytes("tx")
         self.last_time = time.time()
-
-        # State - Total average (since startup)
         self.start_rx_bytes = self.last_rx_bytes
         self.start_tx_bytes = self.last_tx_bytes
         self.start_time = self.last_time
@@ -55,7 +47,6 @@ class BandwidthMonitor(Node):
         self.log.success("Bandwidth monitor started")
 
     def detect_interface(self):
-        """Auto-detect network interface (ethernet or WiFi)."""
         try:
             interfaces = os.listdir("/sys/class/net/")
             # Try ethernet first
@@ -88,12 +79,10 @@ class BandwidthMonitor(Node):
         delta_rx = current_rx - self.last_rx_bytes
         delta_tx = current_tx - self.last_tx_bytes
 
-        # bytes * 8 bits/byte / (seconds * 1e6 bits/Mb)
-        rx_mbps = (delta_rx * 8) / (delta_time * 1_000_000)
-        tx_mbps = (delta_tx * 8) / (delta_time * 1_000_000)
+        rx_mbps    = (delta_rx * 8) / (delta_time * 1_000_000)
+        tx_mbps    = (delta_tx * 8) / (delta_time * 1_000_000)
         total_mbps = rx_mbps + tx_mbps
 
-        # Running average since start
         total_time = current_time - self.start_time
         if total_time > 0:
             total_rx_bytes = current_rx - self.start_rx_bytes
