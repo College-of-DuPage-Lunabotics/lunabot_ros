@@ -1020,6 +1020,76 @@ class BucketSliderWidget(QWidget):
 
 
 
+def create_controls_reference_group(app):
+    group = QGroupBox("Controller Reference")
+    group.setAutoFillBackground(True)
+    group.setStyleSheet(f"QGroupBox {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }}")
+    layout = QVBoxLayout()
+    layout.setSpacing(5)
+    layout.setContentsMargins(4, 8, 4, 4)
+    
+    def add_section_header(text):
+        header = QLabel(text)
+        header.setStyleSheet("color: #ef5350; font-size: 12px; font-weight: bold; font-family: Monospace; padding-top: 3px; background: transparent;")
+        layout.addWidget(header)
+    
+    def add_control(control, description):
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        row.setContentsMargins(0, 0, 0, 0)
+        
+        control_label = QLabel(control)
+        control_label.setStyleSheet("color: #ffa726; font-size: 11px; font-weight: bold; font-family: Monospace; background: transparent;")
+        control_label.setFixedWidth(85)
+        control_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        row.addWidget(control_label)
+        
+        desc_label = QLabel(description)
+        desc_label.setStyleSheet(f"color: {Colors.TEXT_MAIN}; font-size: 11px; font-family: Monospace; background: transparent;")
+        desc_label.setWordWrap(True)
+        desc_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        row.addWidget(desc_label, 1)
+        
+        layout.addLayout(row)
+    
+    # Mode Control
+    add_section_header("MODE CONTROL")
+    add_control("Plus (+)", "Enable Manual")
+    add_control("Minus (-)", "Enable Auto")
+    add_control("Home", "Enable/Disable Robot")
+    
+    layout.addSpacing(6)
+    
+    # Driving
+    add_section_header("DRIVING")
+    add_control("Left Paddle", "Toggle Speed")
+    add_control("Right Paddle", "Vibration")
+    
+    layout.addSpacing(6)
+    
+    # Actions
+    add_section_header("AUTONOMOUS ACTIONS")
+    add_control("X Button", "Excavate")
+    add_control("Y Button", "Deposit")
+    
+    layout.addSpacing(6)
+    
+    # Bucket Preset
+    add_section_header("BUCKET PRESET")
+    add_control("D-Pad Up", "Deposit Ready")
+    add_control("D-Pad Down", "Excavate Ready")
+    
+    layout.addSpacing(6)
+    
+    # Camera Control
+    add_section_header("CAMERA CONTROL")
+    add_control("L4 Button", "Bucket View (0°)")
+    add_control("R4 Button", "Deposit View (180°)")
+    
+    group.setLayout(layout)
+    return group
+
+
 def create_hardware_group(app):
     group = QGroupBox("Hardware")
     group.setAutoFillBackground(True)
@@ -1056,21 +1126,18 @@ def create_hardware_group(app):
     app.can_btn = QPushButton("Start CAN")
     app.can_btn.setStyleSheet(button_style)
     app.can_btn.setMaximumHeight(32)
-    app.can_btn.setEnabled(False)  # Greyed out by default
     app.can_btn.clicked.connect(app.start_can_interface)
     layout.addWidget(app.can_btn)
     
     app.can_restart_btn = QPushButton("Restart CAN")
     app.can_restart_btn.setStyleSheet(button_style)
     app.can_restart_btn.setMaximumHeight(32)
-    app.can_restart_btn.setEnabled(False)  # Greyed out by default
     app.can_restart_btn.clicked.connect(app.restart_can)
     layout.addWidget(app.can_restart_btn)
     
     app.hardware_btn = QPushButton("Launch Hardware")
     app.hardware_btn.setStyleSheet(button_style)
     app.hardware_btn.setMaximumHeight(32)
-    app.hardware_btn.setEnabled(False)  # Greyed out by default
     app.hardware_btn.clicked.connect(app.launch_hardware)
     layout.addWidget(app.hardware_btn)
     

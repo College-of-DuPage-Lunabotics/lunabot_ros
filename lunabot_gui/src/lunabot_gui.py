@@ -33,6 +33,39 @@ SIDEBAR_COLLAPSED_WIDTH = 30
 CAMERA_MIN_WIDTH       = 320
 CAMERA_MIN_HEIGHT      = 240
 
+# --- Button Styles ---
+ACTION_BUTTON_DEFAULT_STYLE = f"""
+    QPushButton {{
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+        color: {Colors.TEXT_MAIN};
+        border: 1px solid #3e3e3e;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 6px 8px;
+    }}
+    QPushButton:hover {{
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
+        border: 1px solid #484848;
+    }}
+    QPushButton:pressed {{
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
+        border: 1px solid #2e2e2e;
+    }}
+"""
+
+ACTION_BUTTON_DISABLED_STYLE = f"""
+    QPushButton {{
+        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e1e1e, stop:1 #181818);
+        color: #555555;
+        border: 1px solid #2e2e2e;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 6px 8px;
+    }}
+"""
+
 # --- Teleop Constants ---
 TELEOP_LINEAR_SPEED_DEFAULT  = 0.35   # m/s
 TELEOP_ANGULAR_SPEED_DEFAULT = 0.25   # rad/s
@@ -76,7 +109,7 @@ class LunabotGUI(QMainWindow):
         self.swappable_camera_showing_front = True
         self.sidebar_collapsed = False
         self.fisheye_camera_position = 0.0
-        self.fisheye_showing_deposit = True  # True = Deposit View (0 deg ), False = Bucket View (180 deg)
+        self.fisheye_showing_deposit = False  # False = Bucket View (0 deg), True = Deposit View (180 deg)
         self.full_auto_active = False
         self.emergency_stopped = False
         
@@ -268,7 +301,7 @@ class LunabotGUI(QMainWindow):
         fisheye_container_layout.addWidget(fisheye_group)
         
         # Fisheye swap button (Bucket View / Deposit View)
-        self.swap_fisheye_btn = QPushButton("Switch to Bucket View")
+        self.swap_fisheye_btn = QPushButton("Switch to Deposit View")
         self.swap_fisheye_btn.setStyleSheet(f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #252525, stop:1 #1d1d1d);
@@ -408,8 +441,9 @@ class LunabotGUI(QMainWindow):
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
         sidebar_layout.setSpacing(6)
         self.sidebar_widget.setLayout(sidebar_layout)
-        
-        sidebar_layout.addStretch(1)
+
+        controls_group = ui_widgets.create_controls_reference_group(self)
+        sidebar_layout.addWidget(controls_group)
 
         hardware_group = ui_widgets.create_hardware_group(self)
         sidebar_layout.addWidget(hardware_group)
@@ -426,26 +460,31 @@ class LunabotGUI(QMainWindow):
             teleop_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.MinimumExpanding)
             sidebar_layout.addWidget(teleop_group, 0)  # stretch factor 0 = can shrink
         
+        sidebar_layout.addStretch(1)  # Push everything to the top
+        
         sidebar_container_layout.addWidget(self.sidebar_widget)
         
         # Controls toggle button (stays visible when sidebar collapses)
         edge_tab_container = QWidget()
         edge_tab_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        edge_tab_container.setFixedWidth(30)
-        edge_tab_layout = QVBoxLayout()
+        edge_tab_container.setFixedWidth(32)
+        edge_tab_layout = QHBoxLayout()
         edge_tab_layout.setContentsMargins(0, 0, 0, 0)
         edge_tab_layout.setSpacing(0)
         edge_tab_container.setLayout(edge_tab_layout)
-        
-        edge_tab_layout.addStretch(1)
+
+        # Vertical divider bar
+        divider = QWidget()
+        divider.setFixedWidth(2)
+        divider.setStyleSheet(f"background-color: {Colors.BORDER};")
+        edge_tab_layout.addWidget(divider)
 
         self.edge_tab = QPushButton("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
         self.edge_tab.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BG_MAIN};
-                color: {Colors.STATUS_SUCCESS};
+                color: {Colors.TEXT_MAIN};
                 border: none;
-                border-left: 2px solid {Colors.STATUS_SUCCESS};
                 font-size: 12px;
                 font-weight: bold;
                 padding: 10px 5px;
@@ -453,11 +492,8 @@ class LunabotGUI(QMainWindow):
             }}
         """)
         self.edge_tab.setFixedWidth(30)
-        self.edge_tab.setFixedHeight(200)  # Fixed height for the button
         self.edge_tab.clicked.connect(self.toggle_sidebar)
         edge_tab_layout.addWidget(self.edge_tab)
-        
-        edge_tab_layout.addStretch(1)
         
         sidebar_container_layout.addWidget(edge_tab_container)
         
@@ -473,15 +509,15 @@ class LunabotGUI(QMainWindow):
             self.swap_camera_btn.setText("Switch to Front Camera")
     
     def swap_fisheye_view(self):
-        """Toggle between Deposit View (0 deg) and Bucket View (180 deg)"""
+        """Toggle between Bucket View (0 deg) and Deposit View (180 deg)"""
         self.fisheye_showing_deposit = not self.fisheye_showing_deposit
         if self.fisheye_showing_deposit:
-            # Deposit View - 0 deg
-            self.set_fisheye_position(0)
+            # Deposit View - 180 deg
+            self.set_fisheye_position(180)
             self.swap_fisheye_btn.setText("Switch to Bucket View")
         else:
-            # Bucket View - 180 deg
-            self.set_fisheye_position(180)
+            # Bucket View - 0 deg
+            self.set_fisheye_position(0)
             self.swap_fisheye_btn.setText("Switch to Deposit View")
     
     def set_fisheye_position(self, degrees):
@@ -532,6 +568,7 @@ class LunabotGUI(QMainWindow):
         else:
             self.robot.is_excavating = True
             self.excavate_btn.setText("Cancel Excavation")
+            self.excavate_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
             self.operation_status_label.setText("Status: Excavating...")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_excavate_goal(
@@ -554,6 +591,7 @@ class LunabotGUI(QMainWindow):
         result = future.result().result
         self.robot.is_excavating = False
         self.excavate_btn.setText("Excavate")
+        self.excavate_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         
         if result.success:
             self.robot.node.get_logger().info('Excavation completed successfully')
@@ -568,6 +606,7 @@ class LunabotGUI(QMainWindow):
         self.robot.node.get_logger().info('Excavation canceled')
         self.robot.is_excavating = False
         self.excavate_btn.setText("Excavate")
+        self.excavate_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         self.operation_status_label.setText("Status: Excavation canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
@@ -578,6 +617,7 @@ class LunabotGUI(QMainWindow):
         else:
             self.robot.is_depositing = True
             self.deposit_btn.setText("Cancel Deposit")
+            self.deposit_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
             self.operation_status_label.setText("Status: Depositing...")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             self.robot.send_deposit_goal(
@@ -600,6 +640,7 @@ class LunabotGUI(QMainWindow):
         result = future.result().result
         self.robot.is_depositing = False
         self.deposit_btn.setText("Deposit")
+        self.deposit_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         
         if result.success:
             self.robot.node.get_logger().info(f'Depositing completed: {result.message}')
@@ -614,15 +655,14 @@ class LunabotGUI(QMainWindow):
         self.robot.node.get_logger().info('Depositing canceled')
         self.robot.is_depositing = False
         self.deposit_btn.setText("Deposit")
+        self.deposit_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         self.operation_status_label.setText("Status: Depositing canceled")
         self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
     
     def emergency_stop(self):
         if not self.emergency_stopped:
-            self.robot.node.get_logger().error('EMERGENCY STOP TRIGGERED!')
+            self.robot.node.get_logger().error('Emergency stop!')
             self.robot.publish_emergency_stop()
-            self.operation_status_label.setText("Status: Emergency Stop")
-            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
 
             if self.robot.is_excavating:
                 self.robot.cancel_excavate_goal(lambda f: None)
@@ -632,9 +672,10 @@ class LunabotGUI(QMainWindow):
                 self.robot.stop_navigation_client()
                 self.full_auto_active = False
                 self.auto_btn.setText("One Cycle Auto")
+                self.auto_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
             
             self.emergency_stopped = True
-            self.emergency_stop_btn.setText("Re-enable Robot")
+            self.emergency_stop_btn.setText("Re-Enable Robot")
             self.emergency_stop_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: #f57c00;
@@ -655,8 +696,6 @@ class LunabotGUI(QMainWindow):
         else:
             self.robot.node.get_logger().info('Re-enabling robot from emergency stop')
             self.robot.publish_re_enable()
-            self.operation_status_label.setText("Status: Robot re-enabled")
-            self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
 
             self.emergency_stopped = False
             self.emergency_stop_btn.setText("Emergency Stop")
@@ -684,6 +723,7 @@ class LunabotGUI(QMainWindow):
             self.robot.stop_navigation_client()
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
+            self.auto_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
             self.operation_status_label.setText("Status: One Cycle Auto Stopped")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
             return
@@ -695,12 +735,14 @@ class LunabotGUI(QMainWindow):
         self.robot.node.get_logger().info('Starting one cycle auto')
         self.full_auto_active = True
         self.auto_btn.setText("Stop One Cycle Auto")
+        self.auto_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
         self.operation_status_label.setText("Status: One Cycle Auto Active...")
         self.operation_status_label.setStyleSheet(Styles.status_label('info') + " font-weight: bold;")
         
         if not self.robot.launch_navigation_client():
             self.full_auto_active = False
             self.auto_btn.setText("One Cycle Auto")
+            self.auto_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
             self.operation_status_label.setText("Status: Failed to start")
             self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
     
@@ -879,45 +921,125 @@ class LunabotGUI(QMainWindow):
                 self.mode_switch_btn.setText("Switch to Manual")
         
         if hasattr(self, 'pointlio_btn'):
-            self.pointlio_btn.setText("Stop Point-LIO" if self.robot.launch_processes.get('pointlio') else "Point-LIO")
+            is_running = self.robot.launch_processes.get('pointlio')
+            self.pointlio_btn.setText("Stop Point-LIO" if is_running else "Point-LIO")
+            if is_running:
+                self.pointlio_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
+            else:
+                self.pointlio_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
 
         if hasattr(self, 'mapping_btn'):
-            self.mapping_btn.setText("Stop RTAB-Map" if self.robot.launch_processes.get('mapping') else "RTAB-Map")
+            is_running = self.robot.launch_processes.get('mapping')
+            self.mapping_btn.setText("Stop RTAB-Map" if is_running else "RTAB-Map")
+            if is_running:
+                self.mapping_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
+            else:
+                self.mapping_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
 
         if hasattr(self, 'nav2_btn'):
-            self.nav2_btn.setText("Stop Navigation2" if self.robot.launch_processes.get('nav2') else "Navigation2")
+            is_running = self.robot.launch_processes.get('nav2')
+            self.nav2_btn.setText("Stop Navigation2" if is_running else "Navigation2")
+            if is_running:
+                self.nav2_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
+            else:
+                self.nav2_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         
         if hasattr(self, 'hardware_btn'):
-            self.hardware_btn.setText("Stop Hardware" if self.robot.launch_processes.get('hardware') else "Launch Hardware")
+            is_running = self.robot.launch_processes.get('hardware')
+            self.hardware_btn.setText("Stop Hardware" if is_running else "Launch Hardware")
+            if is_running:
+                self.hardware_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
+            else:
+                self.hardware_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
+        
+        # Only update status if currently showing an active operation
+        current_status = self.operation_status_label.text()
+        preserve_status = current_status in ["Status: Excavating", "Status: Depositing", 
+                                               "Status: Excavating...", "Status: Depositing...", 
+                                               "Status: One Cycle Auto Active..."]
         
         if self.robot.robot_disabled:
-            self.operation_status_label.setText("Status: Disabled")
-            self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
+            if not preserve_status:
+                self.operation_status_label.setText("Status: Disabled")
+                self.operation_status_label.setStyleSheet(Styles.status_label('error') + " font-weight: bold;")
             self.excavate_btn.setEnabled(False)
+            self.excavate_btn.setStyleSheet(ACTION_BUTTON_DISABLED_STYLE)
             self.deposit_btn.setEnabled(False)
+            self.deposit_btn.setStyleSheet(ACTION_BUTTON_DISABLED_STYLE)
             self.auto_btn.setEnabled(False)
+            self.auto_btn.setStyleSheet(ACTION_BUTTON_DISABLED_STYLE)
+            
+            if not self.emergency_stopped:
+                self.emergency_stopped = True
+                self.emergency_stop_btn.setText("Re-Enable Robot")
+                self.emergency_stop_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #f57c00;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        font-size: 14px;
+                        font-weight: bold;
+                        padding: 10px 8px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #e65100;
+                    }}
+                    QPushButton:pressed {{
+                        background-color: #d84315;
+                    }}
+                """)
         else:
-            self.operation_status_label.setText("Status: Active")
-            self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
+            if not preserve_status:
+                self.operation_status_label.setText("Status: Active")
+                self.operation_status_label.setStyleSheet(Styles.status_label('active') + " font-weight: bold;")
             if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
                 self.excavate_btn.setEnabled(True)
+                self.excavate_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
                 self.deposit_btn.setEnabled(True)
+                self.deposit_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
                 self.auto_btn.setEnabled(True)
+                self.auto_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
+            
+            if self.emergency_stopped:
+                self.emergency_stopped = False
+                self.emergency_stop_btn.setText("Emergency Stop")
+                self.emergency_stop_btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #d32f2f;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        font-size: 14px;
+                        font-weight: bold;
+                        padding: 10px 8px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #c62828;
+                    }}
+                    QPushButton:pressed {{
+                        background-color: #b71c1c;
+                    }}
+                """)
     
     def handle_control_state_update(self, msg):
         if msg.is_excavating:
             self.excavate_btn.setText("Cancel Excavation")
+            self.excavate_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
             self.operation_status_label.setText("Status: Excavating")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
         else:
             self.excavate_btn.setText("Excavate")
+            self.excavate_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         
         if msg.is_depositing:
             self.deposit_btn.setText("Cancel Deposit")
+            self.deposit_btn.setStyleSheet(f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00); color: {Colors.STATUS_WARNING_TEXT}; border: 1px solid #e65100; border-radius: 4px; font-size: 13px; font-weight: bold; padding: 6px 8px;")
             self.operation_status_label.setText("Status: Depositing")
             self.operation_status_label.setStyleSheet(Styles.status_label('warning') + " font-weight: bold;")
         else:
             self.deposit_btn.setText("Deposit")
+            self.deposit_btn.setStyleSheet(ACTION_BUTTON_DEFAULT_STYLE)
         
         if msg.is_navigating:
             self.operation_status_label.setText("Status: Navigating")

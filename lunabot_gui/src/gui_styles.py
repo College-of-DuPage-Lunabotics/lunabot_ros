@@ -26,12 +26,14 @@ class Colors:
     STATUS_SUCCESS = "#66bb6a"
     STATUS_WARNING = "#ffa726"
     STATUS_INFO = "#2196f3"
+    STATUS_INFO_TEXT = "#b8e5ff"
+    STATUS_WARNING_TEXT = "#ffe0b2"
 
     # Button colors
     BTN_INACTIVE = "#424242"
     BTN_HOVER = "#616161"
     BTN_PRESSED = "#757575"
-    BTN_ACTIVE = "#4a7ba7"
+    BTN_ACTIVE = "#66bb6a"
     BTN_DISABLED = "#2a2a2a"
     BTN_DISABLED_BORDER = "#404040"
     
