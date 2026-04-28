@@ -1,5 +1,6 @@
 # Excavation action - performs excavation sequence
 ---
 bool success
+string message
 ---
 string feedback_message

@@ -17,9 +17,11 @@ setup(
         "console_scripts": [
             "fisheye_rotation = fisheye_rotation:main",
             "fisheye_camera = fisheye_camera:main",
+            "encoder_reader = encoder_reader:main",
             "image_compressor = image_compressor:main",
             "bandwidth_monitor = bandwidth_monitor:main",
             "power_monitor = power_monitor:main",
+            "livox_to_pointcloud = livox_to_pointcloud:main",
         ],
     },
 )

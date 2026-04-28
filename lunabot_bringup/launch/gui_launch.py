@@ -148,7 +148,7 @@ def generate_launch_description():
 
     declare_robot_type = DeclareLaunchArgument(
         "robot_type",
-        default_value="v1_bot",
+        default_value="v2_bot",
         choices=["v1_bot", "v2_bot"],
         description="Which robot model to use (v1_bot or v2_bot)",
     )
@@ -274,6 +274,22 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
+    image_compressor_sim_node = Node(
+        package="lunabot_util",
+        executable="image_compressor.py",
+        name="image_compressor",
+        output="screen",
+        parameters=[
+            {"jpeg_quality": 45},
+            {"scale": 1.0},
+        ],
+    )
+
+    image_compressor_sim = GroupAction(
+        actions=[image_compressor_sim_node],
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
+    )
+
     rviz_group = GroupAction(
         actions=[rviz_launch],
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("viz_mode"), "rviz")),
@@ -307,6 +323,7 @@ def generate_launch_description():
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
     ld.add_action(image_compressor_real)
+    ld.add_action(image_compressor_sim)
 
     ld.add_action(OpaqueFunction(function=create_sim_group))
 

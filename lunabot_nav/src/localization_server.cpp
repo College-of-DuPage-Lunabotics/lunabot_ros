@@ -4,26 +4,27 @@
  * @date 02/22/2026
  */
 
+#include "lunabot_logger/logger.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "tf2/utils.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+
+#include "geometry_msgs/msg/twist.hpp"
+#include "lunabot_msgs/action/localization.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <memory>
 #include <thread>
 
-#include "geometry_msgs/msg/twist.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "tf2/utils.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-#include "tf2_ros/buffer.h"
-#include "tf2_ros/transform_listener.h"
-
-#include "lunabot_msgs/action/localization.hpp"
-#include "lunabot_logger/logger.hpp"
-
 /**
  * @class LocalizationServer
- * @brief Handles localization by aligning the robot with tag 7 using transform lookups and publishes velocity commands.
+ * @brief Handles localization by aligning the robot with tag 7 using transform lookups and
+ * publishes velocity commands.
  */
 class LocalizationServer : public rclcpp::Node
 {
@@ -31,32 +32,28 @@ public:
   using Localization = lunabot_msgs::action::Localization;
   using GoalHandleLocalization = rclcpp_action::ServerGoalHandle<Localization>;
 
-  enum class State
-  {
-    SEARCHING,
-    ALIGNING,
-    COMPLETE
-  };
+  enum class State { SEARCHING, ALIGNING, COMPLETE };
 
   /**
    * @brief Constructor for LocalizationServer.
    */
   LocalizationServer()
-    : Node("localization_server")
-    , tf_buffer_(get_clock())
-    , tf_listener_(tf_buffer_)
-    , success_(false)
-    , current_state_(State::SEARCHING)
+  : Node("localization_server"), tf_buffer_(get_clock()), tf_listener_(tf_buffer_)
   {
     cmd_vel_publisher_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
     action_server_ = rclcpp_action::create_server<Localization>(
-        this, "localization_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+      this, "localization_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
 
-    localization_timer_ = create_wall_timer(std::chrono::milliseconds(50), [this]() { localize(); });
+    localization_timer_ =
+      create_wall_timer(std::chrono::milliseconds(50), [this]() { localize(); });
     start_time_ = now();
   }
 
@@ -138,10 +135,10 @@ private:
       double angular_speed = std::clamp(yaw_error * 1.5, 0.1, 0.5);
       twist.angular.z = (yaw < 1.57) ? angular_speed : -angular_speed;
 
-      LOGGER_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Aligning... Yaw error: %.3f rad, Speed: %.2f", yaw_error,
-                           twist.angular.z);
-    }
-    catch (tf2::TransformException& ex)
+      LOGGER_INFO_THROTTLE(
+        get_logger(), *get_clock(), 1000, "Aligning... Yaw error: %.3f rad, Speed: %.2f", yaw_error,
+        twist.angular.z);
+    } catch (tf2::TransformException & ex)
     {
       // Tag not visible
       if (current_state_ == State::ALIGNING)
@@ -166,8 +163,8 @@ private:
   tf2_ros::TransformListener tf_listener_;
 
   rclcpp::Time start_time_;
-  State current_state_;
-  bool success_;
+  State current_state_ = State::SEARCHING;
+  bool success_ = false;
   double lateral_distance_, depth_distance_;
 };
 
@@ -175,7 +172,7 @@ private:
  * @brief Main function.
  * Initializes and runs the LocalizationServer node.
  */
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<LocalizationServer>());

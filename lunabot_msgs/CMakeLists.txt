@@ -36,7 +36,6 @@ rosidl_generate_interfaces(
   "action/Localization.action"
   "action/Excavation.action"
   "action/Depositing.action"
-  "action/Homing.action"
   DEPENDENCIES
   std_msgs)
 

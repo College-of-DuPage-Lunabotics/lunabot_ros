@@ -72,34 +72,28 @@ set(SIM_DEPENDENCIES
 # Define build targets
 add_executable(excavation_server src/excavation_server.cpp)
 add_executable(depositing_server src/depositing_server.cpp)
-add_executable(homing_server src/homing_server.cpp)
 add_executable(localization_server src/localization_server.cpp)
 add_executable(navigation_client src/navigation_client.cpp)
 
 add_executable(excavation_server_sim src/excavation_server_sim.cpp)
 add_executable(depositing_server_sim src/depositing_server_sim.cpp)
-add_executable(homing_server_sim src/homing_server_sim.cpp)
 
 ament_target_dependencies(excavation_server ${DEPENDENCIES})
 ament_target_dependencies(depositing_server ${DEPENDENCIES})
-ament_target_dependencies(homing_server ${DEPENDENCIES})
 ament_target_dependencies(localization_server ${DEPENDENCIES})
 ament_target_dependencies(navigation_client ${DEPENDENCIES})
 
 ament_target_dependencies(excavation_server_sim ${SIM_DEPENDENCIES})
 ament_target_dependencies(depositing_server_sim ${SIM_DEPENDENCIES})
-ament_target_dependencies(homing_server_sim ${SIM_DEPENDENCIES})
 
 # Install package files
 install(
   TARGETS excavation_server
           depositing_server
-          homing_server
           localization_server
           navigation_client
           excavation_server_sim
           depositing_server_sim
-          homing_server_sim
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

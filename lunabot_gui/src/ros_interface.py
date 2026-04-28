@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
+import math
 import os
 import signal
 import subprocess
+import sys
 import time
 
 import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from PyQt5.QtCore import QCoreApplication
+from rcl_interfaces.msg import Log
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import CompressedImage, JointState
-from std_msgs.msg import Bool, Float32, Float64MultiArray
+from std_msgs.msg import Bool, Float32, Float64, Float64MultiArray
 
 from lunabot_logger import Logger
-from lunabot_msgs.action import Depositing, Excavation, Homing
+from lunabot_msgs.action import Depositing, Excavation
 from lunabot_msgs.msg import ControlState, PowerMonitor
 from lunabot_msgs.srv import LaunchSystem, StopSystem
 
@@ -34,7 +38,6 @@ _TIMEOUT_SERVICE_RESPONSE = 30.0
 _TIMEOUT_STOP_RESPONSE = 10.0
 _TIMEOUT_PROCESS_TERMINATE = 5
 
-# Display names for log messages
 _DISPLAY_NAMES = {
     'pointlio':     'Point-LIO',
     'mapping':      'RTAB-Map',
@@ -44,22 +47,13 @@ _DISPLAY_NAMES = {
 }
 
 class RobotInterface:
-    """ROS interface for robot communication and control"""
-    
     def __init__(self, mode_param):
-        """
-        Initialize ROS interface
-        
-        Args:
-            mode_param: Robot mode (True=sim, False=real or 'sim'/'real')
-        """
         if not rclpy.ok():
             rclpy.init()
         self.node = Node('lunabot_gui')
         self._shutdown = False
         self.log = Logger(self.node)
 
-        # Declare and read network parameters from config
         self.node.declare_parameter('network.robot_host', '192.168.0.250')
         self.node.declare_parameter('network.robot_user', 'codetc')
         self.node.declare_parameter('network.robot_workspace', '~/lunabot_ws')
@@ -77,7 +71,6 @@ class RobotInterface:
         self.robot_mode_type = 'real' if self.is_real_mode else 'sim'
         self.log.info(f'ROS interface running in {self.robot_mode_type.upper()} mode')
         
-        # Remote robot configuration from parameters
         self.robot_host = self.node.get_parameter('network.robot_host').value
         self.robot_user = self.node.get_parameter('network.robot_user').value
         self.robot_workspace = self.node.get_parameter('network.robot_workspace').value
@@ -91,25 +84,20 @@ class RobotInterface:
         
         self.bridge = CvBridge() if CV_AVAILABLE else None
         
-        # Data storage - bandwidth (current)
         self.bandwidth_total = 0.0
         self.bandwidth_rx = 0.0
         self.bandwidth_tx = 0.0
-        
-        # Data storage - bandwidth (running average)
         self.bandwidth_avg_total = 0.0
         self.bandwidth_avg_rx = 0.0
         self.bandwidth_avg_tx = 0.0
-        
-        # Data storage - power monitoring
+
         self.power_voltage = 0.0
         self.power_current = 0.0
         self.power_watts = 0.0
         self.power_temp = 0.0
-        self.power_energy_kwh = 0.0
+        self.power_energy_wh = 0.0
         self.power_alert_status = "Unknown"
-        
-        # Data storage - robot state
+
         self.front_camera_image = None
         self.rear_camera_image = None
         self.fisheye_camera_image = None
@@ -117,23 +105,28 @@ class RobotInterface:
         self.angular_velocity = 0.0
         self.position_x = 0.0
         self.position_y = 0.0
-        self.bucket_position = -0.2
-        
-        # System enable states
+        self.position_z = 0.0
+        self.orientation_roll = 0.0
+        self.orientation_pitch = 0.0
+        self.orientation_yaw = 0.0
+        self.bucket_position = 0.0
+        self.actuator_position = -5.25
+
+        self.realsense_enabled = False
+        self.front_camera_sub = None
+        self.rear_camera_sub = None
+
         self.hardware_enabled = False
         self.pointlio_enabled = False
         self.mapping_enabled = False
         self.nav2_enabled = False
         self.localization_enabled = False
-        
-        # Robot mode and operation states
+
         self.robot_mode = "MANUAL"
         self.is_excavating = False
         self.is_depositing = False
-        self.is_homing = False
         self.is_navigating = False
         self.robot_disabled = False
-        self.vibration_state = False
         self.vibration_duty_cycle = 0.0
         
         # Launch process tracking (True = remote via service, Process = local subprocess)
@@ -146,18 +139,14 @@ class RobotInterface:
             'localization': None
         }
         
-        # Action clients and goal handles
         self.excavation_client = ActionClient(self.node, Excavation, 'excavation_action')
         self.depositing_client = ActionClient(self.node, Depositing, 'depositing_action')
-        self.homing_client = ActionClient(self.node, Homing, 'homing_action')
         
         self.excavation_goal_handle = None
         self.depositing_goal_handle = None
-        self.homing_goal_handle = None
         self.navigation_client_process = None
         
         self.emergency_stop_pub = self.node.create_publisher(Bool, '/emergency_stop', 10)
-        self.control_state_pub = self.node.create_publisher(ControlState, '/control_state', 10)
         self.mode_switch_pub = self.node.create_publisher(Bool, '/mode_switch', 10)
         self.position_cmd_pub = self.node.create_publisher(Float64MultiArray, '/position_controller/commands', 10)
         self.camera_cmd_pub = self.node.create_publisher(Float64MultiArray, '/camera_controller/commands', 10)
@@ -169,13 +158,12 @@ class RobotInterface:
         self._create_subscriptions()
         
         # Callbacks for UI updates (set by GUI)
-        self.on_bandwidth_update = None
-        self.on_camera_update = None
         self.on_robot_state_update = None
         self.on_control_state_update = None
+        self.on_realsense_toggle = None
+        self.on_log = None
     
     def _create_subscriptions(self):
-        # Bandwidth monitoring - Current
         self.node.create_subscription(
             Float32, '/bandwidth/total_mbps',
             lambda msg: setattr(self, 'bandwidth_total', msg.data), 10)
@@ -185,8 +173,6 @@ class RobotInterface:
         self.node.create_subscription(
             Float32, '/bandwidth/tx_mbps',
             lambda msg: setattr(self, 'bandwidth_tx', msg.data), 10)
-        
-        # Bandwidth monitoring - Running Average
         self.node.create_subscription(
             Float32, '/bandwidth/avg_total_mbps',
             lambda msg: setattr(self, 'bandwidth_avg_total', msg.data), 10)
@@ -196,17 +182,13 @@ class RobotInterface:
         self.node.create_subscription(
             Float32, '/bandwidth/avg_tx_mbps',
             lambda msg: setattr(self, 'bandwidth_avg_tx', msg.data), 10)
-        
+
         if CV_AVAILABLE:
-            self.node.create_subscription(
-                CompressedImage, '/camera_front/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 10)
-            self.node.create_subscription(
-                CompressedImage, '/camera_back/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 10)
+            if self.realsense_enabled:
+                self._enable_realsense_subscriptions()
             self.node.create_subscription(
                 CompressedImage, '/camera_fisheye/color/image_compressed',
-                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 10)
+                lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 1)
         
         self.node.create_subscription(
             Odometry, '/odometry/filtered', self._odom_callback, 10)
@@ -227,22 +209,134 @@ class RobotInterface:
             Float32, '/vibration_duty_cycle', self._vibration_duty_cycle_callback, 10)
 
         self.node.create_subscription(
+            Float64, '/actuator_position',
+            lambda msg: setattr(self, 'actuator_position', msg.data), 10)
+        self.node.create_subscription(
+            Float64, '/bucket_angle',
+            lambda msg: setattr(self, 'bucket_position', msg.data), 10)
+
+        self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
+        
+        # /rosout publishers use RELIABLE + TRANSIENT_LOCAL
+        rosout_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1000
+        )
+        
+        self.node.create_subscription(
+            Log, '/rosout', self._log_callback, rosout_qos)
     
     def _camera_callback(self, msg, camera_name, attr_name):
-        """Generic handler for compressed camera image messages"""
         try:
             np_arr = np.frombuffer(msg.data, np.uint8)
             cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             setattr(self, attr_name, cv_image)
-            if self.on_camera_update:
-                self.on_camera_update(camera_name, cv_image)
         except Exception as e:
             self.log.failure(f'{camera_name.capitalize()} camera error: {e}')
+    
+    def _enable_realsense_subscriptions(self):
+        if not CV_AVAILABLE:
+            return
+        
+        # Queue size = 1 for minimal latency (we only care about latest frame)
+        if self.front_camera_sub is None:
+            self.front_camera_sub = self.node.create_subscription(
+                CompressedImage, '/camera_front/color/image_compressed',
+                lambda msg: self._camera_callback(msg, 'front', 'front_camera_image'), 1)
+            self.log.info('Front RealSense camera subscription enabled')
+        
+        if self.rear_camera_sub is None:
+            self.rear_camera_sub = self.node.create_subscription(
+                CompressedImage, '/camera_back/color/image_compressed',
+                lambda msg: self._camera_callback(msg, 'rear', 'rear_camera_image'), 1)
+            self.log.info('Rear RealSense camera subscription enabled')
+    
+    def _disable_realsense_subscriptions(self):
+        if self.front_camera_sub is not None:
+            self.node.destroy_subscription(self.front_camera_sub)
+            self.front_camera_sub = None
+            self.front_camera_image = None
+            self.log.info('Front RealSense camera subscription disabled')
+        
+        if self.rear_camera_sub is not None:
+            self.node.destroy_subscription(self.rear_camera_sub)
+            self.rear_camera_sub = None
+            self.rear_camera_image = None
+            self.log.info('Rear RealSense camera subscription disabled')
+    
+    def toggle_realsense_cameras(self):
+        self.realsense_enabled = not self.realsense_enabled
+        
+        if self.realsense_enabled:
+            self._enable_realsense_subscriptions()
+            self.log.action('RealSense cameras enabled')
+        else:
+            self._disable_realsense_subscriptions()
+            self.log.action('RealSense cameras disabled')
+        
+        if self.on_realsense_toggle:
+            self.on_realsense_toggle(self.realsense_enabled)
+        
+        return self.realsense_enabled
+    
+    def restart_can_interface(self):
+        try:
+            script_path = f'{self.robot_workspace}/src/lunabot_ros/scripts/canable_restart.sh'
+            
+            if self.is_remote:
+                self.log.action(f'Restarting CAN interface on {self.robot_user}@{self.robot_host}')
+                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
+            else:
+                self.log.action(f'Restarting CAN interface: {script_path}')
+                cmd = ['bash', os.path.expanduser(script_path)]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            
+            if result.stdout:
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        self.log.info(f'CAN: {line}')
+            if result.stderr:
+                for line in result.stderr.strip().split('\n'):
+                    if line:
+                        self.log.warning(f'CAN: {line}')
+            
+            if result.returncode == 0:
+                self.log.success('CAN interface restarted successfully')
+                return True
+            else:
+                self.log.failure(f'CAN restart failed with exit code {result.returncode}')
+                return False
+        except subprocess.TimeoutExpired:
+            self.log.failure('CAN restart timed out')
+            return False
+        except Exception as e:
+            self.log.failure(f'Error restarting CAN: {e}')
+            return False
     
     def _odom_callback(self, msg):
         self.position_x = msg.pose.pose.position.x
         self.position_y = msg.pose.pose.position.y
+        self.position_z = msg.pose.pose.position.z
+
+        q = msg.pose.pose.orientation
+        sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+        cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+        self.orientation_roll = math.atan2(sinr_cosp, cosr_cosp)
+
+        sinp = 2 * (q.w * q.y - q.z * q.x)
+        if abs(sinp) >= 1:
+            self.orientation_pitch = math.copysign(math.pi / 2, sinp)
+        else:
+            self.orientation_pitch = math.asin(sinp)
+
+        siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+        self.orientation_yaw = math.atan2(siny_cosp, cosy_cosp)
+        
         self.linear_velocity = msg.twist.twist.linear.x
         self.angular_velocity = msg.twist.twist.angular.z
         if self.on_robot_state_update:
@@ -266,12 +360,22 @@ class RobotInterface:
     
     def _joint_states_callback(self, msg):
         try:
-            if 'base_bucket_joint' in msg.name:
+            if not self.is_real_mode and 'base_bucket_joint' in msg.name:
                 idx = msg.name.index('base_bucket_joint')
                 if idx < len(msg.position):
                     self.bucket_position = msg.position[idx]
         except Exception as e:
             self.log.warning(f'Error processing joint states: {e}', throttle_duration_sec=5.0)
+    
+    def _log_callback(self, msg):
+        if self.on_log:
+            level_map = {10: 'DEBUG', 20: 'INFO', 30: 'WARN', 40: 'ERROR', 50: 'FATAL'}
+            level = level_map.get(msg.level, 'UNKNOWN')
+            log_text = f"[{level}] {msg.name}: {msg.msg}"
+            try:
+                self.on_log(log_text)
+            except Exception as e:
+                print(f"Failed to log message from {msg.name}: {e}", file=sys.stderr)
     
     def _control_state_callback(self, msg):
         self.robot_mode = "MANUAL" if msg.mode == 0 else "AUTO"
@@ -288,12 +392,11 @@ class RobotInterface:
             self.on_control_state_update(msg)
     
     def _power_monitor_callback(self, msg):
-        """Handle power monitor telemetry updates"""
         self.power_voltage = msg.voltage
         self.power_current = msg.current
         self.power_watts = msg.power
         self.power_temp = msg.temperature
-        self.power_energy_kwh = msg.energy_kwh
+        self.power_energy_wh = msg.energy_wh
         self.power_alert_status = msg.alert_status
     
     def publish_emergency_stop(self):
@@ -302,7 +405,6 @@ class RobotInterface:
         self.emergency_stop_pub.publish(msg)
     
     def publish_re_enable(self):
-        """Publish re-enable command (clear emergency stop)"""
         msg = Bool()
         msg.data = False
         self.emergency_stop_pub.publish(msg)
@@ -330,13 +432,11 @@ class RobotInterface:
         self.camera_cmd_pub.publish(msg)
     
     def start_can_interface(self):
-        """Start CAN interface using canable_start.sh script"""
         try:
             script_path = f'{self.robot_workspace}/src/lunabot_ros/scripts/canable_start.sh'
             
             if self.is_remote:
                 self.log.action(f'Running CAN interface on {self.robot_user}@{self.robot_host}')
-                # Use bash -l to ensure proper environment and sudoers is loaded
                 cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
             else:
                 self.log.action(f'Running CAN interface script: {script_path}')
@@ -363,7 +463,6 @@ class RobotInterface:
             self.log.failure(f'Failed to start CAN interface: {str(e)}')
     
     def _kill_proc(self, process, name):
-        """Kill a launch process and all its child nodes via process group signal."""
         try:
             pgid = os.getpgid(process.pid)
         except ProcessLookupError:
@@ -382,7 +481,6 @@ class RobotInterface:
             self.log.warning(f'Error terminating {name}: {e}')
 
     def _wait_for_service_response(self, future, timeout_sec):
-        """Block (processing Qt events) until the future completes or times out. Returns response or None."""
         start_time = time.time()
         while not future.done() and (time.time() - start_time) < timeout_sec:
             QCoreApplication.processEvents()
@@ -404,15 +502,12 @@ class RobotInterface:
             setattr(self, attr, value)
 
     def launch_hardware(self):
-        """Launch hardware system for real robot"""
         if self.launch_processes['hardware'] is not None:
             self.log.warning('Hardware already running')
             return
         
         try:
             if self.is_remote:
-                self.log.action('Launching hardware via launch manager service')
-
                 request = LaunchSystem.Request()
                 request.system_name = 'hardware'
                 request.use_sim = False
@@ -435,7 +530,6 @@ class RobotInterface:
                     self.log.failure('Service call failed for hardware launch')
                     return
             else:
-                # Local launch
                 steam_arg = 'true' if self.steam_mode else 'false'
                 self.launch_processes['hardware'] = subprocess.Popen(
                     ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
@@ -464,9 +558,6 @@ class RobotInterface:
             use_sim = not self.is_real_mode
 
             if run_on_robot:
-                # Use service call to launch manager on robot
-                self.log.action(f'Launching {display} via launch manager service')
-
                 request = LaunchSystem.Request()
                 request.system_name = system_name
                 request.use_sim = use_sim
@@ -490,7 +581,6 @@ class RobotInterface:
 
                 self._set_system_enabled(system_name, True)
             else:
-                # Local launch (simulation mode)
                 use_sim_arg = 'true' if use_sim else 'false'
                 launch_file = f'{system_name}_launch.py'
                 if system_name == 'nav2':
@@ -522,8 +612,6 @@ class RobotInterface:
 
             # If launch_processes is True, it's a remote process via service
             if self.launch_processes[system_name] is True and self.is_remote:
-                self.log.action(f'Stopping {display} via launch manager service')
-
                 request = StopSystem.Request()
                 request.system_name = system_name
 
@@ -555,40 +643,32 @@ class RobotInterface:
             self.log.failure(f'Error stopping {display}: {e}')
     
     
+    def _get_workspace_setup_cmd(self):
+        ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
+        if ament_prefix:
+            install_paths = ament_prefix.split(':')
+            workspace_install = None
+            for path in install_paths:
+                if 'lunabot' in path and 'install' in path:
+                    workspace_install = path.split('/install/')[0] + '/install'
+                    break
+            if not workspace_install and install_paths:
+                workspace_install = install_paths[0].split('/install/')[0] + '/install'
+            return f'source {workspace_install}/setup.bash'
+        return 'source install/setup.bash'
+
     def launch_rviz(self):
-        """Launch RViz2 with robot visualization config"""
         self.log.action('Launching RViz2')
         try:
-            ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
-            if ament_prefix:
-                install_paths = ament_prefix.split(':')
-                workspace_install = None
-                for path in install_paths:
-                    if 'lunabot' in path and 'install' in path:
-                        workspace_install = path.split('/install/')[0] + '/install'
-                        break
-                
-                if not workspace_install and install_paths:
-                    workspace_install = install_paths[0].split('/install/')[0] + '/install'
-                
-                setup_cmd = f'source {workspace_install}/setup.bash'
-            else:
-                setup_cmd = 'source $(ros2 pkg prefix lunabot_config)/../setup.bash 2>/dev/null || source install/setup.bash'
-            
             config_path = '$(ros2 pkg prefix lunabot_config)/share/lunabot_config/rviz/robot_view.rviz'
-            
             subprocess.Popen(
-                f'{setup_cmd} && rviz2 -d {config_path}',
-                shell=True,
-                executable='/bin/bash'
-            )
-            
+                f'{self._get_workspace_setup_cmd()} && rviz2 -d {config_path}',
+                shell=True, executable='/bin/bash')
             self.log.success('RViz2 launched')
         except Exception as e:
             self.log.failure(f'Failed to launch RViz2: {e}')
     
     def send_excavate_goal(self, response_callback, result_callback, cancel_callback):
-        """Send excavation action goal"""
         self.log.action('Sending excavation goal')
         goal_msg = Excavation.Goal()
         send_goal_future = self.excavation_client.send_goal_async(goal_msg)
@@ -605,18 +685,15 @@ class RobotInterface:
             get_result_future.add_done_callback(result_callback)
     
     def cancel_excavate_goal(self, cancel_callback):
-        """Cancel excavation action"""
         if self.excavation_goal_handle is not None and self.excavation_goal_handle.accepted:
             self.log.action('Canceling excavation goal')
             cancel_future = self.excavation_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
         else:
             self.log.warning('No active excavation goal to cancel')
-            # Still call the callback to reset GUI state
             cancel_callback(None)
     
     def send_deposit_goal(self, response_callback, result_callback, cancel_callback):
-        """Send depositing action goal"""
         self.log.action('Sending depositing goal')
         goal_msg = Depositing.Goal()
         send_goal_future = self.depositing_client.send_goal_async(goal_msg)
@@ -633,74 +710,22 @@ class RobotInterface:
             get_result_future.add_done_callback(result_callback)
     
     def cancel_deposit_goal(self, cancel_callback):
-        """Cancel depositing action"""
         if self.depositing_goal_handle is not None and self.depositing_goal_handle.accepted:
             self.log.action('Canceling depositing goal')
             cancel_future = self.depositing_goal_handle.cancel_goal_async()
             cancel_future.add_done_callback(cancel_callback)
         else:
             self.log.warning('No active depositing goal to cancel')
-            # Still call the callback to reset GUI state
-            cancel_callback(None)
-    
-    def send_home_goal(self, response_callback, result_callback, cancel_callback):
-        """Send homing action goal"""
-        self.log.action('Sending home goal')
-        goal_msg = Homing.Goal()
-        send_goal_future = self.homing_client.send_goal_async(goal_msg)
-        send_goal_future.add_done_callback(
-            lambda future: self._handle_home_response(future, response_callback, result_callback))
-        return send_goal_future
-    
-    def _handle_home_response(self, future, response_callback, result_callback):
-        goal_handle = future.result()
-        self.homing_goal_handle = goal_handle
-        response_callback(goal_handle)
-        if goal_handle.accepted:
-            get_result_future = goal_handle.get_result_async()
-            get_result_future.add_done_callback(result_callback)
-    
-    def cancel_home_goal(self, cancel_callback):
-        """Cancel homing action"""
-        if self.homing_goal_handle is not None and self.homing_goal_handle.accepted:
-            self.log.action('Canceling homing goal')
-            cancel_future = self.homing_goal_handle.cancel_goal_async()
-            cancel_future.add_done_callback(cancel_callback)
-        else:
-            self.log.warning('No active homing goal to cancel')
-            # Still call the callback to reset GUI state
             cancel_callback(None)
     
     def launch_navigation_client(self):
-        """Launch navigation client for one cycle auto"""
         self.log.action('Starting navigation client')
         try:
-            ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
-            if ament_prefix:
-                install_paths = ament_prefix.split(':')
-                workspace_install = None
-                for path in install_paths:
-                    if 'lunabot' in path and 'install' in path:
-                        workspace_install = path.split('/install/')[0] + '/install'
-                        break
-                
-                if not workspace_install and install_paths:
-                    workspace_install = install_paths[0].split('/install/')[0] + '/install'
-                
-                setup_cmd = f'source {workspace_install}/setup.bash'
-            else:
-                setup_cmd = 'source $(ros2 pkg prefix lunabot_nav)/../setup.bash 2>/dev/null || source install/setup.bash'
-            
             use_sim_arg = 'false' if self.is_real_mode else 'true'
-            use_localization_arg = 'false'
-            
             self.navigation_client_process = subprocess.Popen(
-                f'{setup_cmd} && ros2 run lunabot_nav navigation_client --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:={use_localization_arg}',
-                shell=True,
-                executable='/bin/bash',
-                preexec_fn=os.setsid
-            )
-            
+                f'{self._get_workspace_setup_cmd()} && ros2 run lunabot_nav navigation_client'
+                f' --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:=false',
+                shell=True, executable='/bin/bash', preexec_fn=os.setsid)
             self.log.success('Navigation client launched')
             return True
         except Exception as e:
@@ -708,7 +733,6 @@ class RobotInterface:
             return False
     
     def stop_navigation_client(self):
-        """Stop navigation client process"""
         if self.navigation_client_process:
             try:
                 os.killpg(os.getpgid(self.navigation_client_process.pid), signal.SIGTERM)
@@ -716,14 +740,6 @@ class RobotInterface:
                 self.log.success('Navigation client stopped')
             except Exception as e:
                 self.log.failure(f'Failed to stop navigation client: {e}')
-    
-    def spin_once(self):
-        if not self._shutdown and rclpy.ok():
-            try:
-                rclpy.spin_once(self.node, timeout_sec=0)
-            except Exception as e:
-                if not self._shutdown:
-                    self.log.debug(f'Spin error: {e}')
     
     def shutdown(self):
         if self._shutdown:

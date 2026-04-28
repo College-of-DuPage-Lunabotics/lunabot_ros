@@ -93,7 +93,9 @@ def generate_launch_description():
                         "bt_navigator",
                     ]
                 },
-                {"node_timeout": 10.0},
+                {"node_timeout": 30.0},
+                {"bond_timeout": 10.0},
+                {"attempt_respawn_reconnection": True},
             ],
         )
 

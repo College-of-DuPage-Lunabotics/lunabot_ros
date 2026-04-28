@@ -8,7 +8,7 @@
     <xacro:property name="camera_sim_link_offset" value="0.01" />
   </xacro:if>
   <xacro:unless value="$(arg use_sim)">
-    <xacro:property name="camera_sim_link_offset" value="0" />
+    <xacro:property name="camera_sim_link_offset" value="0.019" />
   </xacro:unless>
 
   <material name="camera_grey">
@@ -29,7 +29,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_body.dae" />
       </geometry>
-      <origin xyz="0 0 0.1625" rpy="0 0 1.5708" />
+      <origin xyz="0 -0.008 0.1625" rpy="0 0 1.5708" />
     </visual>
     <collision>
       <geometry>
@@ -49,9 +49,10 @@
     <visual>
       <geometry>
         <mesh
-          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_bucket.dae" />
+          filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_bucket.stl" />
       </geometry>
-      <origin xyz="0.2 0 0" rpy="1.5708 0 1.5708" />
+      <origin xyz="0.2 0 0" rpy="0 0 1.5708" />
+      <material name="camera_grey" />
     </visual>
     <!-- <collision>
       <geometry>
@@ -131,12 +132,14 @@
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.dae" />
       </geometry>
       <material name="camera_grey" />
+      <origin xyz="0 0 0" rpy="0 0 -1.5708" />
     </visual>
     <collision>
       <geometry>
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.stl" />
       </geometry>
+      <origin xyz="0 0 0" rpy="0 0 -1.5708" />
     </collision>
   </link>
 
@@ -151,14 +154,16 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
       </geometry>
-      <material name="camera_grey" />
+      <origin xyz="0 0 0" rpy="0 0 3.14" />
+      <material name="black" />
     </visual>
         <collision>
       <geometry>
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
       </geometry>
-      <material name="camera_grey" />
+      <material name="black" />
+      <origin xyz="0 0 0" rpy="0 0 3.14" />
     </collision>
   </link>
 
@@ -249,7 +254,7 @@
   <joint name="base_camera_front_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_front_link" />
-    <origin xyz="0.55 0 0.425" rpy="0 0.523599 0" />
+    <origin xyz="0.55 0 0.412" rpy="0 0.837758 0" />
   </joint>
 
   <joint name="camera_front_optical_joint" type="fixed">
@@ -261,7 +266,7 @@
   <joint name="base_camera_back_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_back_link" />
-    <origin xyz="-0.324 0 0.564" rpy="0 0.785398 3.14" />
+    <origin xyz="-0.348 0 0.548" rpy="0 0.837758 3.14" />
   </joint>
 
   <joint name="camera_back_optical_joint" type="fixed">
@@ -273,7 +278,7 @@
   <joint name="base_camera_fisheye_mount_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_fisheye_mount_link" />
-    <origin xyz="-0.22 0 0.564" rpy="0 0 0" />
+    <origin xyz="-0.34 -0.01 0.58" rpy="0 0 0" />
   </joint>
 
   <joint name="camera_fisheye_yaw_joint" type="revolute">
@@ -281,14 +286,14 @@
     <child link="camera_fisheye_yaw_link" />
     <origin xyz="0 0 0" rpy="0 0 0" />
     <axis xyz="0 0 1" />
-    <limit effort="10" velocity="1.0" lower="-3.14159" upper="3.14159" />
+    <limit effort="10" velocity="1.0" lower="-1.5708" upper="1.5708" />
     <dynamics damping="0.1" friction="0.1" />
   </joint>
 
   <joint name="camera_fisheye_pitch_joint" type="fixed">
     <parent link="camera_fisheye_yaw_link" />
     <child link="camera_fisheye_link" />
-    <origin xyz="0.07 0 0.035" rpy="0 0.523599 0" />
+    <origin xyz="-0.045 0 -0.005" rpy="0 -0.785398 0" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">
@@ -300,13 +305,13 @@
   <joint name="base_mid360_joint" type="fixed">
     <parent link="base_link" />
     <child link="livox_frame" />
-    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 1.5708" />
+    <origin xyz="-0.3 0 0.548" rpy="3.14159 0 1.5708" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
     <parent link="base_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="-0.27 0 0.548" rpy="3.14159 0 1.5708" />
+    <origin xyz="-0.3 0 0.548" rpy="3.14159 0 1.5708" />
   </joint>
 
   <!-- ================================= -->
@@ -316,7 +321,7 @@
   <joint name="base_bucket_joint" type="revolute">
     <parent link="base_link" />
     <child link="bucket_link" />
-    <origin xyz="-0.15 0 0.2" rpy="0 0 0" />
+    <origin xyz="-0.204 0 0.162" rpy="0 0 0" />
     <axis xyz="0 1 0" />
     <limit effort="100" velocity="0.3" lower="-1.57" upper="0.1" />
     <dynamics damping="0.0" friction="0.0" />
@@ -662,14 +667,14 @@
           <param name="max">0.75</param>
         </command_interface>
         <state_interface name="position">
-          <param name="initial_value">-0.2</param>
+          <param name="initial_value">0.0</param>
         </state_interface>
         <state_interface name="velocity" />
       </joint>
       <joint name="camera_fisheye_yaw_joint">
         <command_interface name="position">
-          <param name="min">-3.14159</param>
-          <param name="max">3.14159</param>
+          <param name="min">-1.5708</param>
+          <param name="max">1.5708</param>
         </command_interface>
         <state_interface name="position">
           <param name="initial_value">0.0</param>

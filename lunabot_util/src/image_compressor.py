@@ -16,51 +16,27 @@ class ImageCompressor(Node):
         self.log = Logger(self)
 
         self.declare_parameter('jpeg_quality', 40)  # Lower = more compression
-        self.declare_parameter('scale', 1.0)  # Additional downscaling if needed
+        self.declare_parameter('scale', 1.0)
         
         self.jpeg_quality = self.get_parameter('jpeg_quality').value
         self.scale = self.get_parameter('scale').value
         
         self.bridge = CvBridge()
         
-        # Front camera compression
         self.front_sub = self.create_subscription(
-            Image,
-            '/camera_front/color/image_raw',
-            self.front_callback,
-            10)
+            Image, '/camera_front/color/image_raw', self.front_callback, 1)
         self.front_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_front/color/image_compressed',
-            10)
-        
-        # Back camera compression
+            CompressedImage, '/camera_front/color/image_compressed', 1)
+
         self.back_sub = self.create_subscription(
-            Image,
-            '/camera_back/color/image_raw',
-            self.back_callback,
-            10)
+            Image, '/camera_back/color/image_raw', self.back_callback, 1)
         self.back_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_back/color/image_compressed',
-            10)
-        
-        # Fisheye camera compression
-        self.fisheye_sub = self.create_subscription(
-            Image,
-            '/camera_fisheye/color/image_raw',
-            self.fisheye_callback,
-            10)
-        self.fisheye_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_fisheye/color/image_compressed',
-            10)
-        
+            CompressedImage, '/camera_back/color/image_compressed', 1)
+
         self.log.success(
             f'Image compressor started: quality={self.jpeg_quality}, scale={self.scale}')
     
     def compress_image(self, msg):
-        """Convert and compress image with configurable quality"""
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 
@@ -96,11 +72,6 @@ class ImageCompressor(Node):
         compressed = self.compress_image(msg)
         if compressed:
             self.back_pub.publish(compressed)
-    
-    def fisheye_callback(self, msg):
-        compressed = self.compress_image(msg)
-        if compressed:
-            self.fisheye_pub.publish(compressed)
 
 
 def main(args=None):

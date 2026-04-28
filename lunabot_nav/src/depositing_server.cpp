@@ -4,22 +4,21 @@
  * @date 02/22/2026
  */
 
-#include <chrono>
-#include <memory>
-#include <thread>
-
+#include "SparkMax.hpp"
+#include "lunabot_logger/logger.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/depositing.hpp"
-#include "lunabot_logger/logger.hpp"
-
-#include "SparkMax.hpp"
 #include <std_msgs/msg/float64.hpp>
 
-#define DEPOSIT_POS 0.0
-#define TRAVEL_POS 6.0
-#define DEPOSIT_SECONDS 7.0
+#include <chrono>
+#include <memory>
+#include <thread>
+
+static constexpr double deposit_pos = 0.0;
+static constexpr double travel_pos = 0.7854;
+static constexpr double deposit_seconds = 7.0;
 
 /**
  * @class DepositingServer
@@ -35,51 +34,46 @@ public:
    * @brief Constructor for the DepositingServer class.
    */
   DepositingServer()
-    : Node("depositing_server")
-    , goal_active_(false)
-    , home_offset_(0.0)
-    , right_actuator_motor_("can0", 5)
-    , left_actuator_motor_("can0", 2)
-    , vibration_motor_("can0", 4)
+  : Node("depositing_server"),
+    right_actuator_motor_("can0", 5),
+    left_actuator_motor_("can0", 2),
+    vibration_motor_("can0", 4)
   {
-    action_server_ = rclcpp_action::create_server<Depositing>(
-        this, "depositing_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+    encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
-    home_offset_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
-        "actuator_home_offset", 10,
-        [this](const std_msgs::msg::Float64::SharedPtr msg) {
-          home_offset_ = msg->data;
-          LOGGER_ACTION(this->get_logger(), "Home offset updated: %.2f", home_offset_);
-        });
+    action_server_ = rclcpp_action::create_server<Depositing>(
+      this, "depositing_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
+
+    auto sub_options = rclcpp::SubscriptionOptions();
+    sub_options.callback_group = encoder_callback_group_;
+
+    encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
+      "bucket_angle", 10,
+      std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1),
+      sub_options);
 
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
 
 private:
   /**
-   * @brief Gets the position of the left bucket actuator (right encoder not working).
-   * @return Left encoder position in radians.
-   */
-  double get_actuator_position()
-  {
-    left_actuator_motor_.Heartbeat();
-    return left_actuator_motor_.GetPosition() - home_offset_;
-  }
-
-  /**
    * @brief Lifts bucket to deposit position.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lift_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket to deposit...");
 
-    double target_position = DEPOSIT_POS;
+    double target_position = deposit_pos;
 
-    while (get_actuator_position() < target_position)
+    while (current_encoder_position_ > target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -94,19 +88,22 @@ private:
       left_actuator_motor_.SetDutyCycle(-1.0);
       right_actuator_motor_.SetDutyCycle(-1.0);
 
-      LOGGER_INFO(this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f", get_actuator_position(), target_position);
+      LOGGER_INFO(
+        this->get_logger(), "Lifting... Current position: %.2f, Target: %.2f",
+        current_encoder_position_, target_position);
     }
 
     left_actuator_motor_.SetDutyCycle(0.0);
     right_actuator_motor_.SetDutyCycle(0.0);
 
-    LOGGER_ACTION(this->get_logger(), "Vibrating bucket for %.2f seconds...", DEPOSIT_SECONDS);
+    LOGGER_ACTION(this->get_logger(), "Vibrating bucket for %.2f seconds...", deposit_seconds);
 
     auto start = std::chrono::steady_clock::now();
 
     bool vibration_on = true;
 
-    while (vibration_on) {
+    while (vibration_on)
+    {
       if (goal_handle->is_canceling())
       {
         vibration_motor_.SetDutyCycle(0.0);
@@ -118,9 +115,10 @@ private:
 
       auto end = std::chrono::steady_clock::now();
 
-      std::chrono::duration<double> elapsed_seconds = end-start;
-      
-      if (elapsed_seconds.count() >= DEPOSIT_SECONDS) {
+      std::chrono::duration<double> elapsed_seconds = end - start;
+
+      if (elapsed_seconds.count() >= deposit_seconds)
+      {
         vibration_on = false;
         vibration_motor_.Heartbeat();
         vibration_motor_.SetDutyCycle(0.0);
@@ -132,15 +130,15 @@ private:
 
   /**
    * @brief Lowers bucket back to travel position.
-   * @return true if successful, false if cancelled
+   * @return true if successful, false if canceled
    */
   bool lower_bucket(const std::shared_ptr<GoalHandleDepositing> goal_handle)
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket to travel position...");
 
-    double target_position = -TRAVEL_POS;
+    double target_position = travel_pos;
 
-    while (get_actuator_position() > target_position)
+    while (current_encoder_position_ < target_position)
     {
       if (goal_handle->is_canceling())
       {
@@ -192,9 +190,9 @@ private:
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         result->success = false;
-        result->message = "Depositing cancelled";
+        result->message = "Depositing canceled";
         goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        LOGGER_WARN(this->get_logger(), "Depositing canceled");
         goal_active_ = false;
         return;
       }
@@ -207,9 +205,9 @@ private:
         right_actuator_motor_.SetDutyCycle(0.0);
         vibration_motor_.SetDutyCycle(0.0);
         result->success = false;
-        result->message = "Depositing cancelled";
+        result->message = "Depositing canceled";
         goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Depositing cancelled");
+        LOGGER_WARN(this->get_logger(), "Depositing canceled");
         goal_active_ = false;
         return;
       }
@@ -218,8 +216,7 @@ private:
       result->message = "Depositing completed successfully";
       goal_handle->succeed(result);
       LOGGER_SUCCESS(this->get_logger(), "Depositing completed successfully");
-    }
-    catch (const std::exception& e)
+    } catch (const std::exception & e)
     {
       left_actuator_motor_.SetDutyCycle(0.0);
       right_actuator_motor_.SetDutyCycle(0.0);
@@ -233,24 +230,31 @@ private:
     goal_active_ = false;
   }
 
-  rclcpp_action::Server<Depositing>::SharedPtr action_server_;
-  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr home_offset_subscriber_;
+  void encoder_position_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    current_encoder_position_ = msg->data;
+  }
 
-  double home_offset_;
+  rclcpp_action::Server<Depositing>::SharedPtr action_server_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
+
+  double current_encoder_position_ = 0.0;
   SparkMax left_actuator_motor_;
   SparkMax right_actuator_motor_;
   SparkMax vibration_motor_;
-  bool goal_active_;
+  bool goal_active_ = false;
 };
 
-/**
- * @brief Main function.
- * Initializes and runs the DepositingServer node.
- */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<DepositingServer>());
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<DepositingServer>();
+  executor.add_node(node);
+  executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }

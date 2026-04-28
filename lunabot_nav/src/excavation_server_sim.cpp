@@ -4,20 +4,20 @@
  * @date 02/22/2026
  */
 
+#include "lunabot_logger/logger.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+
+#include "geometry_msgs/msg/twist.hpp"
+#include "lunabot_msgs/action/excavation.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
+
 #include <chrono>
 #include <memory>
 #include <thread>
 
-#include "geometry_msgs/msg/twist.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp_action/rclcpp_action.hpp"
-#include "std_msgs/msg/float64_multi_array.hpp"
-
-#include "lunabot_msgs/action/excavation.hpp"
-#include "lunabot_logger/logger.hpp"
-
-#define TRAVEL_POSITION -0.4
-#define EXCAVATE_POSITION 0.0
+static constexpr double travel_position = -0.4;
+static constexpr double excavate_position = 0.0;
 
 /**
  * @class ExcavationServerSim
@@ -32,16 +32,20 @@ public:
   /**
    * @brief Constructor for the ExcavationServerSim class.
    */
-  ExcavationServerSim() : Node("excavation_server"), goal_active_(false)
+  ExcavationServerSim() : Node("excavation_server")
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
-        this, "excavation_action",
-        [this](const auto&, const auto&) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
-        [this](const auto&) { return rclcpp_action::CancelResponse::ACCEPT; },
-        [this](const auto goal_handle) { std::thread{ [this, goal_handle]() { execute(goal_handle); } }.detach(); });
+      this, "excavation_action",
+      [this](const auto &, const auto &) {
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+      },
+      [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
+      [this](const auto goal_handle) {
+        std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+      });
 
     bucket_position_pub_ =
-        this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
+      this->create_publisher<std_msgs::msg::Float64MultiArray>("/position_controller/commands", 10);
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
     LOGGER_SUCCESS(this->get_logger(), "Excavation server (sim) initialized");
@@ -66,7 +70,7 @@ private:
   void lower_bucket()
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket to excavate (vibration on)...");
-    set_bucket_position(EXCAVATE_POSITION);
+    set_bucket_position(excavate_position);
     std::this_thread::sleep_for(std::chrono::seconds(2));
     LOGGER_SUCCESS(this->get_logger(), "Bucket lowered");
   }
@@ -100,7 +104,7 @@ private:
   void lift_bucket()
   {
     LOGGER_ACTION(this->get_logger(), "Lifting bucket (vibration off)...");
-    set_bucket_position(TRAVEL_POSITION);
+    set_bucket_position(travel_position);
     std::this_thread::sleep_for(std::chrono::seconds(2));
     LOGGER_SUCCESS(this->get_logger(), "Bucket lifted");
   }
@@ -137,8 +141,7 @@ private:
       result->success = true;
       goal_handle->succeed(result);
       LOGGER_SUCCESS(this->get_logger(), "Excavation completed successfully");
-    }
-    catch (const std::exception& e)
+    } catch (const std::exception & e)
     {
       LOGGER_FAILURE(this->get_logger(), "Excavation failed: %s", e.what());
       result->success = false;
@@ -151,14 +154,14 @@ private:
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr bucket_position_pub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
-  bool goal_active_;
+  bool goal_active_ = false;
 };
 
 /**
  * @brief Main function.
  * Initializes and runs the ExcavationServerSim node.
  */
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<ExcavationServerSim>());

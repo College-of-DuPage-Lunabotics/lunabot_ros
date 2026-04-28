@@ -13,7 +13,7 @@ float32 power          # Power consumption (W)
 float32 temperature    # Temperature (°C)
 
 # Energy integration
-float32 energy_kwh     # Total energy consumed (kWh)
+float32 energy_wh     # Total energy consumed (Wh)
 
 # Alert flags
 uint16 alert_flags

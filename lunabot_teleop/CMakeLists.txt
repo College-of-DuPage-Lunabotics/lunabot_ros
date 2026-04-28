@@ -22,9 +22,11 @@ endif()
 
 # Find required dependencies
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(lunabot_msgs REQUIRED)
 find_package(sparkcan REQUIRED)
 find_package(lunabot_logger REQUIRED)
 
@@ -34,9 +36,11 @@ add_executable(controller_teleop src/controller_teleop.cpp)
 ament_target_dependencies(
   controller_teleop
   rclcpp
+  rclcpp_action
   sensor_msgs
   geometry_msgs
   std_msgs
+  lunabot_msgs
   sparkcan
   lunabot_logger)
 
