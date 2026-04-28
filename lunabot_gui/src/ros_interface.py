@@ -396,7 +396,7 @@ class RobotInterface:
         self.power_current = msg.current
         self.power_watts = msg.power
         self.power_temp = msg.temperature
-        self.power_energy_wh = msg.energy_kwh
+        self.power_energy_wh = msg.energy_wh
         self.power_alert_status = msg.alert_status
     
     def publish_emergency_stop(self):
@@ -740,14 +740,6 @@ class RobotInterface:
                 self.log.success('Navigation client stopped')
             except Exception as e:
                 self.log.failure(f'Failed to stop navigation client: {e}')
-    
-    def spin_once(self):
-        if not self._shutdown and rclpy.ok():
-            try:
-                rclpy.spin_once(self.node, timeout_sec=0)
-            except Exception as e:
-                if not self._shutdown:
-                    self.log.debug(f'Spin error: {e}')
     
     def shutdown(self):
         if self._shutdown:

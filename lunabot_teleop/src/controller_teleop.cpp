@@ -456,7 +456,7 @@ private:
     } else
     {
       robot_disabled_ = false;
-      RCLCPP_INFO(get_logger(), "Robot re-enabled from emergency stop");
+      LOGGER_SUCCESS(get_logger(), "Robot re-enabled from emergency stop");
     }
 
     publish_state();

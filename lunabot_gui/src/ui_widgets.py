@@ -578,7 +578,7 @@ def create_controls_reference_group(app):
     def add_header(text):
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            "color: #ef5350; font-size: 12px; font-weight: bold; font-family: Monospace; padding-top: 3px; background: transparent;")
+            "color: #ffa726; font-size: 12px; font-weight: bold; font-family: Monospace; padding-top: 3px; background: transparent;")
         layout.addWidget(lbl)
 
     def add_control(control, description):
@@ -587,7 +587,7 @@ def create_controls_reference_group(app):
         row.setContentsMargins(0, 0, 0, 0)
         ctrl_lbl = QLabel(control)
         ctrl_lbl.setStyleSheet(
-            "color: #ffa726; font-size: 11px; font-weight: bold; font-family: Monospace; background: transparent;")
+            "color: #ffcc80; font-size: 11px; font-weight: bold; font-family: Monospace; background: transparent;")
         ctrl_lbl.setFixedWidth(85)
         ctrl_lbl.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         row.addWidget(ctrl_lbl)
@@ -600,7 +600,7 @@ def create_controls_reference_group(app):
         layout.addLayout(row)
 
     sections = [
-        ("MODE CONTROL", [
+        ("MODE", [
             ("Plus (+)",   "Enable Manual"),
             ("Minus (-)",  "Enable Auto"),
             ("Home",       "Enable/Disable Robot"),

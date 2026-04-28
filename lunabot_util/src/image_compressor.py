@@ -23,33 +23,20 @@ class ImageCompressor(Node):
         
         self.bridge = CvBridge()
         
-        # Front camera compression
         self.front_sub = self.create_subscription(
-            Image,
-            '/camera_front/color/image_raw',
-            self.front_callback,
-            10)
+            Image, '/camera_front/color/image_raw', self.front_callback, 1)
         self.front_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_front/color/image_compressed',
-            10)
-        
-        # Back camera compression
+            CompressedImage, '/camera_front/color/image_compressed', 1)
+
         self.back_sub = self.create_subscription(
-            Image,
-            '/camera_back/color/image_raw',
-            self.back_callback,
-            10)
+            Image, '/camera_back/color/image_raw', self.back_callback, 1)
         self.back_pub = self.create_publisher(
-            CompressedImage,
-            '/camera_back/color/image_compressed',
-            10)
+            CompressedImage, '/camera_back/color/image_compressed', 1)
 
         self.log.success(
             f'Image compressor started: quality={self.jpeg_quality}, scale={self.scale}')
     
     def compress_image(self, msg):
-        """Convert and compress image with configurable quality"""
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 

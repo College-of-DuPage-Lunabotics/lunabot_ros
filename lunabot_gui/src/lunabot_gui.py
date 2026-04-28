@@ -4,8 +4,12 @@ import sys
 import os
 import math
 import re
+import threading
+import time
+from queue import Queue
 
 import rclpy
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -18,7 +22,7 @@ from ros_interface import RobotInterface
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QIcon, QImage, QPalette, QPixmap, QFont
-from PyQt5.QtWidgets import (QApplication, QGroupBox, QHBoxLayout, QLabel,
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout, QLabel,
                               QMainWindow, QTextEdit, QPushButton, QSizePolicy, QVBoxLayout,
                               QWidget)
 
@@ -50,16 +54,15 @@ TELEOP_BUCKET_LIMIT_MIN      = -1.57
 TELEOP_BUCKET_LIMIT_MAX      = 0.1
 
 # --- Timers ---
-ROS_SPIN_INTERVAL_MS    = 10
 UI_UPDATE_INTERVAL_MS   = 100
-CAMERA_UPDATE_INTERVAL_MS = 100
+CAMERA_UPDATE_INTERVAL_MS = 33
 
 # --- Bandwidth ---
 BANDWIDTH_MAX_MBPS           = 4.0
 BANDWIDTH_WARN_THRESHOLD     = 0.75
 BANDWIDTH_CRITICAL_THRESHOLD = 0.90
 
-# Key → teleop action mappings (defined after Qt import)
+# Key to teleop action mappings
 _TELEOP_MOVE_KEYS = {
     Qt.Key_W: 'w', Qt.Key_A: 'a', Qt.Key_S: 's', Qt.Key_D: 'd',
     Qt.Key_Up: 'up', Qt.Key_Down: 'down',
@@ -83,10 +86,12 @@ class LunabotGUI(QMainWindow):
         mode_val = temp_node.get_parameter('mode').value
         temp_node.destroy_node()
 
+        self._log_queue = Queue()
+        
         self.robot = RobotInterface(mode_param=mode_val)
-        self.robot.on_robot_state_update = self.handle_robot_state_update
-        self.robot.on_control_state_update = self.handle_control_state_update
-        self.robot.on_log = self.append_log
+        self.robot.on_robot_state_update = self._queue_robot_state_update
+        self.robot.on_control_state_update = self._queue_control_state_update
+        self.robot.on_log = self._queue_log
 
         self.swappable_camera_showing_front = True
         self.sidebar_collapsed = False
@@ -105,12 +110,15 @@ class LunabotGUI(QMainWindow):
         self.max_angular_speed = TELEOP_MAX_ANGULAR_SPEED
 
         self.last_camera_frame_ids = {'front': None, 'rear': None, 'fisheye': None}
+        self._fisheye_frame_count = 0
+        self._fisheye_fps_time = time.monotonic()
 
         self.init_ui()
 
-        self.ros_timer = QTimer()
-        self.ros_timer.timeout.connect(self.spin_ros)
-        self.ros_timer.start(ROS_SPIN_INTERVAL_MS)
+        self._ros_executor = SingleThreadedExecutor()
+        self._ros_executor.add_node(self.robot.node)
+        self._ros_thread = threading.Thread(target=self._ros_executor.spin, daemon=True)
+        self._ros_thread.start()
 
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
@@ -119,6 +127,15 @@ class LunabotGUI(QMainWindow):
         self.camera_timer = QTimer()
         self.camera_timer.timeout.connect(self.update_cameras)
         self.camera_timer.start(CAMERA_UPDATE_INTERVAL_MS)
+
+    def _queue_robot_state_update(self):
+        self._log_queue.put(('robot_state', None))
+    
+    def _queue_control_state_update(self, msg):
+        self._log_queue.put(('control_state', msg))
+    
+    def _queue_log(self, text):
+        self._log_queue.put(('log', text))
 
     def init_ui(self):
         self.setWindowTitle('Lunabot Control Panel')
@@ -225,12 +242,28 @@ class LunabotGUI(QMainWindow):
         eye_layout = QVBoxLayout()
         eye_layout.setContentsMargins(4, 4, 4, 4)
         eye_layout.setSpacing(0)
+
+        cam_overlay = QWidget()
+        cam_grid = QGridLayout(cam_overlay)
+        cam_grid.setContentsMargins(0, 0, 0, 0)
+        cam_grid.setSpacing(0)
+
         self.fisheye_camera_label = QLabel("No camera feed")
         self.fisheye_camera_label.setAlignment(Qt.AlignCenter)
         self.fisheye_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
         self.fisheye_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.fisheye_camera_label.setStyleSheet(Styles.camera_label())
-        eye_layout.addWidget(self.fisheye_camera_label)
+        cam_grid.addWidget(self.fisheye_camera_label, 0, 0)
+
+        self.fisheye_fps_label = QLabel("FPS: --")
+        self.fisheye_fps_label.setAlignment(Qt.AlignBottom | Qt.AlignRight)
+        self.fisheye_fps_label.setFont(QFont("Monospace", 9))
+        self.fisheye_fps_label.setStyleSheet("color: white; background-color: transparent; padding: 0px 6px 6px 0px;")
+        self.fisheye_fps_label.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.fisheye_fps_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        cam_grid.addWidget(self.fisheye_fps_label, 0, 0)
+
+        eye_layout.addWidget(cam_overlay)
         fisheye_group.setLayout(eye_layout)
         fisheye_layout.addWidget(fisheye_group)
 
@@ -470,8 +503,23 @@ class LunabotGUI(QMainWindow):
     # -------------------------------------------------------------------------
 
     def _set_operation_status(self, text, style_type):
-        self.operation_status_label.setText(text)
-        self.operation_status_label.setStyleSheet(Styles.status_label(style_type) + " font-weight: bold;")
+        color_map = {
+            'idle': Colors.TEXT_DIM,
+            'active': Colors.STATUS_SUCCESS,
+            'warning': Colors.STATUS_WARNING,
+            'error': Colors.STATUS_ERROR,
+            'info': Colors.STATUS_INFO,
+        }
+        color = color_map.get(style_type, Colors.TEXT_DIM)
+        
+        if text.startswith('Status:'):
+            message = text[7:].strip()
+            formatted_text = f'<span style="color: {Colors.TEXT_MAIN};">Status:</span> <span style="color: {color};">{message}</span>'
+            self.operation_status_label.setText(formatted_text)
+        else:
+            self.operation_status_label.setText(text)
+        
+        self.operation_status_label.setStyleSheet(f"background-color: {Colors.BG_TRANSPARENT}; font-weight: bold;")
 
     # -------------------------------------------------------------------------
     # Excavation
@@ -577,8 +625,14 @@ class LunabotGUI(QMainWindow):
             self.robot.publish_emergency_stop()
             if self.robot.is_excavating:
                 self.robot.cancel_excavate_goal(lambda f: None)
+                self.robot.is_excavating = False
+                self.excavate_btn.setText("Excavate")
+                self.excavate_btn.setStyleSheet(ACTION_BTN_CSS)
             if self.robot.is_depositing:
                 self.robot.cancel_deposit_goal(lambda f: None)
+                self.robot.is_depositing = False
+                self.deposit_btn.setText("Deposit")
+                self.deposit_btn.setStyleSheet(ACTION_BTN_CSS)
             if self.full_auto_active:
                 self.robot.stop_navigation_client()
                 self.full_auto_active = False
@@ -587,6 +641,7 @@ class LunabotGUI(QMainWindow):
             self.emergency_stopped = True
             self.emergency_stop_btn.setText("Re-Enable Robot")
             self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_ACTIVE_CSS)
+            self._set_operation_status("Status: Disabled", 'error')
         else:
             self.robot.node.get_logger().info('Re-enabling robot')
             self.robot.publish_re_enable()
@@ -612,7 +667,7 @@ class LunabotGUI(QMainWindow):
         self.full_auto_active = True
         self.auto_btn.setText("Stop One Cycle Auto")
         self.auto_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
-        self._set_operation_status("Status: One Cycle Auto Active...", 'info')
+        self._set_operation_status("Status: One Cycle Auto Active...", 'warning')
 
         if not self.robot.launch_navigation_client():
             self.full_auto_active = False
@@ -708,11 +763,9 @@ class LunabotGUI(QMainWindow):
                 btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS if running else ACTION_BTN_CSS)
 
         current_status = self.operation_status_label.text()
-        preserve = current_status in {
-            "Status: Excavating", "Status: Depositing",
-            "Status: Excavating...", "Status: Depositing...",
-            "Status: One Cycle Auto Active...",
-        }
+        preserve = any(keyword in current_status for keyword in [
+            "Excavating", "Depositing", "One Cycle Auto Active", "Navigating"
+        ])
 
         if self.robot.robot_disabled:
             if not preserve:
@@ -730,13 +783,26 @@ class LunabotGUI(QMainWindow):
         else:
             if not preserve:
                 self._set_operation_status("Status: Active", 'active')
-            if not (self.robot.is_excavating or self.robot.is_depositing or self.robot.is_navigating):
-                self.excavate_btn.setEnabled(True)
+            
+            self.excavate_btn.setEnabled(True)
+            self.deposit_btn.setEnabled(True)
+            self.auto_btn.setEnabled(True)
+            
+            if self.robot.is_excavating:
+                self.excavate_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+            else:
                 self.excavate_btn.setStyleSheet(ACTION_BTN_CSS)
-                self.deposit_btn.setEnabled(True)
+            
+            if self.robot.is_depositing:
+                self.deposit_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+            else:
                 self.deposit_btn.setStyleSheet(ACTION_BTN_CSS)
-                self.auto_btn.setEnabled(True)
+            
+            if self.full_auto_active:
+                self.auto_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+            else:
                 self.auto_btn.setStyleSheet(ACTION_BTN_CSS)
+            
             if self.emergency_stopped:
                 self.emergency_stopped = False
                 self.emergency_stop_btn.setText("Emergency Stop")
@@ -746,18 +812,26 @@ class LunabotGUI(QMainWindow):
         if msg.is_excavating:
             self.excavate_btn.setText("Cancel Excavation")
             self.excavate_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+            if not self.robot.robot_disabled:
+                self.excavate_btn.setEnabled(True)
             self._set_operation_status("Status: Excavating", 'warning')
         else:
             self.excavate_btn.setText("Excavate")
             self.excavate_btn.setStyleSheet(ACTION_BTN_CSS)
+            if not self.robot.robot_disabled:
+                self.excavate_btn.setEnabled(True)
 
         if msg.is_depositing:
             self.deposit_btn.setText("Cancel Deposit")
             self.deposit_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+            if not self.robot.robot_disabled:
+                self.deposit_btn.setEnabled(True)
             self._set_operation_status("Status: Depositing", 'warning')
         else:
             self.deposit_btn.setText("Deposit")
             self.deposit_btn.setStyleSheet(ACTION_BTN_CSS)
+            if not self.robot.robot_disabled:
+                self.deposit_btn.setEnabled(True)
 
         if msg.is_navigating:
             self._set_operation_status("Status: Navigating", 'info')
@@ -766,10 +840,20 @@ class LunabotGUI(QMainWindow):
         elif not (msg.is_excavating or msg.is_depositing or msg.is_navigating):
             self._set_operation_status("Status: Idle", 'idle')
 
-    def spin_ros(self):
-        self.robot.spin_once()
-
     def update_ui(self):
+        # Process queued callbacks from ROS thread
+        while not self._log_queue.empty():
+            try:
+                event_type, data = self._log_queue.get_nowait()
+                if event_type == 'robot_state':
+                    self.handle_robot_state_update()
+                elif event_type == 'control_state':
+                    self.handle_control_state_update(data)
+                elif event_type == 'log':
+                    self.append_log(data)
+            except:
+                break
+        
         self.bandwidth_total_label.setText(f"{self.robot.bandwidth_avg_total:.2f} Mbps")
         self.bandwidth_total_current_label.setText(f"{self.robot.bandwidth_total:.2f} Mbps")
         self.bandwidth_rx_current_label.setText(f"{self.robot.bandwidth_rx:.2f} Mbps")
@@ -821,7 +905,18 @@ class LunabotGUI(QMainWindow):
         cam_image = self.robot.front_camera_image if self.swappable_camera_showing_front else self.robot.rear_camera_image
         cam_key = 'front' if self.swappable_camera_showing_front else 'rear'
         self.update_camera_display(self.swappable_camera_label, cam_image, cam_key)
+
+        prev_id = self.last_camera_frame_ids.get('fisheye')
         self.update_camera_display(self.fisheye_camera_label, self.robot.fisheye_camera_image, 'fisheye')
+        if self.last_camera_frame_ids.get('fisheye') != prev_id:
+            self._fisheye_frame_count += 1
+
+        now = time.monotonic()
+        elapsed = now - self._fisheye_fps_time
+        if elapsed >= 1.0:
+            self.fisheye_fps_label.setText(f"FPS: {self._fisheye_frame_count / elapsed:.1f}")
+            self._fisheye_frame_count = 0
+            self._fisheye_fps_time = now
 
     def update_camera_display(self, label, cv_image, camera_name):
         if cv_image is None:
@@ -883,6 +978,8 @@ class LunabotGUI(QMainWindow):
     # -------------------------------------------------------------------------
 
     def append_log(self, message):
+        if not hasattr(self, 'terminal_text'):
+            return
         level_colors = {
             'DEBUG': '#757575',
             'INFO':  '#e0e0e0',
@@ -901,7 +998,6 @@ class LunabotGUI(QMainWindow):
             self.terminal_text.verticalScrollBar().setValue(
                 self.terminal_text.verticalScrollBar().maximum())
         except Exception as e:
-            print(f"Log error: {e}")
             self.terminal_text.append(
                 message.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
 
@@ -943,7 +1039,8 @@ class LunabotGUI(QMainWindow):
     # -------------------------------------------------------------------------
 
     def _do_shutdown(self):
-        self.ros_timer.stop()
+        self._ros_executor.shutdown(timeout_sec=1.0)
+        self._ros_thread.join(timeout=2.0)
         self.ui_timer.stop()
         self.camera_timer.stop()
         QApplication.processEvents()

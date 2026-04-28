@@ -34,7 +34,6 @@ class EncoderReader(Node):
         self.log.success(f'Encoder reader initialized on {self.can_interface} (home offset: {self.home_offset:.2f} rad)')
 
     def init_can(self):
-        """Initialize the CAN socket interface"""
         try:
             self.can_socket = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
             self.can_socket.setblocking(False)
@@ -45,7 +44,6 @@ class EncoderReader(Node):
             return False
 
     def receive_can_frame(self):
-        """Receive a CAN frame. Returns (can_id, data) or (None, None) if no message"""
         try:
             frame = self.can_socket.recv(CAN_FRAME_SIZE)
             can_id, dlc, data = struct.unpack(CAN_FRAME_FORMAT, frame)
@@ -57,7 +55,6 @@ class EncoderReader(Node):
             return None, None
 
     def update_loop(self):
-        """Main update loop, receives and publishes encoder position"""
         while True:
             can_id, data = self.receive_can_frame()
             
@@ -67,7 +64,6 @@ class EncoderReader(Node):
             if can_id == ENCODER_CAN_ID and data and len(data) >= 4:
                 try:
                     raw_position = struct.unpack('<f', data[:4])[0]
-                    # Apply home offset to get corrected position
                     corrected_position = raw_position - self.home_offset
                     
                     msg = Float64()
@@ -78,8 +74,7 @@ class EncoderReader(Node):
                     self.log.warning(f'Error decoding position: {e}')
 
     def destroy_node(self):
-        """Clean up CAN socket on shutdown"""
-        if self.can_socket:
+        if hasattr(self, 'can_socket') and self.can_socket:
             self.can_socket.close()
         super().destroy_node()
 
