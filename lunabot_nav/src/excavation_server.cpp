@@ -87,7 +87,7 @@ private:
     double target_position = excavation_pos;
 
     vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(0.5);
+    vibration_motor_.SetDutyCycle(1.0);
 
     while (std::abs(target_position - current_encoder_position_) > 0.1)
     {

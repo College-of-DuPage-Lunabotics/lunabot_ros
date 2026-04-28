@@ -197,7 +197,7 @@ private:
     left_actuator_motor_->SetDutyCycle(actuator_cmd);
     right_actuator_motor_->SetDutyCycle(actuator_cmd);
 
-    vibration_motor_->SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
+    vibration_motor_->SetDutyCycle(vibration_enabled_ ? 1.0 : 0.0);
   }
 
   /**
@@ -314,7 +314,7 @@ private:
 
     if (r4_pressed)
     {
-      double target_angle_rad = M_PI;  // 180 degrees
+      double target_angle_rad = M_PI;
       current_servo_position_ = target_angle_rad;
 
       auto servo_msg = std_msgs::msg::Float64MultiArray();
