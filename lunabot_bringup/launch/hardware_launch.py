@@ -17,13 +17,6 @@ def generate_launch_description():
     )
     livox_params_file = os.path.join(config_dir, "params", "mid360", "mid360.json")
 
-    declare_steam_mode = DeclareLaunchArgument(
-        "steam_mode",
-        default_value="false",
-        choices=["true", "false"],
-        description="Use Steam Deck controller mapping (true) or Xbox controller mapping (false).",
-    )
-
     d456_front_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(realsense_dir, "launch", "rs_launch.py")
@@ -37,8 +30,8 @@ def generate_launch_description():
             "enable_gyro": "true",
             "enable_accel": "true",
             "unite_imu_method": "2",
-            "depth_module.depth_profile": "640,480,10",
-            "rgb_camera.color_profile": "640,480,10",
+            "depth_module.depth_profile": "640,480,15",
+            "rgb_camera.color_profile": "640,480,15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -59,8 +52,8 @@ def generate_launch_description():
             "publish_tf": "true",
             "enable_gyro": "false",
             "enable_accel": "false",
-            "depth_module.depth_profile": "640,480,10",
-            "rgb_camera.color_profile": "640,480,10",
+            "depth_module.depth_profile": "640,480,15",
+            "rgb_camera.color_profile": "640,480,15",
             "enable_infra1": "false",
             "enable_infra2": "false",
             "depth_module.enable_auto_exposure": "true",
@@ -82,7 +75,6 @@ def generate_launch_description():
         package="lunabot_teleop",
         executable="controller_teleop",
         name="controller_teleop",
-        parameters=[{'steam_mode': LaunchConfiguration('steam_mode')}],
         arguments=["--ros-args", "--log-level", "info"],
     )
 
@@ -102,6 +94,13 @@ def generate_launch_description():
         package="lunabot_util",
         executable="encoder_reader.py",
         name="encoder_reader",
+        output="screen",
+    )
+
+    motor_controller_node = Node(
+        package="lunabot_teleop",
+        executable="motor_controller",
+        name="motor_controller",
         output="screen",
     )
 
@@ -125,8 +124,8 @@ def generate_launch_description():
             {"device_id": "/dev/webcam_fisheye"},
             {"width": 480},
             {"height": 360},
-            {"fps": 10},
-            {"jpeg_quality": 45},
+            {"fps": 5},
+            {"jpeg_quality": 30},
         ],
     )
  
@@ -158,6 +157,23 @@ def generate_launch_description():
             {"frame_id": "livox_frame"},
             {"user_config_path": livox_params_file},
         ],
+    )
+
+    livox_converter = Node(
+        package="lunabot_util",
+        executable="livox_to_pointcloud.py",
+        name="livox_to_pointcloud",
+        output="screen",
+        parameters=[
+            {
+                "input_topic": "/livox/lidar",
+                "output_topic": "/livox/pointcloud",
+                "min_range": 0.8,
+                "max_range": 50.0,
+                "yaw_offset": 180.0,  # Rotate 180 degrees
+            }
+        ],
+        arguments=["--ros-args", "--log-level", "info"],
     )
 
     image_compressor_node = Node(
@@ -212,8 +228,9 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        declare_steam_mode,
+        motor_controller_node,
         livox_driver,
+        livox_converter,
         image_compressor_node,
         d456_front_launch,
         d456_back_launch,

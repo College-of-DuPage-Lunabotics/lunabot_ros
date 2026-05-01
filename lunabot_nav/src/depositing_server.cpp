@@ -4,12 +4,12 @@
  * @date 02/22/2026
  */
 
-#include "SparkMax.hpp"
 #include "lunabot_logger/logger.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
 #include "lunabot_msgs/action/depositing.hpp"
+#include "lunabot_msgs/msg/motor_commands.hpp"
 #include <std_msgs/msg/float64.hpp>
 
 #include <chrono>
@@ -33,11 +33,7 @@ public:
   /**
    * @brief Constructor for the DepositingServer class.
    */
-  DepositingServer()
-  : Node("depositing_server"),
-    right_actuator_motor_("can0", 5),
-    left_actuator_motor_("can0", 2),
-    vibration_motor_("can0", 4)
+  DepositingServer() : Node("depositing_server")
   {
     encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
@@ -59,6 +55,9 @@ public:
       std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
 
+    motor_cmd_publisher_ =
+      this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
+
     LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
   }
 
@@ -73,25 +72,31 @@ private:
 
     double target_position = deposit_pos;
 
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd.vibration = 0.0;
+
     while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         return false;
       }
 
-      left_actuator_motor_.Heartbeat();
-
-      left_actuator_motor_.SetDutyCycle(-1.0);
-      right_actuator_motor_.SetDutyCycle(-1.0);
+      motor_cmd.left_actuator = -1.0;
+      motor_cmd.right_actuator = -1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    left_actuator_motor_.SetDutyCycle(0.0);
-    right_actuator_motor_.SetDutyCycle(0.0);
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
     LOGGER_ACTION(this->get_logger(), "Vibrating bucket for %.2f seconds...", deposit_seconds);
 
@@ -103,12 +108,13 @@ private:
     {
       if (goal_handle->is_canceling())
       {
-        vibration_motor_.SetDutyCycle(0.0);
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         return false;
       }
 
-      vibration_motor_.Heartbeat();
-      vibration_motor_.SetDutyCycle(1.0);
+      motor_cmd.vibration = 1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       auto end = std::chrono::steady_clock::now();
 
@@ -117,8 +123,8 @@ private:
       if (elapsed_seconds.count() >= deposit_seconds)
       {
         vibration_on = false;
-        vibration_motor_.Heartbeat();
-        vibration_motor_.SetDutyCycle(0.0);
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
       }
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -137,24 +143,31 @@ private:
 
     double target_position = travel_pos;
 
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd.vibration = 0.0;
+
     while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
       if (goal_handle->is_canceling())
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         return false;
       }
 
-      left_actuator_motor_.Heartbeat();
-      left_actuator_motor_.SetDutyCycle(1.0);
-      right_actuator_motor_.SetDutyCycle(1.0);
+      motor_cmd.left_actuator = 1.0;
+      motor_cmd.right_actuator = 1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    left_actuator_motor_.SetDutyCycle(0.0);
-    right_actuator_motor_.SetDutyCycle(0.0);
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
     return true;
   }
@@ -187,9 +200,13 @@ private:
       goal_handle->publish_feedback(feedback);
       if (!lift_bucket(goal_handle))
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        vibration_motor_.SetDutyCycle(0.0);
+        auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+        motor_cmd.left_wheel = 0.0;
+        motor_cmd.right_wheel = 0.0;
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         result->success = false;
         result->message = "Depositing canceled";
         goal_handle->canceled(result);
@@ -202,9 +219,13 @@ private:
       goal_handle->publish_feedback(feedback);
       if (!lower_bucket(goal_handle))
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        vibration_motor_.SetDutyCycle(0.0);
+        auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+        motor_cmd.left_wheel = 0.0;
+        motor_cmd.right_wheel = 0.0;
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         result->success = false;
         result->message = "Depositing canceled";
         goal_handle->canceled(result);
@@ -219,9 +240,13 @@ private:
       LOGGER_SUCCESS(this->get_logger(), "Depositing completed successfully");
     } catch (const std::exception & e)
     {
-      left_actuator_motor_.SetDutyCycle(0.0);
-      right_actuator_motor_.SetDutyCycle(0.0);
-      vibration_motor_.SetDutyCycle(0.0);
+      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
       result->success = false;
       result->message = std::string("Depositing failed: ") + e.what();
       goal_handle->abort(result);
@@ -238,12 +263,10 @@ private:
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
-  SparkMax left_actuator_motor_;
-  SparkMax right_actuator_motor_;
-  SparkMax vibration_motor_;
   bool goal_active_ = false;
 };
 

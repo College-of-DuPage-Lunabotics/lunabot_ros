@@ -4,7 +4,6 @@
  * @date 02/22/2026
  */
 
-#include "SparkMax.hpp"
 #include "lunabot_logger/logger.hpp"
 #include "rcl_interfaces/srv/set_parameters.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -14,6 +13,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "lunabot_msgs/action/excavation.hpp"
+#include "lunabot_msgs/msg/motor_commands.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include <std_msgs/msg/float64.hpp>
@@ -23,7 +23,7 @@
 #include <memory>
 #include <thread>
 
-static constexpr double excavation_pos = 1.5;
+static constexpr double excavation_pos = 1.6;
 static constexpr double travel_pos = 0.7854;
 static constexpr int forward_seconds = 5;
 
@@ -42,13 +42,7 @@ public:
   /**
    * @brief Constructor for the ExcavationServer class.
    */
-  ExcavationServer()
-  : Node("excavation_server"),
-    right_actuator_motor_("can0", 5),
-    left_actuator_motor_("can0", 2),
-    right_wheel_motor_("can0", 3),
-    left_wheel_motor_("can0", 1),
-    vibration_motor_("can0", 4)
+  ExcavationServer() : Node("excavation_server")
   {
     encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
@@ -72,6 +66,9 @@ public:
       std::bind(&ExcavationServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
 
+    motor_cmd_publisher_ =
+      this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
+
     LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
   }
 
@@ -86,33 +83,33 @@ private:
 
     double target_position = excavation_pos;
 
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(1.0);
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd.vibration = 1.0;
 
-    while (std::abs(target_position - current_encoder_position_) > 0.2)
+    while (std::abs(target_position - current_encoder_position_) > 0.05)
     {
       if (goal_handle->is_canceling())
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        vibration_motor_.SetDutyCycle(0.0);
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         return false;
       }
 
-      left_actuator_motor_.Heartbeat();
-
-      left_actuator_motor_.SetDutyCycle(1.0);
-      right_actuator_motor_.SetDutyCycle(1.0);
+      motor_cmd.left_actuator = 1.0;
+      motor_cmd.right_actuator = 1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    left_actuator_motor_.Heartbeat();
-    left_actuator_motor_.SetDutyCycle(0.0);
-    right_actuator_motor_.SetDutyCycle(0.0);
-
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(0.0);
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
     LOGGER_SUCCESS(
       this->get_logger(), "Bucket lowered to excavation position: %.2f", current_encoder_position_);
@@ -127,33 +124,35 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Driving forward to excavate...");
 
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(1.0);
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 1.0;
 
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(forward_seconds))
     {
       if (goal_handle->is_canceling())
       {
-        right_wheel_motor_.SetDutyCycle(0.0);
-        left_wheel_motor_.SetDutyCycle(0.0);
-        vibration_motor_.SetDutyCycle(0.0);
+        motor_cmd.left_wheel = 0.0;
+        motor_cmd.right_wheel = 0.0;
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         LOGGER_WARN(this->get_logger(), "Drive forward canceled");
         return false;
       }
 
-      vibration_motor_.Heartbeat();
-      right_wheel_motor_.SetDutyCycle(-1.0);
-      left_wheel_motor_.SetDutyCycle(1.0);
-      vibration_motor_.SetDutyCycle(1.0);
+      motor_cmd.left_wheel = 1.0;
+      motor_cmd.right_wheel = -1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    vibration_motor_.Heartbeat();
-    right_wheel_motor_.SetDutyCycle(0.0);
-    left_wheel_motor_.SetDutyCycle(0.0);
-    vibration_motor_.SetDutyCycle(0.0);
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd.vibration = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
     LOGGER_SUCCESS(this->get_logger(), "Drive forward complete");
     return true;
@@ -169,31 +168,33 @@ private:
 
     double target_position = travel_pos;
 
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(1.0);
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd.vibration = 1.0;
 
-    while (std::abs(target_position - current_encoder_position_) > 0.2)
+    while (std::abs(target_position - current_encoder_position_) > 0.05)
     {
       if (goal_handle->is_canceling())
       {
-        left_actuator_motor_.SetDutyCycle(0.0);
-        right_actuator_motor_.SetDutyCycle(0.0);
-        vibration_motor_.SetDutyCycle(0.0);
+        motor_cmd.left_actuator = 0.0;
+        motor_cmd.right_actuator = 0.0;
+        motor_cmd.vibration = 0.0;
+        motor_cmd_publisher_->publish(motor_cmd);
         return false;
       }
 
-      left_actuator_motor_.Heartbeat();
-
-      left_actuator_motor_.SetDutyCycle(-1.0);
-      right_actuator_motor_.SetDutyCycle(-1.0);
+      motor_cmd.left_actuator = -1.0;
+      motor_cmd.right_actuator = -1.0;
+      motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    vibration_motor_.Heartbeat();
-    vibration_motor_.SetDutyCycle(0.0);
-    left_actuator_motor_.SetDutyCycle(0.0);
-    right_actuator_motor_.SetDutyCycle(0.0);
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
     LOGGER_SUCCESS(
       this->get_logger(), "Bucket lifted to travel position: %.2f", current_encoder_position_);
@@ -226,9 +227,13 @@ private:
     goal_handle->publish_feedback(feedback);
     if (!lower_bucket(goal_handle))
     {
-      left_actuator_motor_.SetDutyCycle(0.0);
-      right_actuator_motor_.SetDutyCycle(0.0);
-      vibration_motor_.SetDutyCycle(0.0);
+      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
       result->success = false;
       result->message = "Excavation canceled";
       goal_handle->canceled(result);
@@ -241,9 +246,13 @@ private:
     goal_handle->publish_feedback(feedback);
     if (!drive_forward(goal_handle))
     {
-      right_wheel_motor_.SetDutyCycle(0.0);
-      left_wheel_motor_.SetDutyCycle(0.0);
-      vibration_motor_.SetDutyCycle(0.0);
+      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
       result->success = false;
       result->message = "Excavation canceled";
       goal_handle->canceled(result);
@@ -256,9 +265,13 @@ private:
     goal_handle->publish_feedback(feedback);
     if (!lift_bucket(goal_handle))
     {
-      left_actuator_motor_.SetDutyCycle(0.0);
-      right_actuator_motor_.SetDutyCycle(0.0);
-      vibration_motor_.SetDutyCycle(0.0);
+      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
       result->success = false;
       result->message = "Excavation canceled";
       goal_handle->canceled(result);
@@ -282,15 +295,11 @@ private:
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
   bool goal_active_ = false;
-  SparkMax left_actuator_motor_;
-  SparkMax right_actuator_motor_;
-  SparkMax left_wheel_motor_;
-  SparkMax right_wheel_motor_;
-  SparkMax vibration_motor_;
 };
 
 int main(int argc, char ** argv)

@@ -15,10 +15,12 @@ class LivoxToPointCloud(Node):
         self.declare_parameter('output_frame', 'livox_frame')
         self.declare_parameter('min_range', 0.3)
         self.declare_parameter('max_range', 50.0)
+        self.declare_parameter('yaw_offset', 0.0)
         
         self.output_frame = self.get_parameter('output_frame').value
         self.min_range = self.get_parameter('min_range').value
         self.max_range = self.get_parameter('max_range').value
+        self.yaw_offset = np.radians(self.get_parameter('yaw_offset').value)
         
         self.pub = self.create_publisher(PointCloud2, self.get_parameter('output_topic').value, 10)
         self.sub = self.create_subscription(CustomMsg, self.get_parameter('input_topic').value, self.callback, 10)
@@ -53,6 +55,14 @@ class LivoxToPointCloud(Node):
         cloud.is_dense = False
         
         points_array = np.array([[p.x, p.y, p.z, float(p.reflectivity)] for p in valid_points], dtype=np.float32)
+        if self.yaw_offset != 0.0:
+            cos_yaw = np.cos(self.yaw_offset)
+            sin_yaw = np.sin(self.yaw_offset)
+            x_rot = points_array[:, 0] * cos_yaw - points_array[:, 1] * sin_yaw
+            y_rot = points_array[:, 0] * sin_yaw + points_array[:, 1] * cos_yaw
+            points_array[:, 0] = x_rot
+            points_array[:, 1] = y_rot
+        
         cloud.data = points_array.tobytes()
         
         self.pub.publish(cloud)

@@ -23,16 +23,16 @@
       satu_acc: 3.0
       satu_gyro: 35.0
       acc_norm: 1.0
-      lidar_meas_cov: 0.01
+      lidar_meas_cov: 0.001
       acc_cov_output: 500.0
-      gyr_cov_output: 1000.0
+      gyr_cov_output: 2000.0
       b_acc_cov: 0.0001
       b_gyr_cov: 0.0001
-      imu_meas_acc_cov: 0.01
-      imu_meas_omg_cov: 0.01
-      gyr_cov_input: 0.01
+      imu_meas_acc_cov: 0.1
+      imu_meas_omg_cov: 0.1
+      gyr_cov_input: 0.1
       acc_cov_input: 0.1
-      plane_thr: 0.1
+      plane_thr: 0.05
       match_s: 81.0
       fov_degree: 360.0
       det_range: 100.0
@@ -49,7 +49,8 @@
       path_en: true
       scan_publish_en: true
       scan_bodyframe_pub_en: true
-      tf_send_en: false
+      tf_send_en: true
+      odom_frame_id: "odom"
       base_frame_id: "base_link"
 
     pcd_save:

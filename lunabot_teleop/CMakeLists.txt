@@ -32,6 +32,7 @@ find_package(lunabot_logger REQUIRED)
 
 # Define build targets
 add_executable(controller_teleop src/controller_teleop.cpp)
+add_executable(motor_controller src/motor_controller.cpp)
 
 ament_target_dependencies(
   controller_teleop
@@ -44,8 +45,16 @@ ament_target_dependencies(
   sparkcan
   lunabot_logger)
 
+ament_target_dependencies(
+  motor_controller
+  rclcpp
+  std_msgs
+  lunabot_msgs
+  sparkcan
+  lunabot_logger)
+
 # Install package files
-install(TARGETS controller_teleop DESTINATION lib/${PROJECT_NAME})
+install(TARGETS controller_teleop motor_controller DESTINATION lib/${PROJECT_NAME})
 
 install(PROGRAMS src/keyboard_teleop.py DESTINATION lib/${PROJECT_NAME})
 

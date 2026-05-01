@@ -128,7 +128,6 @@ def create_sim_group(context, *args, **kwargs):
         actions_launch,
     ]
 
-    # v2_bot also needs the position controller for the bucket joint
     if context.launch_configurations.get("robot_type") == "v2_bot":
         actions.append(Node(
             package="controller_manager",
@@ -269,11 +268,6 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
-    image_compressor_real = GroupAction(
-        actions=[image_compressor_node],
-        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
-    )
-
     image_compressor_sim_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -322,7 +316,6 @@ def generate_launch_description():
     ld.add_action(bandwidth_monitor_node)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
-    ld.add_action(image_compressor_real)
     ld.add_action(image_compressor_sim)
 
     ld.add_action(OpaqueFunction(function=create_sim_group))

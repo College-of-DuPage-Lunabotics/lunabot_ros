@@ -39,11 +39,11 @@ def launch_setup(context, *args, **kwargs):
                 "init_map_size": 10,
                 "point_filter_num": 2,
                 "space_down_sample": True,
-                "filter_size_surf": 0.15,
-                "filter_size_map": 0.15,
+                "filter_size_surf": 0.1,
+                "filter_size_map": 0.1,
                 "ivox_nearby_type": 18,
                 "runtime_pos_log_enable": False,
-                "publish.tf_send_en": False,
+                "publish.tf_send_en": True,  # Enable TF publishing from point_lio
                 "publish.odom_frame_id": "odom",
                 "publish.base_frame_id": "base_link",
             },
@@ -53,20 +53,20 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
-    ukf_node = Node(
-        package="robot_localization",
-        executable="ukf_node",
-        name="ukf_filter_node",
-        output="screen",
-        parameters=[
-            ukf_params_file,
-            {"use_sim_time": LaunchConfiguration("use_sim")},
-        ],
-    )
+    # ukf_node = Node(
+    #     package="robot_localization",
+    #     executable="ukf_node",
+    #     name="ukf_filter_node",
+    #     output="screen",
+    #     parameters=[
+    #         ukf_params_file,
+    #         {"use_sim_time": LaunchConfiguration("use_sim")},
+    #     ],
+    # )
 
     return [
         point_lio_node,
-        ukf_node,
+        # ukf_node,  # Disabled
     ]
 
 
