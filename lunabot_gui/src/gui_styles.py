@@ -395,46 +395,6 @@ ESTOP_BTN_ACTIVE_CSS = """
     QPushButton:pressed { background-color: #d84315; }
 """
 
-REALSENSE_OFF_CSS = f"""
-    QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a3a3a, stop:1 #323232);
-        color: {Colors.TEXT_DIM};
-        border: 1px solid #4a4a4a;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: bold;
-        padding: 6px 8px;
-    }}
-    QPushButton:hover {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #444444, stop:1 #3c3c3c);
-        border: 1px solid #545454;
-    }}
-    QPushButton:pressed {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
-        border: 1px solid #3a3a3a;
-    }}
-"""
-
-REALSENSE_ON_CSS = f"""
-    QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e4e3e, stop:1 #264636);
-        color: {Colors.STATUS_SUCCESS};
-        border: 1px solid #3e5e4e;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: bold;
-        padding: 6px 8px;
-    }}
-    QPushButton:hover {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #385848, stop:1 #305040);
-        border: 1px solid #486858;
-    }}
-    QPushButton:pressed {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #224232, stop:1 #1a3a2a);
-        border: 1px solid #2e4e3e;
-    }}
-"""
-
 CAN_RESTART_SUCCESS_CSS = f"""
     QPushButton {{
         background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e3e2e, stop:1 #263626);
