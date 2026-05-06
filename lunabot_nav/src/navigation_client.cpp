@@ -121,11 +121,11 @@ private:
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(3))
     {
-      motor_cmd.left_wheel = -0.5;
+      motor_cmd.left_wheel = 0.5;
       motor_cmd.right_wheel = -0.5;
       motor_cmd_publisher_->publish(motor_cmd);
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     motor_cmd.left_wheel = 0.0;
