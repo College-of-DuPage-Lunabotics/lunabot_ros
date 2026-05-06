@@ -10,9 +10,11 @@
 
 #include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/action/excavation.hpp"
+#include "lunabot_msgs/msg/motor_commands.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 
 #include <chrono>
+#include <thread>
 
 /**
  * @class NavigationClient
@@ -30,7 +32,7 @@ public:
 
   enum class State {
     IDLE,
-    NAVIGATING_TO_EXCAVATION,
+    DRIVING_FROM_START,
     EXCAVATING,
     NAVIGATING_TO_CONSTRUCTION,
     DEPOSITING,
@@ -42,7 +44,7 @@ public:
    */
   NavigationClient() : Node("navigation_client")
   {
-    current_state_ = State::NAVIGATING_TO_EXCAVATION;
+    current_state_ = State::DRIVING_FROM_START;
 
     // Declare parameter for using light excavation (default: true for autonomous)
     this->declare_parameter("use_light_excavation", true);
@@ -56,6 +58,8 @@ public:
 
     excavation_client_ = rclcpp_action::create_client<Excavation>(this, excavation_action_name);
     depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
+    motor_cmd_publisher_ =
+      this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
     if (use_light_excavation_)
     {
@@ -79,9 +83,9 @@ private:
     {
       case State::IDLE:
         break;
-      case State::NAVIGATING_TO_EXCAVATION:
-        request_navigation();
-        current_state_ = State::IDLE;
+      case State::DRIVING_FROM_START:
+        drive_forward_from_start();
+        current_state_ = State::EXCAVATING;
         break;
       case State::EXCAVATING:
         request_excavation();
@@ -103,82 +107,32 @@ private:
   }
 
   /**
-   * @brief Sends goal request to navigation server.
+   * @brief Drives robot forward for 3 seconds from starting position.
    */
-  void request_navigation()
+  void drive_forward_from_start()
   {
-    // Wait for Nav2 action server to be ready (up to 30 seconds)
-    LOGGER_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
-    if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
+    LOGGER_ACTION(this->get_logger(), "Driving forward from start for 3 seconds...");
+
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 0.0;
+
+    auto start_time = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(3))
     {
-      LOGGER_FAILURE(this->get_logger(), "Navigation action server not available after 30s.");
-      return;
+      motor_cmd.left_wheel = -0.5;
+      motor_cmd.right_wheel = -0.5;
+      motor_cmd_publisher_->publish(motor_cmd);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    LOGGER_INFO(this->get_logger(), "Nav2 action server ready!");
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
 
-    auto goal_msg = NavigateToPose::Goal();
-    geometry_msgs::msg::Pose goal_pose;
-
-    // Short travel out of starting zone to excavation area
-    goal_pose.position.x = 0.0;
-    goal_pose.position.y = -2.0;
-    goal_pose.orientation.x = 0.0;
-    goal_pose.orientation.y = 0.0;
-    goal_pose.orientation.z = -0.7071068;
-    goal_pose.orientation.w = 0.7071068;
-
-    goal_msg.pose.pose = goal_pose;
-    goal_msg.pose.header.stamp = this->now();
-    goal_msg.pose.header.frame_id = "map";
-
-    auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
-    send_goal_options.result_callback =
-      std::bind(&NavigationClient::handle_navigation_result, this, std::placeholders::_1);
-    send_goal_options.feedback_callback = std::bind(
-      &NavigationClient::handle_navigation_feedback, this, std::placeholders::_1,
-      std::placeholders::_2);
-
-    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to excavation zone [0.0, -2.0]...");
-    navigation_client_->async_send_goal(goal_msg, send_goal_options);
-  }
-
-  /**
-   * @brief Callback for navigation feedback (distance to goal updates).
-   * @param goal_handle The goal handle.
-   * @param feedback The feedback message containing distance remaining.
-   */
-  void handle_navigation_feedback(
-    GoalHandleNavigate::SharedPtr, const std::shared_ptr<const NavigateToPose::Feedback> feedback)
-  {
-    LOGGER_INFO(
-      this->get_logger(), "Distance remaining: %.2f meters", feedback->distance_remaining);
-  }
-
-  /**
-   * @brief Callback for the result of the navigation goal.
-   * @param result The result of the goal execution.
-   */
-  void handle_navigation_result(const GoalHandleNavigate::WrappedResult & result)
-  {
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-    {
-      LOGGER_SUCCESS(this->get_logger(), "Excavation zone reached. Requesting excavation...");
-      current_state_ = State::EXCAVATING;
-    } else if (result.code == rclcpp_action::ResultCode::ABORTED)
-    {
-      LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach excavation zone");
-      current_state_ = State::IDLE;
-    } else if (result.code == rclcpp_action::ResultCode::CANCELED)
-    {
-      LOGGER_WARN(this->get_logger(), "Navigation to excavation zone canceled");
-      current_state_ = State::IDLE;
-    } else
-    {
-      LOGGER_FAILURE(
-        this->get_logger(), "Navigation to excavation zone failed with unknown result");
-      current_state_ = State::IDLE;
-    }
+    LOGGER_SUCCESS(this->get_logger(), "Forward drive complete. Ready for excavation.");
   }
 
   /**
@@ -337,6 +291,7 @@ private:
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp_action::Client<Excavation>::SharedPtr excavation_client_;
   rclcpp_action::Client<Depositing>::SharedPtr depositing_client_;
+  rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;
