@@ -46,6 +46,13 @@ def generate_launch_description():
             ),
             Node(
                 package="lunabot_nav",
+                executable="light_excavation_server",
+                name="light_excavation_server",
+                output="screen",
+                parameters=[{"use_sim_time": False}],
+            ),
+            Node(
+                package="lunabot_nav",
                 executable="depositing_server",
                 name="depositing_server",
                 output="screen",

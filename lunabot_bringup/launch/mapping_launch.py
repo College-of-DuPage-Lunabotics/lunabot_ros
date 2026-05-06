@@ -106,7 +106,7 @@ def generate_launch_description():
         remappings=[
             ("rgbd_image0", "/camera_front/rgbd_image"),
             ("rgbd_image1", "/camera_back/rgbd_image"),
-            ("odom", "/lio_odom"),  # Use point_lio odometry directly
+            ("odom", "/odometry/filtered"),
             ("scan_cloud", "/livox/pointcloud"),
         ],
         arguments=["--ros-args", "--log-level", "warn"],

@@ -42,32 +42,36 @@ controller_server:
       movement_time_allowance: 60.0
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.9
-      yaw_goal_tolerance: 0.5
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 3.14
       stateful: true
     PurePursuit:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.24
-      lookahead_dist: 0.8
-      min_lookahead_dist: 0.4
-      max_lookahead_dist: 1.0
-      lookahead_time: 1.5
+      desired_linear_vel: 0.08
+      lookahead_dist: 1.0
+      min_lookahead_dist: 0.6
+      max_lookahead_dist: 1.5
+      lookahead_time: 2.0
       transform_tolerance: 1.0
-      use_velocity_scaled_lookahead_dist: false
-      min_approach_linear_velocity: 0.05
-      approach_velocity_scaling_dist: 0.6
+      use_velocity_scaled_lookahead_dist: true
+      min_approach_linear_velocity: 0.02
+      approach_velocity_scaling_dist: 1.0
       use_collision_detection: false
       max_allowed_time_to_collision_up_to_carrot: 1.0
-      use_regulated_linear_velocity_scaling: false
+      use_regulated_linear_velocity_scaling: true
       use_fixed_curvature_lookahead: false
-      curvature_lookahead_dist: 0.25
-      use_cost_regulated_linear_velocity_scaling: false
-      regulated_linear_scaling_min_radius: 0.9
-      regulated_linear_scaling_min_speed: 0.25
+      curvature_lookahead_dist: 0.5
+      use_cost_regulated_linear_velocity_scaling: true
+      cost_scaling_dist: 1.0
+      cost_scaling_gain: 2.0
+      regulated_linear_scaling_min_radius: 1.0
+      regulated_linear_scaling_min_speed: 0.05
       use_rotate_to_heading: false
-      rotate_to_heading_angular_vel: 0.2
-      allow_reversing: true
-      max_angular_accel: 0.7
+      rotate_to_heading_angular_vel: 0.05
+      allow_reversing: false
+      max_angular_accel: 0.15
+      max_angular_velocity: 0.05
+      min_turning_radius: 0.8
       max_robot_pose_search_dist: 10.0
 
 
@@ -79,8 +83,13 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: false
+      rolling_window: true
+      width: 50
+      height: 50
       footprint: "[ [0.5, 0.41], [0.5, -0.41], [-0.3, -0.41], [-0.3, 0.41] ]"
       resolution: 0.05
+      track_unknown_space: true
+      unknown_cost_value: 255
       plugins: ["static_layer", "voxel_layer", "denoise_layer", "inflation_layer"]
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -126,7 +135,7 @@ global_costmap:
         inflation_radius: 0.5
         cost_scaling_factor: 5.0
         inflate_unknown: false
-        inflate_around_unknown: true
+        inflate_around_unknown: false
       always_send_full_costmap: true
 
 
@@ -172,13 +181,13 @@ planner_server:
       cost_travel_multiplier: 5.0
       use_final_approach_orientation: false
       max_planning_time: 3.5
-      motion_model_for_search: "DUBIN"
+      motion_model_for_search: "MOORE"
       angle_quantization_bins: 72
       analytic_expansion_ratio: 3.5
       analytic_expansion_max_length: 3.0
       minimum_turning_radius: 0.40
-      reverse_penalty: 2.0
-      change_penalty: 0.0
+      reverse_penalty: 100.0
+      change_penalty: 1.0
       non_straight_penalty: 1.2
       cost_penalty: 2.0
       retrospective_penalty: 0.015
@@ -209,9 +218,9 @@ behavior_server:
     transform_tolerance: 1.0
     use_sim_time: false
     simulate_ahead_time: 2.0
-    max_rotational_vel: 0.8
-    min_rotational_vel: 0.2
-    rotational_acc_lim: 0.4
+    max_rotational_vel: 0.05
+    min_rotational_vel: 0.02
+    rotational_acc_lim: 0.1
 
 robot_state_publisher:
   ros__parameters:
@@ -234,10 +243,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.25, 0.0, 0.15]
-    min_velocity: [-0.2, 0.0, -0.15]
-    max_accel: [2.5, 0.0, 1.2]
-    max_decel: [-2.5, 0.0, -1.2]
+    max_velocity: [0.125, 0.0, 0.05]
+    min_velocity: [-0.1, 0.0, -0.05]
+    max_accel: [2.5, 0.0, 0.2]
+    max_decel: [-2.5, 0.0, -0.2]
     odom_topic: "odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]

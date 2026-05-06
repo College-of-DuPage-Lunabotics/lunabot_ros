@@ -44,9 +44,26 @@ public:
   {
     current_state_ = State::NAVIGATING_TO_EXCAVATION;
 
+    // Declare parameter for using light excavation (default: true for autonomous)
+    this->declare_parameter("use_light_excavation", true);
+    use_light_excavation_ = this->get_parameter("use_light_excavation").as_bool();
+
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
-    excavation_client_ = rclcpp_action::create_client<Excavation>(this, "excavation_action");
+
+    // Connect to appropriate excavation action based on parameter
+    std::string excavation_action_name =
+      use_light_excavation_ ? "light_excavation_action" : "excavation_action";
+
+    excavation_client_ = rclcpp_action::create_client<Excavation>(this, excavation_action_name);
     depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
+
+    if (use_light_excavation_)
+    {
+      LOGGER_INFO(this->get_logger(), "Using LIGHT excavation mode (minimal vibration)");
+    } else
+    {
+      LOGGER_INFO(this->get_logger(), "Using STANDARD excavation mode");
+    }
 
     execution_timer_ =
       this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
@@ -323,6 +340,7 @@ private:
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;
+  bool use_light_excavation_;
 };
 
 /**

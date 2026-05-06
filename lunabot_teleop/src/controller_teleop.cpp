@@ -70,6 +70,8 @@ public:
 
     excavation_client_ =
       rclcpp_action::create_client<lunabot_msgs::action::Excavation>(this, "excavation_action");
+    light_excavation_client_ = rclcpp_action::create_client<lunabot_msgs::action::Excavation>(
+      this, "light_excavation_action");
     depositing_client_ =
       rclcpp_action::create_client<lunabot_msgs::action::Depositing>(this, "depositing_action");
 
@@ -197,9 +199,10 @@ private:
     bool l4_pressed = detect_button_press(msg->buttons[16], prev_l4_);
     bool r4_pressed = detect_button_press(msg->buttons[17], prev_r4_);
 
-    // X/Y buttons for excavate/deposit actions
+    // X/Y/B buttons for excavate/deposit/light excavate actions
     bool x_pressed = detect_button_press(msg->buttons[3], prev_x_button_);
     bool y_pressed = detect_button_press(msg->buttons[4], prev_y_button_);
+    bool b_pressed = detect_button_press(msg->buttons[1], prev_b_button_);
 
     if (share_pressed || plus_pressed)
     {
@@ -297,6 +300,11 @@ private:
       send_excavate_goal();
     }
 
+    if (b_pressed)
+    {
+      send_light_excavate_goal();
+    }
+
     if (y_pressed)
     {
       send_deposit_goal();
@@ -336,6 +344,41 @@ private:
     };
 
     excavation_client_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+  void send_light_excavate_goal()
+  {
+    if (!light_excavation_client_->wait_for_action_server(std::chrono::seconds(0)))
+    {
+      LOGGER_WARN(get_logger(), "Light excavation action server not available");
+      return;
+    }
+
+    auto goal_msg = lunabot_msgs::action::Excavation::Goal();
+    LOGGER_INFO(get_logger(), CYAN "Sending light excavation goal" RESET);
+
+    auto send_goal_options =
+      rclcpp_action::Client<lunabot_msgs::action::Excavation>::SendGoalOptions();
+    send_goal_options.goal_response_callback = [this](auto goal_handle) {
+      if (!goal_handle)
+      {
+        LOGGER_FAILURE(get_logger(), "Light excavation goal rejected");
+      } else
+      {
+        LOGGER_SUCCESS(get_logger(), "Light excavation goal accepted");
+      }
+    };
+    send_goal_options.result_callback = [this](const auto & result) {
+      if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
+      {
+        LOGGER_SUCCESS(get_logger(), "Light excavation completed");
+      } else
+      {
+        LOGGER_FAILURE(get_logger(), "Light excavation failed");
+      }
+    };
+
+    light_excavation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
   void send_deposit_goal()
@@ -395,8 +438,8 @@ private:
   {
     if (manual_enabled_) return;
 
-    double left_cmd = 0.2 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd = 0.2 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double left_cmd = -0.35 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.35 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_wheel = clamp(left_cmd);
@@ -492,6 +535,7 @@ private:
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
 
   rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr excavation_client_;
+  rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr light_excavation_client_;
   rclcpp_action::Client<lunabot_msgs::action::Depositing>::SharedPtr depositing_client_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
@@ -514,6 +558,7 @@ private:
   bool prev_r4_ = false;
   bool prev_x_button_ = false;
   bool prev_y_button_ = false;
+  bool prev_b_button_ = false;
   bool prev_btn_minus_ = false;
   bool prev_btn_plus__ = false;
 
