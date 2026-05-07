@@ -34,6 +34,7 @@ public:
     IDLE,
     DRIVING_FROM_START,
     EXCAVATING,
+    NAVIGATING_TO_INTERMEDIATE,
     NAVIGATING_TO_CONSTRUCTION,
     DEPOSITING,
     COMPLETE
@@ -91,6 +92,10 @@ private:
         request_excavation();
         current_state_ = State::IDLE;
         break;
+      case State::NAVIGATING_TO_INTERMEDIATE:
+        request_navigation_to_intermediate();
+        current_state_ = State::IDLE;
+        break;
       case State::NAVIGATING_TO_CONSTRUCTION:
         request_navigation_to_construction();
         current_state_ = State::IDLE;
@@ -107,11 +112,11 @@ private:
   }
 
   /**
-   * @brief Drives robot forward for 3 seconds from starting position.
+   * @brief Drives robot forward for 8 seconds from starting position.
    */
   void drive_forward_from_start()
   {
-    LOGGER_ACTION(this->get_logger(), "Driving forward from start for 3 seconds...");
+    LOGGER_ACTION(this->get_logger(), "Driving forward from start for 8 seconds...");
 
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_actuator = 0.0;
@@ -119,10 +124,10 @@ private:
     motor_cmd.vibration = 0.0;
 
     auto start_time = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(3))
+    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(15))
     {
-      motor_cmd.left_wheel = 0.5;
-      motor_cmd.right_wheel = -0.5;
+      motor_cmd.left_wheel = 0.3;
+      motor_cmd.right_wheel = -0.3;
       motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -162,12 +167,81 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      LOGGER_SUCCESS(this->get_logger(), "Excavation success! Navigating to construction zone...");
-      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
+      LOGGER_SUCCESS(
+        this->get_logger(), "Excavation success! Navigating to intermediate waypoint...");
+      current_state_ = State::NAVIGATING_TO_INTERMEDIATE;
     } else
     {
       LOGGER_FAILURE(this->get_logger(), "Excavation failed.");
       current_state_ = State::IDLE;
+    }
+  }
+
+  void request_navigation_to_intermediate()
+  {
+    LOGGER_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
+    if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
+    {
+      LOGGER_FAILURE(this->get_logger(), "Navigation action server not available after 30s.");
+      return;
+    }
+
+    LOGGER_INFO(this->get_logger(), "Nav2 action server ready!");
+
+    auto goal_msg = NavigateToPose::Goal();
+    geometry_msgs::msg::Pose goal_pose;
+
+    goal_pose.position.x = -4.8;
+    goal_pose.position.y = -3.0;
+    goal_pose.orientation.x = 0.0;
+    goal_pose.orientation.y = 0.0;
+    goal_pose.orientation.z = 1.0;
+    goal_pose.orientation.w = 0.0;
+
+    goal_msg.pose.pose = goal_pose;
+    goal_msg.pose.header.stamp = this->now();
+    goal_msg.pose.header.frame_id = "map";
+
+    auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
+    send_goal_options.result_callback = std::bind(
+      &NavigationClient::handle_intermediate_navigation_result, this, std::placeholders::_1);
+    send_goal_options.feedback_callback = std::bind(
+      &NavigationClient::handle_intermediate_feedback, this, std::placeholders::_1,
+      std::placeholders::_2);
+
+    LOGGER_ACTION(
+      this->get_logger(), "Sending navigation goal to intermediate waypoint [-4.8, -3.2]...");
+    navigation_client_->async_send_goal(goal_msg, send_goal_options);
+  }
+
+  void handle_intermediate_feedback(
+    GoalHandleNavigate::SharedPtr, const std::shared_ptr<const NavigateToPose::Feedback> feedback)
+  {
+    LOGGER_INFO(
+      this->get_logger(), "Distance to intermediate waypoint: %.2f meters",
+      feedback->distance_remaining);
+  }
+
+  void handle_intermediate_navigation_result(const GoalHandleNavigate::WrappedResult & result)
+  {
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      LOGGER_SUCCESS(this->get_logger(), "Intermediate waypoint reached. Navigating to berm...");
+      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
+    } else if (result.code == rclcpp_action::ResultCode::ABORTED)
+    {
+      LOGGER_WARN(
+        this->get_logger(), "Intermediate waypoint aborted, proceeding to berm anyway...");
+      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
+    } else if (result.code == rclcpp_action::ResultCode::CANCELED)
+    {
+      LOGGER_WARN(
+        this->get_logger(), "Intermediate waypoint canceled, proceeding to berm anyway...");
+      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
+    } else
+    {
+      LOGGER_WARN(this->get_logger(), "Intermediate waypoint failed, proceeding to berm anyway...");
+      current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
     }
   }
 
@@ -191,7 +265,7 @@ private:
 
     // Navigate to construction zone coordinates
     goal_pose.position.x = -4.5;
-    goal_pose.position.y = -0.7;
+    goal_pose.position.y = 0.4;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
     goal_pose.orientation.z = -0.7071068;
@@ -208,8 +282,7 @@ private:
       &NavigationClient::handle_construction_feedback, this, std::placeholders::_1,
       std::placeholders::_2);
 
-    LOGGER_ACTION(
-      this->get_logger(), "Sending navigation goal to construction zone [-4.5, 0.4]...");
+    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to berm zone [-4.8, -0.4]...");
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -222,8 +295,7 @@ private:
     GoalHandleNavigate::SharedPtr, const std::shared_ptr<const NavigateToPose::Feedback> feedback)
   {
     LOGGER_INFO(
-      this->get_logger(), "Distance to construction zone: %.2f meters",
-      feedback->distance_remaining);
+      this->get_logger(), "Distance to berm zone: %.2f meters", feedback->distance_remaining);
   }
 
   /**
@@ -234,20 +306,19 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      LOGGER_SUCCESS(this->get_logger(), "Construction zone reached. Requesting deposit...");
+      LOGGER_SUCCESS(this->get_logger(), "Berm zone reached. Requesting deposit...");
       current_state_ = State::DEPOSITING;
     } else if (result.code == rclcpp_action::ResultCode::ABORTED)
     {
-      LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach construction zone");
+      LOGGER_FAILURE(this->get_logger(), "Goal aborted, unable to reach berm zone");
       current_state_ = State::IDLE;
     } else if (result.code == rclcpp_action::ResultCode::CANCELED)
     {
-      LOGGER_WARN(this->get_logger(), "Navigation to construction zone canceled");
+      LOGGER_WARN(this->get_logger(), "Navigation to berm zone canceled");
       current_state_ = State::IDLE;
     } else
     {
-      LOGGER_FAILURE(
-        this->get_logger(), "Navigation to construction zone failed with unknown result");
+      LOGGER_FAILURE(this->get_logger(), "Navigation to berm zone failed with unknown result");
       current_state_ = State::IDLE;
     }
   }
