@@ -23,7 +23,7 @@
 #include <memory>
 #include <thread>
 
-static constexpr double excavation_pos = 1.58;
+static constexpr double excavation_pos = 1.59;
 static constexpr double travel_pos = 0.7854;
 static constexpr int forward_seconds = 5;
 

@@ -189,9 +189,9 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    // Navigate to construction zone coordinates (rotated 180 from excavation for depositing)
+    // Navigate to construction zone coordinates
     goal_pose.position.x = -4.5;
-    goal_pose.position.y = 0.4;
+    goal_pose.position.y = -0.7;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
     goal_pose.orientation.z = -0.7071068;

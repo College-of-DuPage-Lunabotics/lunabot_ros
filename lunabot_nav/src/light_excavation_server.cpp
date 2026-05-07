@@ -23,9 +23,9 @@
 #include <memory>
 #include <thread>
 
-static constexpr double excavation_pos = 1.55;
+static constexpr double excavation_pos = 1.56;
 static constexpr double travel_pos = 0.7854;
-static constexpr int forward_seconds = 4;
+static constexpr int forward_seconds = 5;
 
 /**
  * @class LightExcavationServer
@@ -127,7 +127,7 @@ private:
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_actuator = 0.0;
     motor_cmd.right_actuator = 0.0;
-    motor_cmd.vibration = 0.2;  // Very light vibration (20% instead of 100%)
+    motor_cmd.vibration = 0.0;
 
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(forward_seconds))
@@ -142,8 +142,8 @@ private:
         return false;
       }
 
-      motor_cmd.left_wheel = 0.5;
-      motor_cmd.right_wheel = -0.5;
+      motor_cmd.left_wheel = 0.3;
+      motor_cmd.right_wheel = -0.3;
       motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -171,7 +171,7 @@ private:
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_wheel = 0.0;
     motor_cmd.right_wheel = 0.0;
-    motor_cmd.vibration = 0.0;  // No vibration during lift
+    motor_cmd.vibration = 0.0;
 
     while (std::abs(target_position - current_encoder_position_) > 0.01)
     {

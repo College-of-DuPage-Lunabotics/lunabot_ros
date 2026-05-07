@@ -43,7 +43,7 @@ def launch_setup(context, *args, **kwargs):
                 "filter_size_map": 0.1,
                 "ivox_nearby_type": 18,
                 "runtime_pos_log_enable": False,
-                "publish.tf_send_en": False,
+                "publish.tf_send_en": True,
                 "publish.odom_frame_id": "odom",
                 "publish.base_frame_id": "base_link",
             },
@@ -66,7 +66,7 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         point_lio_node,
-        ukf_node,
+        #ukf_node,
     ]
 
 
