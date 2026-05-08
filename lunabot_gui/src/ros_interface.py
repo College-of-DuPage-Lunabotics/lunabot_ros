@@ -42,7 +42,6 @@ _DISPLAY_NAMES = {
     'pointlio':     'Point-LIO',
     'mapping':      'RTAB-Map',
     'nav2':         'Navigation2',
-    'localization': 'Localization',
     'hardware':     'Hardware',
 }
 
@@ -57,7 +56,6 @@ class RobotInterface:
         self.node.declare_parameter('network.robot_host', '192.168.0.250')
         self.node.declare_parameter('network.robot_user', 'codetc')
         self.node.declare_parameter('network.robot_workspace', '~/lunabot_ws')
-        self.node.declare_parameter('steam_mode', False)
         
         # mode_param uses True=sim convention (from the 'mode' ROS param default)
         if isinstance(mode_param, bool):
@@ -75,9 +73,6 @@ class RobotInterface:
         self.robot_user = self.node.get_parameter('network.robot_user').value
         self.robot_workspace = self.node.get_parameter('network.robot_workspace').value
         self.is_remote = self.is_real_mode  # remote SSH launch only applies in real mode
-        self.steam_mode = self.node.get_parameter('steam_mode').value
-        
-        self.log.info(f'Controller mode: {"Steam Deck" if self.steam_mode else "Xbox"}')
         
         if self.is_remote:
             self.log.info(f'Remote robot: {self.robot_user}@{self.robot_host}:{self.robot_workspace}')
@@ -120,7 +115,6 @@ class RobotInterface:
         self.pointlio_enabled = False
         self.mapping_enabled = False
         self.nav2_enabled = False
-        self.localization_enabled = False
 
         self.robot_mode = "MANUAL"
         self.is_excavating = False
@@ -135,12 +129,11 @@ class RobotInterface:
             'actions': None,
             'pointlio': None,
             'mapping': None,
-            'nav2': None,
-            'localization': None
+            'nav2': None
         }
         
-        self.excavation_client = ActionClient(self.node, Excavation, 'excavation_action')
-        self.depositing_client = ActionClient(self.node, Depositing, 'depositing_action')
+        self.excavation_client = ActionClient(self.node, Excavation, 'assisted_excavation_action')
+        self.depositing_client = ActionClient(self.node, Depositing, 'assisted_depositing_action')
         
         self.excavation_goal_handle = None
         self.depositing_goal_handle = None
@@ -151,6 +144,7 @@ class RobotInterface:
         self.position_cmd_pub = self.node.create_publisher(Float64MultiArray, '/position_controller/commands', 10)
         self.camera_cmd_pub = self.node.create_publisher(Float64MultiArray, '/camera_controller/commands', 10)
         self.cmd_vel_pub = self.node.create_publisher(Twist, '/cmd_vel', 10)
+        self.excavation_angle_pub = self.node.create_publisher(Float64, '/excavation_angle', 10)
         
         self.launch_client = self.node.create_client(LaunchSystem, 'launch_system')
         self.stop_client = self.node.create_client(StopSystem, 'stop_system')
@@ -383,7 +377,6 @@ class RobotInterface:
         self.pointlio_enabled = msg.pointlio_enabled
         self.mapping_enabled = msg.mapping_enabled
         self.nav2_enabled = msg.nav2_enabled
-        self.localization_enabled = msg.localization_enabled
         self.is_excavating = msg.is_excavating
         self.is_depositing = msg.is_depositing
         self.is_navigating = msg.is_navigating
@@ -425,6 +418,11 @@ class RobotInterface:
         msg = Float64MultiArray()
         msg.data = [position]
         self.position_cmd_pub.publish(msg)
+    
+    def publish_excavation_angle(self, angle):
+        msg = Float64()
+        msg.data = angle
+        self.excavation_angle_pub.publish(msg)
     
     def publish_camera_position(self, position):
         msg = Float64MultiArray()
@@ -494,7 +492,6 @@ class RobotInterface:
             'pointlio':     'pointlio_enabled',
             'mapping':      'mapping_enabled',
             'nav2':         'nav2_enabled',
-            'localization': 'localization_enabled',
             'hardware':     'hardware_enabled',
         }
         attr = flag_map.get(system_name)
@@ -511,7 +508,6 @@ class RobotInterface:
                 request = LaunchSystem.Request()
                 request.system_name = 'hardware'
                 request.use_sim = False
-                request.steam_mode = self.steam_mode
 
                 if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
                     self.log.failure('Launch manager service not available')
@@ -530,9 +526,8 @@ class RobotInterface:
                     self.log.failure('Service call failed for hardware launch')
                     return
             else:
-                steam_arg = 'true' if self.steam_mode else 'false'
                 self.launch_processes['hardware'] = subprocess.Popen(
-                    ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
+                    ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     start_new_session=True)
 
@@ -545,7 +540,7 @@ class RobotInterface:
             self.log.failure(f'Failed to launch hardware: {str(e)}')
     
     def launch_system(self, system_name):
-        """Launch a system (PointLIO, mapping, Nav2, localization)"""
+        """Launch a system (PointLIO, mapping, Nav2)"""
         display = _DISPLAY_NAMES.get(system_name, system_name)
         self.log.action(f'Launching {display}')
 
@@ -724,7 +719,7 @@ class RobotInterface:
             use_sim_arg = 'false' if self.is_real_mode else 'true'
             self.navigation_client_process = subprocess.Popen(
                 f'{self._get_workspace_setup_cmd()} && ros2 run lunabot_nav navigation_client'
-                f' --ros-args -p use_sim_time:={use_sim_arg} -p use_localization:=false',
+                f' --ros-args -p use_sim_time:={use_sim_arg}',
                 shell=True, executable='/bin/bash', preexec_fn=os.setsid)
             self.log.success('Navigation client launched')
             return True

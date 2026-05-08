@@ -34,7 +34,6 @@ rosidl_generate_interfaces(
   "msg/MotorCommands.msg"
   "srv/LaunchSystem.srv"
   "srv/StopSystem.srv"
-  "action/Localization.action"
   "action/Excavation.action"
   "action/Depositing.action"
   DEPENDENCIES

@@ -98,6 +98,7 @@ class LunabotGUI(QMainWindow):
         self.fisheye_showing_deposit = True
         self.full_auto_active = False
         self.emergency_stopped = False
+        self.excavation_angle = 1.59
 
         self.teleop_keys = {
             'w': False, 'a': False, 's': False, 'd': False,
@@ -118,6 +119,8 @@ class LunabotGUI(QMainWindow):
         self._ros_executor.add_node(self.robot.node)
         self._ros_thread = threading.Thread(target=self._ros_executor.spin, daemon=True)
         self._ros_thread.start()
+
+        self.robot.publish_excavation_angle(self.excavation_angle)
 
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
@@ -328,6 +331,7 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget.setLayout(sidebar_layout)
 
         sidebar_layout.addWidget(ui_widgets.create_controls_reference_group(self))
+        sidebar_layout.addWidget(ui_widgets.create_excavation_angle_group(self))
         sidebar_layout.addWidget(ui_widgets.create_hardware_group(self))
         sidebar_layout.addWidget(ui_widgets.create_launch_group(self))
         sidebar_layout.addWidget(ui_widgets.create_action_control_group(self))
@@ -592,6 +596,16 @@ class LunabotGUI(QMainWindow):
             self.emergency_stopped = False
             self.emergency_stop_btn.setText("Emergency Stop")
             self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_NORMAL_CSS)
+
+    def increase_excavation_angle(self):
+        self.excavation_angle = min(1.70, self.excavation_angle + 0.01)
+        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
+        self.robot.publish_excavation_angle(self.excavation_angle)
+
+    def decrease_excavation_angle(self):
+        self.excavation_angle = max(1.50, self.excavation_angle - 0.01)
+        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
+        self.robot.publish_excavation_angle(self.excavation_angle)
 
     def send_full_auto_goal(self):
         if self.full_auto_active:

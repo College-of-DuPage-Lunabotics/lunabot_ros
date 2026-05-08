@@ -1,5 +1,5 @@
 /**
- * @file excavation_server.cpp
+ * @file assisted_excavation_server.cpp
  * @author Grayson Arendt
  * @date 02/22/2026
  */
@@ -28,10 +28,11 @@ static constexpr double travel_pos = 0.7854;
 static constexpr int forward_seconds = 5;
 
 /**
- * @class ExcavationServer
- * @brief Hardware excavation server that controls bucket actuators and manages excavation sequence.
+ * @class AssistedExcavationServer
+ * @brief Assisted excavation server for teleop that controls bucket actuators and manages
+ * excavation sequence.
  */
-class ExcavationServer : public rclcpp::Node
+class AssistedExcavationServer : public rclcpp::Node
 {
 public:
   using Excavation = lunabot_msgs::action::Excavation;
@@ -40,14 +41,14 @@ public:
   using GoalHandleNavigate = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
   /**
-   * @brief Constructor for the ExcavationServer class.
+   * @brief Constructor for the AssistedExcavationServer class.
    */
-  ExcavationServer() : Node("excavation_server")
+  AssistedExcavationServer() : Node("assisted_excavation_server")
   {
     encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ = rclcpp_action::create_server<Excavation>(
-      this, "excavation_action",
+      this, "assisted_excavation_action",
       [this](const auto &, const auto &) {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
@@ -63,13 +64,17 @@ public:
 
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
       "bucket_angle", 10,
-      std::bind(&ExcavationServer::encoder_position_callback, this, std::placeholders::_1),
+      std::bind(&AssistedExcavationServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
+
+    excavation_angle_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
+      "/excavation_angle", 10,
+      std::bind(&AssistedExcavationServer::excavation_angle_callback, this, std::placeholders::_1));
 
     motor_cmd_publisher_ =
       this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
-    LOGGER_SUCCESS(this->get_logger(), "Excavation server initialized");
+    LOGGER_SUCCESS(this->get_logger(), "Assisted excavation server initialized");
   }
 
 private:
@@ -81,7 +86,7 @@ private:
   {
     LOGGER_ACTION(this->get_logger(), "Lowering bucket...");
 
-    double target_position = excavation_pos;
+    double target_position = excavation_angle_;
 
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_wheel = 0.0;
@@ -292,13 +297,21 @@ private:
     current_encoder_position_ = msg->data;
   }
 
+  void excavation_angle_callback(const std_msgs::msg::Float64::SharedPtr msg)
+  {
+    excavation_angle_ = msg->data;
+    LOGGER_INFO(this->get_logger(), "Excavation angle updated: %.2f", excavation_angle_);
+  }
+
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr excavation_angle_subscriber_;
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
+  double excavation_angle_ = 1.59;
   bool goal_active_ = false;
 };
 
@@ -307,7 +320,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   rclcpp::executors::MultiThreadedExecutor executor;
-  auto node = std::make_shared<ExcavationServer>();
+  auto node = std::make_shared<AssistedExcavationServer>();
   executor.add_node(node);
   executor.spin();
 

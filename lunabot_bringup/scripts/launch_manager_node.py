@@ -30,7 +30,6 @@ class LaunchManagerNode(Node):
             'pointlio': None,
             'mapping': None,
             'nav2': None,
-            'localization': None,
             'hardware': None
         }
 
@@ -46,9 +45,8 @@ class LaunchManagerNode(Node):
     def launch_system_callback(self, request, response):
         system_name = request.system_name
         use_sim = request.use_sim
-        steam_mode = request.steam_mode
         
-        self.log.action(f'Launch request: {system_name} (sim={use_sim}, steam={steam_mode})')
+        self.log.action(f'Launch request: {system_name} (sim={use_sim})')
 
         if self.processes.get(system_name) is not None:
             response.success = False
@@ -58,7 +56,7 @@ class LaunchManagerNode(Node):
         
         try:
             if system_name == 'hardware':
-                response.success, response.message = self._launch_hardware(steam_mode)
+                response.success, response.message = self._launch_hardware()
             else:
                 response.success, response.message = self._launch_ros_system(system_name, use_sim)
             
@@ -118,12 +116,11 @@ class LaunchManagerNode(Node):
         return response
     
     def _launch_ros_system(self, system_name, use_sim):
-        """Launch a ROS 2 system (pointlio, mapping, nav2, localization)"""
+        """Launch a ROS 2 system (pointlio, mapping, nav2)"""
         launch_files = {
             'pointlio': 'pointlio_launch.py',
             'mapping': 'mapping_launch.py',
-            'nav2': 'nav2_stack_launch.py',
-            'localization': 'localization_launch.py'
+            'nav2': 'nav2_stack_launch.py'
         }
         
         launch_file = launch_files.get(system_name)
@@ -136,8 +133,6 @@ class LaunchManagerNode(Node):
             process = subprocess.Popen(
                 ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
                 stdin=subprocess.DEVNULL,
-                stdout=None,  # systemd journal
-                stderr=None,  # systemd journal
                 start_new_session=True
             )
             
@@ -147,15 +142,12 @@ class LaunchManagerNode(Node):
         except Exception as e:
             return False, str(e)
     
-    def _launch_hardware(self, steam_mode=False):
+    def _launch_hardware(self):
         """Launch hardware (CAN + sensors)"""
         try:
-            steam_arg = 'true' if steam_mode else 'false'
             process = subprocess.Popen(
-                ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py', f'steam_mode:={steam_arg}'],
+                ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
                 stdin=subprocess.DEVNULL,
-                stdout=None,  # systemd journal
-                stderr=None,  # systemd journal
                 start_new_session=True
             )
             
@@ -171,7 +163,6 @@ class LaunchManagerNode(Node):
             'pointlio': 'pointlio_launch',
             'mapping': 'mapping_launch',
             'nav2': 'nav2_stack_launch',
-            'localization': 'localization_launch',
             'hardware': 'hardware_launch'
         }
         

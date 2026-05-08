@@ -493,6 +493,53 @@ def create_action_control_group(app):
     return group
 
 
+def create_excavation_angle_group(app):
+    group = QGroupBox("Excavation Angle")
+    group.setAutoFillBackground(True)
+    group.setStyleSheet(_GROUP_BG_DARK2)
+    layout = QVBoxLayout()
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
+    group.setLayout(layout)
+
+    angle_control = QWidget()
+    angle_layout = QHBoxLayout()
+    angle_layout.setContentsMargins(0, 0, 0, 0)
+    angle_layout.setSpacing(6)
+    angle_control.setLayout(angle_layout)
+    
+    angle_label = QLabel("Angle:")
+    angle_label.setFont(QFont("Monospace", _FONT_SM))
+    angle_label.setStyleSheet(f"color: {Colors.TEXT_MAIN};")
+    angle_layout.addWidget(angle_label)
+    
+    app.excavation_angle_value_label = QLabel(f"{app.excavation_angle:.2f}")
+    app.excavation_angle_value_label.setFont(QFont("Monospace", _FONT_MD, QFont.Bold))
+    app.excavation_angle_value_label.setStyleSheet(f"color: {Colors.BTN_LIGHT_BLUE}; min-width: 40px;")
+    app.excavation_angle_value_label.setAlignment(Qt.AlignCenter)
+    angle_layout.addWidget(app.excavation_angle_value_label)
+    
+    angle_layout.addStretch()
+    
+    down_btn = QPushButton("▼")
+    down_btn.setMaximumWidth(35)
+    down_btn.setMaximumHeight(28)
+    down_btn.setStyleSheet(ACTION_BTN_CSS)
+    down_btn.clicked.connect(app.decrease_excavation_angle)
+    angle_layout.addWidget(down_btn)
+    
+    up_btn = QPushButton("▲")
+    up_btn.setMaximumWidth(35)
+    up_btn.setMaximumHeight(28)
+    up_btn.setStyleSheet(ACTION_BTN_CSS)
+    up_btn.clicked.connect(app.increase_excavation_angle)
+    angle_layout.addWidget(up_btn)
+    
+    layout.addWidget(angle_control)
+
+    return group
+
+
 class BucketSliderWidget(QWidget):
     _MAX_POS = 0.0
     _MIN_POS = 1.5708
@@ -618,8 +665,7 @@ def create_controls_reference_group(app):
             ("D-Pad Down", "Excavate Ready"),
         ]),
         ("CAMERA CONTROL", [
-            ("L4 Button", "Bucket View (0°)"),
-            ("R4 Button", "Deposit View (180°)"),
+            ("R4 Button", "Toggle Fisheye Rotation"),
         ]),
     ]
     for i, (header, controls) in enumerate(sections):

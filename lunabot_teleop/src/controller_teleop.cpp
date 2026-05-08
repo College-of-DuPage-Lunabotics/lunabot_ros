@@ -68,12 +68,10 @@ public:
     motor_cmd_publisher_ =
       create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
-    excavation_client_ =
-      rclcpp_action::create_client<lunabot_msgs::action::Excavation>(this, "excavation_action");
-    light_excavation_client_ = rclcpp_action::create_client<lunabot_msgs::action::Excavation>(
-      this, "light_excavation_action");
-    depositing_client_ =
-      rclcpp_action::create_client<lunabot_msgs::action::Depositing>(this, "depositing_action");
+    excavation_client_ = rclcpp_action::create_client<lunabot_msgs::action::Excavation>(
+      this, "assisted_excavation_action");
+    depositing_client_ = rclcpp_action::create_client<lunabot_msgs::action::Depositing>(
+      this, "assisted_depositing_action");
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -136,7 +134,7 @@ private:
     // Check if moving to target position, otherwise use joystick
     float actuator_cmd = 0.0;
 
-    // Cancel automatic positioning if joystick is being actively used
+    // Cancel automatic bucket positioning if right joystick is being actively used
     constexpr double joystick_deadzone = 0.15;
     if (std::abs(right_joystick_y_) > joystick_deadzone && target_position_active_)
     {
@@ -195,14 +193,12 @@ private:
     bool dpad_up_pressed = detect_button_press(msg->axes[7] > 0.5, prev_dpad_up_);
     bool dpad_down_pressed = detect_button_press(msg->axes[7] < -0.5, prev_dpad_down_);
 
-    // L4/R4 buttons for camera servo control
-    bool l4_pressed = detect_button_press(msg->buttons[16], prev_l4_);
+    // R4 button for camera servo toggle
     bool r4_pressed = detect_button_press(msg->buttons[17], prev_r4_);
 
-    // X/Y/B buttons for excavate/deposit/light excavate actions
+    // X/Y buttons for assisted excavate/deposit actions
     bool x_pressed = detect_button_press(msg->buttons[3], prev_x_button_);
     bool y_pressed = detect_button_press(msg->buttons[4], prev_y_button_);
-    bool b_pressed = detect_button_press(msg->buttons[1], prev_b_button_);
 
     if (share_pressed || plus_pressed)
     {
@@ -271,38 +267,21 @@ private:
         get_logger(), "Moving to excavation bucket position: %.3f rad", excavation_ready_pos);
     }
 
-    if (l4_pressed)
-    {
-      double target_angle_rad = 0.0;
-      current_servo_position_ = target_angle_rad;
-
-      auto servo_msg = std_msgs::msg::Float64MultiArray();
-      servo_msg.data.push_back(target_angle_rad);
-      camera_position_publisher_->publish(servo_msg);
-
-      LOGGER_INFO(get_logger(), "Servo position: 0°");
-    }
-
     if (r4_pressed)
     {
-      double target_angle_rad = M_PI;
+      double target_angle_rad = (std::abs(current_servo_position_) < 0.1) ? M_PI : 0.0;
       current_servo_position_ = target_angle_rad;
 
       auto servo_msg = std_msgs::msg::Float64MultiArray();
       servo_msg.data.push_back(target_angle_rad);
       camera_position_publisher_->publish(servo_msg);
 
-      LOGGER_INFO(get_logger(), "Servo position: 180°");
+      LOGGER_INFO(get_logger(), "Servo position: %.0f°", target_angle_rad * 180.0 / M_PI);
     }
 
     if (x_pressed)
     {
       send_excavate_goal();
-    }
-
-    if (b_pressed)
-    {
-      send_light_excavate_goal();
     }
 
     if (y_pressed)
@@ -344,41 +323,6 @@ private:
     };
 
     excavation_client_->async_send_goal(goal_msg, send_goal_options);
-  }
-
-  void send_light_excavate_goal()
-  {
-    if (!light_excavation_client_->wait_for_action_server(std::chrono::seconds(0)))
-    {
-      LOGGER_WARN(get_logger(), "Light excavation action server not available");
-      return;
-    }
-
-    auto goal_msg = lunabot_msgs::action::Excavation::Goal();
-    LOGGER_INFO(get_logger(), CYAN "Sending light excavation goal" RESET);
-
-    auto send_goal_options =
-      rclcpp_action::Client<lunabot_msgs::action::Excavation>::SendGoalOptions();
-    send_goal_options.goal_response_callback = [this](auto goal_handle) {
-      if (!goal_handle)
-      {
-        LOGGER_FAILURE(get_logger(), "Light excavation goal rejected");
-      } else
-      {
-        LOGGER_SUCCESS(get_logger(), "Light excavation goal accepted");
-      }
-    };
-    send_goal_options.result_callback = [this](const auto & result) {
-      if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-      {
-        LOGGER_SUCCESS(get_logger(), "Light excavation completed");
-      } else
-      {
-        LOGGER_FAILURE(get_logger(), "Light excavation failed");
-      }
-    };
-
-    light_excavation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
   void send_deposit_goal()
@@ -535,7 +479,6 @@ private:
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
 
   rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr excavation_client_;
-  rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr light_excavation_client_;
   rclcpp_action::Client<lunabot_msgs::action::Depositing>::SharedPtr depositing_client_;
 
   rclcpp::TimerBase::SharedPtr state_timer_;
@@ -554,11 +497,9 @@ private:
   bool prev_home_button_ = false;
   bool prev_dpad_up_ = false;
   bool prev_dpad_down_ = false;
-  bool prev_l4_ = false;
   bool prev_r4_ = false;
   bool prev_x_button_ = false;
   bool prev_y_button_ = false;
-  bool prev_b_button_ = false;
   bool prev_btn_minus_ = false;
   bool prev_btn_plus__ = false;
 

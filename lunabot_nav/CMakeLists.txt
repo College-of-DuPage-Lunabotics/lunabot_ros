@@ -70,19 +70,19 @@ set(SIM_DEPENDENCIES
     tf2_ros)
 
 # Define build targets
-add_executable(excavation_server src/excavation_server.cpp)
-add_executable(light_excavation_server src/light_excavation_server.cpp)
-add_executable(depositing_server src/depositing_server.cpp)
-add_executable(localization_server src/localization_server.cpp)
+add_executable(assisted_excavation_server src/assisted_excavation_server.cpp)
+add_executable(auto_excavation_server src/auto_excavation_server.cpp)
+add_executable(assisted_depositing_server src/assisted_depositing_server.cpp)
+add_executable(auto_depositing_server src/auto_depositing_server.cpp)
 add_executable(navigation_client src/navigation_client.cpp)
 
 add_executable(excavation_server_sim src/excavation_server_sim.cpp)
 add_executable(depositing_server_sim src/depositing_server_sim.cpp)
 
-ament_target_dependencies(excavation_server ${DEPENDENCIES})
-ament_target_dependencies(light_excavation_server ${DEPENDENCIES})
-ament_target_dependencies(depositing_server ${DEPENDENCIES})
-ament_target_dependencies(localization_server ${DEPENDENCIES})
+ament_target_dependencies(assisted_excavation_server ${DEPENDENCIES})
+ament_target_dependencies(auto_excavation_server ${DEPENDENCIES})
+ament_target_dependencies(assisted_depositing_server ${DEPENDENCIES})
+ament_target_dependencies(auto_depositing_server ${DEPENDENCIES})
 ament_target_dependencies(navigation_client ${DEPENDENCIES})
 
 ament_target_dependencies(excavation_server_sim ${SIM_DEPENDENCIES})
@@ -90,10 +90,10 @@ ament_target_dependencies(depositing_server_sim ${SIM_DEPENDENCIES})
 
 # Install package files
 install(
-  TARGETS excavation_server
-          light_excavation_server
-          depositing_server
-          localization_server
+  TARGETS assisted_excavation_server
+          auto_excavation_server
+          assisted_depositing_server
+          auto_depositing_server
           navigation_client
           excavation_server_sim
           depositing_server_sim

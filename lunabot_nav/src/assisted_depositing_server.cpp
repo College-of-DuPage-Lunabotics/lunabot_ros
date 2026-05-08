@@ -1,5 +1,5 @@
 /**
- * @file depositing_server.cpp
+ * @file assisted_depositing_server.cpp
  * @author Grayson Arendt
  * @date 02/22/2026
  */
@@ -21,24 +21,25 @@ static constexpr double travel_pos = 0.7854;
 static constexpr double deposit_seconds = 5.0;
 
 /**
- * @class DepositingServer
- * @brief Hardware depositing server that controls bucket actuators for depositing sequence.
+ * @class AssistedDepositingServer
+ * @brief Assisted depositing server for teleop that controls bucket actuators for depositing
+ * sequence.
  */
-class DepositingServer : public rclcpp::Node
+class AssistedDepositingServer : public rclcpp::Node
 {
 public:
   using Depositing = lunabot_msgs::action::Depositing;
   using GoalHandleDepositing = rclcpp_action::ServerGoalHandle<Depositing>;
 
   /**
-   * @brief Constructor for the DepositingServer class.
+   * @brief Constructor for the AssistedDepositingServer class.
    */
-  DepositingServer() : Node("depositing_server")
+  AssistedDepositingServer() : Node("assisted_depositing_server")
   {
     encoder_callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ = rclcpp_action::create_server<Depositing>(
-      this, "depositing_action",
+      this, "assisted_depositing_action",
       [this](const auto &, const auto &) {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
@@ -52,13 +53,13 @@ public:
 
     encoder_position_subscriber_ = this->create_subscription<std_msgs::msg::Float64>(
       "bucket_angle", 10,
-      std::bind(&DepositingServer::encoder_position_callback, this, std::placeholders::_1),
+      std::bind(&AssistedDepositingServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
 
     motor_cmd_publisher_ =
       this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
-    LOGGER_SUCCESS(this->get_logger(), "Depositing server initialized");
+    LOGGER_SUCCESS(this->get_logger(), "Assisted depositing server initialized");
   }
 
 private:
@@ -275,7 +276,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   rclcpp::executors::MultiThreadedExecutor executor;
-  auto node = std::make_shared<DepositingServer>();
+  auto node = std::make_shared<AssistedDepositingServer>();
   executor.add_node(node);
   executor.spin();
 

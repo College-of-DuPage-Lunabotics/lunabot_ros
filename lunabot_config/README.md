@@ -7,8 +7,6 @@ This package contains configuration files for Nav2 behavior trees, RViz2 configu
 - **nav_to_pose_with_consistent_replanning_and_if_path_becomes_invalid.xml**: Replans only when the path becomes invalid to prevent Nav2 from repeatedly alternating between ambiguous paths.
 
 ## Parameters
-- **apriltag**
-  - **tag_params.yaml**: AprilTag detection parameters.
 - **gazebo**
   - **gazebo_v1_bot_params.yaml**: V1 robot joint controller parameters for Gazebo.
   - **gazebo_v2_bot_params.yaml**: V2 robot joint controller parameters for Gazebo.

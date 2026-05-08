@@ -18,6 +18,8 @@
 
 static constexpr double travel_position = -0.4;
 static constexpr double excavate_position = 0.0;
+static constexpr double drive_speed = 0.2;
+static constexpr int drive_seconds = 3;
 
 /**
  * @class ExcavationServerSim
@@ -83,10 +85,10 @@ private:
     LOGGER_ACTION(this->get_logger(), "Driving forward to excavate...");
 
     auto twist_msg = geometry_msgs::msg::Twist();
-    twist_msg.linear.x = 0.2;
+    twist_msg.linear.x = drive_speed;
 
     auto start_time = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(3))
+    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(drive_seconds))
     {
       cmd_vel_pub_->publish(twist_msg);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));

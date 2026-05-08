@@ -16,6 +16,15 @@
 #include <chrono>
 #include <thread>
 
+static constexpr double drive_speed = 0.3;
+static constexpr int forward_drive_seconds = 15;
+
+static constexpr double intermediate_waypoint_x = -4.8;
+static constexpr double intermediate_waypoint_y = -3.0;
+
+static constexpr double construction_zone_x = -4.5;
+static constexpr double construction_zone_y = 0.4;
+
 /**
  * @class NavigationClient
  * @brief Runs autonomous one cycle sequence: navigation, excavation, and depositing actions.
@@ -47,28 +56,12 @@ public:
   {
     current_state_ = State::DRIVING_FROM_START;
 
-    // Declare parameter for using light excavation (default: true for autonomous)
-    this->declare_parameter("use_light_excavation", true);
-    use_light_excavation_ = this->get_parameter("use_light_excavation").as_bool();
-
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
-    // Connect to appropriate excavation action based on parameter
-    std::string excavation_action_name =
-      use_light_excavation_ ? "light_excavation_action" : "excavation_action";
-
-    excavation_client_ = rclcpp_action::create_client<Excavation>(this, excavation_action_name);
-    depositing_client_ = rclcpp_action::create_client<Depositing>(this, "depositing_action");
+    excavation_client_ = rclcpp_action::create_client<Excavation>(this, "auto_excavation_action");
+    depositing_client_ = rclcpp_action::create_client<Depositing>(this, "auto_depositing_action");
     motor_cmd_publisher_ =
       this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
-
-    if (use_light_excavation_)
-    {
-      LOGGER_INFO(this->get_logger(), "Using LIGHT excavation mode (minimal vibration)");
-    } else
-    {
-      LOGGER_INFO(this->get_logger(), "Using STANDARD excavation mode");
-    }
 
     execution_timer_ =
       this->create_wall_timer(std::chrono::seconds(1), std::bind(&NavigationClient::execute, this));
@@ -112,11 +105,12 @@ private:
   }
 
   /**
-   * @brief Drives robot forward for 8 seconds from starting position.
+   * @brief Drives robot forward from starting position.
    */
   void drive_forward_from_start()
   {
-    LOGGER_ACTION(this->get_logger(), "Driving forward from start for 8 seconds...");
+    LOGGER_ACTION(
+      this->get_logger(), "Driving forward from start for %d seconds...", forward_drive_seconds);
 
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_actuator = 0.0;
@@ -124,10 +118,11 @@ private:
     motor_cmd.vibration = 0.0;
 
     auto start_time = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(15))
+    while (std::chrono::steady_clock::now() - start_time <
+           std::chrono::seconds(forward_drive_seconds))
     {
-      motor_cmd.left_wheel = 0.3;
-      motor_cmd.right_wheel = -0.3;
+      motor_cmd.left_wheel = drive_speed;
+      motor_cmd.right_wheel = -drive_speed;
       motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -191,8 +186,8 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    goal_pose.position.x = -4.8;
-    goal_pose.position.y = -3.0;
+    goal_pose.position.x = intermediate_waypoint_x;
+    goal_pose.position.y = intermediate_waypoint_y;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
     goal_pose.orientation.z = 1.0;
@@ -210,7 +205,8 @@ private:
       std::placeholders::_2);
 
     LOGGER_ACTION(
-      this->get_logger(), "Sending navigation goal to intermediate waypoint [-4.8, -3.2]...");
+      this->get_logger(), "Sending navigation goal to intermediate waypoint [%.1f, %.1f]...",
+      intermediate_waypoint_x, intermediate_waypoint_y);
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -264,8 +260,8 @@ private:
     geometry_msgs::msg::Pose goal_pose;
 
     // Navigate to construction zone coordinates
-    goal_pose.position.x = -4.5;
-    goal_pose.position.y = 0.4;
+    goal_pose.position.x = construction_zone_x;
+    goal_pose.position.y = construction_zone_y;
     goal_pose.orientation.x = 0.0;
     goal_pose.orientation.y = 0.0;
     goal_pose.orientation.z = -0.7071068;
@@ -282,7 +278,9 @@ private:
       &NavigationClient::handle_construction_feedback, this, std::placeholders::_1,
       std::placeholders::_2);
 
-    LOGGER_ACTION(this->get_logger(), "Sending navigation goal to berm zone [-4.8, -0.4]...");
+    LOGGER_ACTION(
+      this->get_logger(), "Sending navigation goal to berm zone [%.1f, %.1f]...",
+      construction_zone_x, construction_zone_y);
     navigation_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
@@ -366,7 +364,6 @@ private:
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;
-  bool use_light_excavation_;
 };
 
 /**

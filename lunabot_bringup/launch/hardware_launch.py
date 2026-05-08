@@ -12,9 +12,6 @@ def generate_launch_description():
     realsense_dir = get_package_share_directory("realsense2_camera")
     bringup_dir = get_package_share_directory("lunabot_bringup")
 
-    apriltag_params_file = os.path.join(
-        config_dir, "params", "apriltag", "tag_params.yaml"
-    )
     livox_params_file = os.path.join(config_dir, "params", "mid360", "mid360.json")
 
     d456_front_launch = IncludeLaunchDescription(
@@ -128,20 +125,6 @@ def generate_launch_description():
             {"jpeg_quality": 30},
         ],
     )
- 
-    apriltag_d456_node = Node(
-        package="apriltag_ros",
-        executable="apriltag_node",
-        output="screen",
-        parameters=[
-            apriltag_params_file,
-            {"image_transport": "compressed"}
-        ],
-        remappings=[
-            ("/image_rect", "/camera_front/color/image_raw"),
-            ("/camera_info", "/camera_front/color/camera_info"),
-        ],
-    )
 
     livox_driver = Node(
         package="livox_ros_driver2",
@@ -240,7 +223,6 @@ def generate_launch_description():
         encoder_reader_node,
         fisheye_rotation,
         fisheye_camera,
-        apriltag_d456_node,
         rgbd_sync_front,
         rgbd_sync_back,
     ])

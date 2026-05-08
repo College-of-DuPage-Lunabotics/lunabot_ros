@@ -13,7 +13,6 @@
   <depend>robot_state_publisher</depend>
   <depend>joint_state_publisher</depend>
   <depend>navigation2</depend>
-  <depend>apriltag_ros</depend>
   <depend>robot_localization</depend>
   <depend>imu_complementary_filter</depend>
   <depend>laser_filters</depend>
