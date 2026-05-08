@@ -17,7 +17,7 @@ import ui_widgets
 from gui_styles import (Colors, MAIN_STYLESHEET, Styles,
                         ACTION_BTN_CSS, ACTION_BTN_ACTIVE_CSS, ACTION_BTN_DISABLED_CSS,
                         ESTOP_BTN_NORMAL_CSS, ESTOP_BTN_ACTIVE_CSS,
-                        REALSENSE_ON_CSS, REALSENSE_OFF_CSS, CAN_RESTART_SUCCESS_CSS)
+                        CAN_RESTART_SUCCESS_CSS)
 from ros_interface import RobotInterface
 
 from PyQt5.QtCore import Qt, QTimer
@@ -93,12 +93,12 @@ class LunabotGUI(QMainWindow):
         self.robot.on_control_state_update = self._queue_control_state_update
         self.robot.on_log = self._queue_log
 
-        self.swappable_camera_showing_front = True
         self.sidebar_collapsed = False
         self.fisheye_camera_position = 0.0
-        self.fisheye_showing_deposit = False
+        self.fisheye_showing_deposit = True
         self.full_auto_active = False
         self.emergency_stopped = False
+        self.excavation_angle = 1.59
 
         self.teleop_keys = {
             'w': False, 'a': False, 's': False, 'd': False,
@@ -119,6 +119,8 @@ class LunabotGUI(QMainWindow):
         self._ros_executor.add_node(self.robot.node)
         self._ros_thread = threading.Thread(target=self._ros_executor.spin, daemon=True)
         self._ros_thread.start()
+
+        self.robot.publish_excavation_angle(self.excavation_angle)
 
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
@@ -192,43 +194,6 @@ class LunabotGUI(QMainWindow):
         row_layout.setSpacing(10)
         row.setLayout(row_layout)
 
-        # Swappable front/rear camera
-        swap_container = QWidget()
-        swap_layout = QVBoxLayout()
-        swap_layout.setContentsMargins(0, 0, 0, 0)
-        swap_container.setLayout(swap_layout)
-
-        self.realsense_toggle_btn = QPushButton("RealSense: OFF")
-        self.realsense_toggle_btn.setStyleSheet(REALSENSE_OFF_CSS)
-        self.realsense_toggle_btn.setMaximumHeight(32)
-        self.realsense_toggle_btn.clicked.connect(self.toggle_realsense_cameras)
-        swap_layout.addWidget(self.realsense_toggle_btn)
-
-        self.swappable_camera_group = QGroupBox("Front Camera")
-        self.swappable_camera_group.setAutoFillBackground(True)
-        self.swappable_camera_group.setStyleSheet(
-            "QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a2a2a, stop:1 #252525); padding-top: 20px; }")
-        cam_layout = QVBoxLayout()
-        cam_layout.setContentsMargins(4, 4, 4, 4)
-        cam_layout.setSpacing(0)
-        self.swappable_camera_label = QLabel("No camera feed")
-        self.swappable_camera_label.setAlignment(Qt.AlignCenter)
-        self.swappable_camera_label.setMinimumSize(CAMERA_MIN_WIDTH, CAMERA_MIN_HEIGHT)
-        self.swappable_camera_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.swappable_camera_label.setStyleSheet(Styles.camera_label())
-        cam_layout.addWidget(self.swappable_camera_label)
-        self.swappable_camera_group.setLayout(cam_layout)
-        swap_layout.addWidget(self.swappable_camera_group)
-
-        self.swap_camera_btn = QPushButton("Switch to Rear Camera")
-        self.swap_camera_btn.setStyleSheet(ACTION_BTN_CSS)
-        self.swap_camera_btn.setMaximumHeight(32)
-        self.swap_camera_btn.clicked.connect(self.swap_camera)
-        swap_layout.addWidget(self.swap_camera_btn)
-
-        row_layout.addWidget(swap_container, 1)
-
-        # Fisheye camera
         fisheye_container = QWidget()
         fisheye_layout = QVBoxLayout()
         fisheye_layout.setContentsMargins(0, 0, 0, 0)
@@ -267,13 +232,13 @@ class LunabotGUI(QMainWindow):
         fisheye_group.setLayout(eye_layout)
         fisheye_layout.addWidget(fisheye_group)
 
-        self.swap_fisheye_btn = QPushButton("Switch to Deposit View")
+        self.swap_fisheye_btn = QPushButton("Switch to Bucket View")
         self.swap_fisheye_btn.setStyleSheet(ACTION_BTN_CSS)
         self.swap_fisheye_btn.setMaximumHeight(32)
         self.swap_fisheye_btn.clicked.connect(self.swap_fisheye_view)
         fisheye_layout.addWidget(self.swap_fisheye_btn)
 
-        row_layout.addWidget(fisheye_container, 1)
+        row_layout.addWidget(fisheye_container)
         return row
 
     def create_bottom_row(self):
@@ -366,6 +331,7 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget.setLayout(sidebar_layout)
 
         sidebar_layout.addWidget(ui_widgets.create_controls_reference_group(self))
+        sidebar_layout.addWidget(ui_widgets.create_excavation_angle_group(self))
         sidebar_layout.addWidget(ui_widgets.create_hardware_group(self))
         sidebar_layout.addWidget(ui_widgets.create_launch_group(self))
         sidebar_layout.addWidget(ui_widgets.create_action_control_group(self))
@@ -414,18 +380,9 @@ class LunabotGUI(QMainWindow):
     # Camera / view actions
     # -------------------------------------------------------------------------
 
-    def swap_camera(self):
-        self.swappable_camera_showing_front = not self.swappable_camera_showing_front
-        if self.swappable_camera_showing_front:
-            self.swappable_camera_group.setTitle("Front Camera")
-            self.swap_camera_btn.setText("Switch to Rear Camera")
-        else:
-            self.swappable_camera_group.setTitle("Rear Camera")
-            self.swap_camera_btn.setText("Switch to Front Camera")
-
     def swap_fisheye_view(self):
         self.fisheye_showing_deposit = not self.fisheye_showing_deposit
-        degrees = 180 if self.fisheye_showing_deposit else 0
+        degrees = 0 if self.fisheye_showing_deposit else 180
         self.set_fisheye_camera_position(math.radians(degrees))
         self.swap_fisheye_btn.setText(
             "Switch to Bucket View" if self.fisheye_showing_deposit else "Switch to Deposit View")
@@ -445,15 +402,6 @@ class LunabotGUI(QMainWindow):
         while new_pos < -math.pi:
             new_pos += 2 * math.pi
         self.set_fisheye_camera_position(new_pos)
-
-    def toggle_realsense_cameras(self):
-        enabled = self.robot.toggle_realsense_cameras()
-        if enabled:
-            self.realsense_toggle_btn.setText("RealSense: ON")
-            self.realsense_toggle_btn.setStyleSheet(REALSENSE_ON_CSS)
-        else:
-            self.realsense_toggle_btn.setText("RealSense: OFF")
-            self.realsense_toggle_btn.setStyleSheet(REALSENSE_OFF_CSS)
 
     # -------------------------------------------------------------------------
     # Sidebar actions
@@ -648,6 +596,16 @@ class LunabotGUI(QMainWindow):
             self.emergency_stopped = False
             self.emergency_stop_btn.setText("Emergency Stop")
             self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_NORMAL_CSS)
+
+    def increase_excavation_angle(self):
+        self.excavation_angle = min(1.70, self.excavation_angle + 0.01)
+        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
+        self.robot.publish_excavation_angle(self.excavation_angle)
+
+    def decrease_excavation_angle(self):
+        self.excavation_angle = max(1.50, self.excavation_angle - 0.01)
+        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
+        self.robot.publish_excavation_angle(self.excavation_angle)
 
     def send_full_auto_goal(self):
         if self.full_auto_active:
@@ -902,9 +860,6 @@ class LunabotGUI(QMainWindow):
     def update_cameras(self):
         if not CV_AVAILABLE:
             return
-        cam_image = self.robot.front_camera_image if self.swappable_camera_showing_front else self.robot.rear_camera_image
-        cam_key = 'front' if self.swappable_camera_showing_front else 'rear'
-        self.update_camera_display(self.swappable_camera_label, cam_image, cam_key)
 
         prev_id = self.last_camera_frame_ids.get('fisheye')
         self.update_camera_display(self.fisheye_camera_label, self.robot.fisheye_camera_image, 'fisheye')

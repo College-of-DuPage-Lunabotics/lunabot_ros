@@ -4,7 +4,6 @@
  * @date 4/17/2026
  */
 
-#include "SparkMax.hpp"
 #include "lunabot_logger/logger.hpp"
 
 #include <rclcpp/rclcpp.hpp>
@@ -13,6 +12,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <lunabot_msgs/action/depositing.hpp>
 #include <lunabot_msgs/action/excavation.hpp>
+#include <lunabot_msgs/msg/motor_commands.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32.hpp>
@@ -40,37 +40,7 @@ public:
    */
   ControllerTeleop() : Node("controller_teleop")
   {
-    declare_parameter("steam_mode", false);
-    get_parameter("steam_mode", steam_mode_);
-
-    LOGGER_INFO(get_logger(), "Controller mode: %s", steam_mode_ ? "Steam Deck" : "Xbox");
-
-    try
-    {
-      right_actuator_motor_ = std::make_unique<SparkMax>("can0", 5);
-      left_actuator_motor_ = std::make_unique<SparkMax>("can0", 2);
-      right_wheel_motor_ = std::make_unique<SparkMax>("can0", 3);
-      left_wheel_motor_ = std::make_unique<SparkMax>("can0", 1);
-      vibration_motor_ = std::make_unique<SparkMax>("can0", 4);
-
-      left_actuator_motor_->SetSensorType(SensorType::kEncoder);
-      right_actuator_motor_->SetSensorType(SensorType::kEncoder);
-      left_actuator_motor_->SetIdleMode(IdleMode::kBrake);
-      right_actuator_motor_->SetIdleMode(IdleMode::kBrake);
-      left_actuator_motor_->BurnFlash();
-      right_actuator_motor_->BurnFlash();
-
-      motors_available_ = true;
-      LOGGER_SUCCESS(get_logger(), "Motor controllers initialized successfully");
-    } catch (const std::exception & e)
-    {
-      motors_available_ = false;
-      LOGGER_WARN(
-        get_logger(),
-        YELLOW "Motor controllers not available: %s" RESET "\n" CYAN
-               "Running in simulation mode." RESET,
-        e.what());
-    }
+    LOGGER_INFO(get_logger(), "Controller mode: Xbox");
 
     velocity_subscriber_ = create_subscription<geometry_msgs::msg::Twist>(
       "/cmd_vel", 10, std::bind(&ControllerTeleop::velocity_callback, this, std::placeholders::_1));
@@ -95,11 +65,13 @@ public:
       create_publisher<std_msgs::msg::Float32>("/vibration_duty_cycle", 10);
     camera_position_publisher_ =
       create_publisher<std_msgs::msg::Float64MultiArray>("/camera_controller/commands", 10);
+    motor_cmd_publisher_ =
+      create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
-    excavation_client_ =
-      rclcpp_action::create_client<lunabot_msgs::action::Excavation>(this, "excavation_action");
-    depositing_client_ =
-      rclcpp_action::create_client<lunabot_msgs::action::Depositing>(this, "depositing_action");
+    excavation_client_ = rclcpp_action::create_client<lunabot_msgs::action::Excavation>(
+      this, "assisted_excavation_action");
+    depositing_client_ = rclcpp_action::create_client<lunabot_msgs::action::Depositing>(
+      this, "assisted_depositing_action");
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -132,31 +104,20 @@ private:
   static float clamp(double v) { return static_cast<float>(std::clamp(v, -1.0, 1.0)); }
 
   /**
-   * @brief Returns the correct button index for the active controller.
-   * @param steam_idx Button index for Steam Deck.
-   * @param xbox_idx Button index for Xbox.
-   */
-  int get_button_index(int steam_idx, int xbox_idx) const
-  {
-    return steam_mode_ ? steam_idx : xbox_idx;
-  }
-
-  /**
    * @brief Motor control loop running at 20 Hz.
    */
   void control_loop()
   {
-    if (!motors_available_) return;
-
-    left_actuator_motor_->Heartbeat();
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
 
     if (robot_disabled_)
     {
-      left_wheel_motor_->SetDutyCycle(0.0);
-      right_wheel_motor_->SetDutyCycle(0.0);
-      left_actuator_motor_->SetDutyCycle(0.0);
-      right_actuator_motor_->SetDutyCycle(0.0);
-      vibration_motor_->SetDutyCycle(0.0);
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
       return;
     }
 
@@ -167,11 +128,20 @@ private:
     double linear = linear_sign * left_joystick_y_;
     double rotation = left_joystick_x_;
 
-    left_wheel_motor_->SetDutyCycle(speed_multiplier_ * clamp(linear - rotation));
-    right_wheel_motor_->SetDutyCycle(speed_multiplier_ * clamp(-(linear + rotation)));
+    motor_cmd.left_wheel = speed_multiplier_ * clamp(linear + rotation);
+    motor_cmd.right_wheel = speed_multiplier_ * clamp(-(linear - rotation));
 
     // Check if moving to target position, otherwise use joystick
     float actuator_cmd = 0.0;
+
+    // Cancel automatic bucket positioning if right joystick is being actively used
+    constexpr double joystick_deadzone = 0.15;
+    if (std::abs(right_joystick_y_) > joystick_deadzone && target_position_active_)
+    {
+      target_position_active_ = false;
+      LOGGER_INFO(get_logger(), "Manual joystick control resumed");
+    }
+
     if (target_position_active_)
     {
       // Use encoder position
@@ -194,10 +164,11 @@ private:
       actuator_cmd = clamp(right_joystick_y_);
     }
 
-    left_actuator_motor_->SetDutyCycle(actuator_cmd);
-    right_actuator_motor_->SetDutyCycle(actuator_cmd);
+    motor_cmd.left_actuator = actuator_cmd;
+    motor_cmd.right_actuator = actuator_cmd;
+    motor_cmd.vibration = vibration_enabled_ ? 1.0 : 0.0;
 
-    vibration_motor_->SetDutyCycle(vibration_enabled_ ? 0.5 : 0.0);
+    motor_cmd_publisher_->publish(motor_cmd);
   }
 
   /**
@@ -207,12 +178,9 @@ private:
   void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   {
     // Detect button presses (rising edges)
-    bool share_pressed =
-      detect_button_press(msg->buttons[get_button_index(2, 9)], prev_share_button_);
-    bool menu_pressed =
-      detect_button_press(msg->buttons[get_button_index(14, 10)], prev_menu_button_);
-    bool home_pressed =
-      detect_button_press(msg->buttons[get_button_index(11, 12)], prev_home_button_);
+    bool share_pressed = detect_button_press(msg->buttons[9], prev_share_button_);
+    bool menu_pressed = detect_button_press(msg->buttons[10], prev_menu_button_);
+    bool home_pressed = detect_button_press(msg->buttons[12], prev_home_button_);
 
     bool left_paddle_pressed = detect_button_press(msg->buttons[5], prev_left_paddle_);
     bool right_paddle_pressed = detect_button_press(msg->buttons[2], prev_right_paddle_);
@@ -225,11 +193,10 @@ private:
     bool dpad_up_pressed = detect_button_press(msg->axes[7] > 0.5, prev_dpad_up_);
     bool dpad_down_pressed = detect_button_press(msg->axes[7] < -0.5, prev_dpad_down_);
 
-    // L4/R4 buttons for camera servo control
-    bool l4_pressed = detect_button_press(msg->buttons[16], prev_l4_);
+    // R4 button for camera servo toggle
     bool r4_pressed = detect_button_press(msg->buttons[17], prev_r4_);
 
-    // X/Y buttons for excavate/deposit actions
+    // X/Y buttons for assisted excavate/deposit actions
     bool x_pressed = detect_button_press(msg->buttons[3], prev_x_button_);
     bool y_pressed = detect_button_press(msg->buttons[4], prev_y_button_);
 
@@ -267,7 +234,7 @@ private:
     // Read joystick axes
     left_joystick_x_ = msg->axes[0];
     left_joystick_y_ = msg->axes[1];
-    right_joystick_y_ = -(steam_mode_ ? msg->axes[3] : msg->axes[4]);
+    right_joystick_y_ = -msg->axes[3];
 
     if (left_paddle_pressed)
     {
@@ -300,28 +267,16 @@ private:
         get_logger(), "Moving to excavation bucket position: %.3f rad", excavation_ready_pos);
     }
 
-    if (l4_pressed)
-    {
-      double target_angle_rad = 0.0;
-      current_servo_position_ = target_angle_rad;
-
-      auto servo_msg = std_msgs::msg::Float64MultiArray();
-      servo_msg.data.push_back(target_angle_rad);
-      camera_position_publisher_->publish(servo_msg);
-
-      LOGGER_INFO(get_logger(), "Servo position: 0°");
-    }
-
     if (r4_pressed)
     {
-      double target_angle_rad = M_PI;  // 180 degrees
+      double target_angle_rad = (std::abs(current_servo_position_) < 0.1) ? M_PI : 0.0;
       current_servo_position_ = target_angle_rad;
 
       auto servo_msg = std_msgs::msg::Float64MultiArray();
       servo_msg.data.push_back(target_angle_rad);
       camera_position_publisher_->publish(servo_msg);
 
-      LOGGER_INFO(get_logger(), "Servo position: 180°");
+      LOGGER_INFO(get_logger(), "Servo position: %.0f°", target_angle_rad * 180.0 / M_PI);
     }
 
     if (x_pressed)
@@ -425,18 +380,23 @@ private:
    */
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
-    if (!motors_available_ || manual_enabled_) return;
+    if (manual_enabled_) return;
 
-    double left_cmd = -0.1 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd = -0.1 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double left_cmd = -0.35 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.35 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
-    left_wheel_motor_->SetDutyCycle(clamp(left_cmd));
-    right_wheel_motor_->SetDutyCycle(clamp(-right_cmd));
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_wheel = clamp(left_cmd);
+    motor_cmd.right_wheel = clamp(-right_cmd);
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
   }
 
   /**
    * @brief Immediately stops all motors on emergency stop.
-   * @param msg Bool message; true triggers the stop.
+   * @param msg Bool message; true triggers the stop, false re-enables.
    */
   void emergency_stop_callback(const std_msgs::msg::Bool::SharedPtr msg)
   {
@@ -445,14 +405,13 @@ private:
       robot_disabled_ = true;
       LOGGER_FAILURE(get_logger(), "Emergency stop activated!");
 
-      if (motors_available_)
-      {
-        left_wheel_motor_->SetDutyCycle(0.0);
-        right_wheel_motor_->SetDutyCycle(0.0);
-        left_actuator_motor_->SetDutyCycle(0.0);
-        right_actuator_motor_->SetDutyCycle(0.0);
-        vibration_motor_->SetDutyCycle(0.0);
-      }
+      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+      motor_cmd.left_wheel = 0.0;
+      motor_cmd.right_wheel = 0.0;
+      motor_cmd.left_actuator = 0.0;
+      motor_cmd.right_actuator = 0.0;
+      motor_cmd.vibration = 0.0;
+      motor_cmd_publisher_->publish(motor_cmd);
     } else
     {
       robot_disabled_ = false;
@@ -517,6 +476,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr robot_disabled_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr vibration_duty_cycle_publisher_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_publisher_;
+  rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
 
   rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr excavation_client_;
   rclcpp_action::Client<lunabot_msgs::action::Depositing>::SharedPtr depositing_client_;
@@ -524,18 +484,9 @@ private:
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
 
-  std::unique_ptr<SparkMax> left_actuator_motor_;
-  std::unique_ptr<SparkMax> right_actuator_motor_;
-  std::unique_ptr<SparkMax> left_wheel_motor_;
-  std::unique_ptr<SparkMax> right_wheel_motor_;
-  std::unique_ptr<SparkMax> vibration_motor_;
-
-  bool motors_available_ = false;
-
   bool manual_enabled_ = true;
   bool robot_disabled_ = false;
   bool vibration_enabled_ = false;
-  bool steam_mode_ = false;
   bool camera_inverted_ = false;
 
   bool prev_left_paddle_ = false;
@@ -546,7 +497,6 @@ private:
   bool prev_home_button_ = false;
   bool prev_dpad_up_ = false;
   bool prev_dpad_down_ = false;
-  bool prev_l4_ = false;
   bool prev_r4_ = false;
   bool prev_x_button_ = false;
   bool prev_y_button_ = false;

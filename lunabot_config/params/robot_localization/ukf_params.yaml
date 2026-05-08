@@ -1,10 +1,10 @@
 ukf_filter_node:
   ros__parameters:
     frequency: 30.0
-    sensor_timeout: 2.0
-    two_d_mode: false
+    sensor_timeout: 5.0
+    two_d_mode: true
     transform_time_offset: 0.0
-    transform_timeout: 0.0
+    transform_timeout: 1.0
     print_diagnostics: true
     debug: false
     debug_out_file: /tmp/ukf_debug.txt
@@ -15,35 +15,35 @@ ukf_filter_node:
     world_frame: odom
 
     odom0: /lio_odom
-    odom0_config: [true,  true,  true,   # x, y, z position
-                   true,  true,  true,   # roll, pitch, yaw orientation
-                   true,  true,  true,   # x_dot, y_dot, z_dot velocity
-                   true,  true,  true,   # roll_dot, pitch_dot, yaw_dot
+    odom0_config: [true,  true,  false,  # x, y, z position (z disabled in 2D)
+                   false, false, true,   # roll, pitch, yaw (roll/pitch disabled in 2D)
+                   true,  true,  false,  # x_dot, y_dot, z_dot (z_dot disabled in 2D)
+                   false, false, true,   # roll_dot, pitch_dot, yaw_dot (roll/pitch rates disabled in 2D)
                    false, false, false]  # x_ddot, y_ddot, z_ddot acceleration
     odom0_differential: false
     odom0_relative: false
     odom0_queue_size: 10
-    odom0_pose_rejection_threshold: 2.0
-    odom0_twist_rejection_threshold: 0.5 
+    odom0_pose_rejection_threshold: 10.0
+    odom0_twist_rejection_threshold: 10.0 
     
-    odom0_pose_covariance_diagonal: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-    odom0_twist_covariance_diagonal: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
+    odom0_pose_covariance_diagonal: [0.05, 0.05, 0.01, 0.01, 0.01, 0.2]
+    odom0_twist_covariance_diagonal: [0.2, 0.2, 0.1, 0.1, 0.1, 0.5]
 
     # Process noise covariance
-    process_noise_covariance: [0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
-                               0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+    process_noise_covariance: [0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.05, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.0,  0.005, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.0,  0.0,  0.005, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.03, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.02, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.02, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.005, 0.0,  0.0,  0.0,  0.0,  0.0,
                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.005, 0.0,  0.0,  0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.005, 0.0,  0.0,
-                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.005, 0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.02, 0.0,  0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,  0.0,
+                               0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.01, 0.0,
                                0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.005]
 
     # Initial state covariance

@@ -16,7 +16,6 @@ This repository contains the software developed by the College of DuPage team fo
 **Hardware**
 - 2x REV Robotics NEO V1.1
 - 5x REV Robotics Spark Max
-- 1x ODrive USB-CAN Adapter
 
 ## Packages
 
@@ -94,6 +93,13 @@ cd ~/lunabot_ws
 colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 --parallel-workers 1 # Modify number as needed
 ```
 
+**To rebuild only lunabot packages after making changes:**
+
+```bash
+cd ~/lunabot_ws
+colcon build --packages-select lunabot_bringup lunabot_config lunabot_description lunabot_gui lunabot_logger lunabot_msgs lunabot_nav lunabot_ros lunabot_sim lunabot_teleop lunabot_util --symlink-install
+```
+
 ## Usage
 
 **A detailed list of launch parameters can be found [here](lunabot_bringup/README.md).**
@@ -114,14 +120,8 @@ ros2 launch lunabot_bringup gui_launch.py use_sim:=true
 
 ### GUI Interface
 
-#### Simulation Mode
 <p align="center">
-  <img src="gui_sim_mode.png">
-</p>
-
-#### Real Robot Mode
-<p align="center">
-  <img src="gui_real_mode.png">
+  <img src="gui_view.png">
 </p>
 
 ## Physical Robot Setup

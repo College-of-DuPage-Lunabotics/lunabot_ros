@@ -11,7 +11,6 @@ bool hardware_enabled
 bool pointlio_enabled
 bool mapping_enabled  
 bool nav2_enabled
-bool localization_enabled
 
 # Active operations
 bool is_excavating

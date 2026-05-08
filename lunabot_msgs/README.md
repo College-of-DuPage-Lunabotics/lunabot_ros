@@ -5,7 +5,6 @@ This package contains custom messages, actions, and services.
 ## Actions
 - **Depositing.action**: Defines the depositing action.
 - **Excavation.action**: Defines the excavation action.
-- **Localization.action**: Defines the localization action.
 
 ## Messages
 - **ControlState.msg**: Robot control state.

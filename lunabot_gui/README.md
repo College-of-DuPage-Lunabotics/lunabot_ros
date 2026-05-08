@@ -4,19 +4,22 @@ PyQt5-based graphical interface for Lunabot robot control and monitoring.
 
 ## Launch Options
 
-### Simulation Mode (Local)
+### Real Robot (Default)
 ```bash
-# Launch GUI with simulation (default)
-ros2 launch lunabot_bringup gui_launch.py viz_mode:=gui
+# Launch GUI with real robot (default)
+ros2 launch lunabot_bringup gui_launch.py
+
+# Or run GUI directly
+ros2 run lunabot_gui lunabot_gui.py -p mode:=false
+```
+
+### Simulation Mode
+```bash
+# Launch GUI with simulation
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true
 
 # Or run GUI directly
 ros2 run lunabot_gui lunabot_gui.py -p mode:=true
-```
-
-### Real Robot - Local Operation
-```bash
-# Run GUI on robot PC directly (joy_node starts automatically)
-ros2 launch lunabot_bringup gui_launch.py use_sim:=false
 ```
 
 ### Real Robot - Remote Operation (Recommended)
@@ -43,9 +46,9 @@ ros2 run lunabot_gui lunabot_gui.py \
 
 - `mode`: Specifies whether to run in simulation or real robot mode.
   - Options:
-    - `true`: Simulation mode. **(Default)**
-    - `false`: Real robot mode.
-  - Example: `mode:=false`
+    - `true`: Simulation mode.
+    - `false`: Real robot mode. **(Default)**
+  - Example: `mode:=true`
 
 - `robot_host`: Robot PC hostname or IP address for SSH commands (real mode only).
   - Default: `localhost`
@@ -96,6 +99,7 @@ ros2 run lunabot_gui lunabot_gui.py \
 - Hardware drivers (cameras, LiDAR, IMU)
 - CAN interface
 - Controller teleop
+- Action servers (assisted excavation/depositing for teleop, auto excavation/depositing for autonomy)
 - SLAM (Point-LIO)
 - Mapping (RTAB-Map)
 - Navigation (Nav2)
@@ -107,3 +111,13 @@ ros2 run lunabot_gui lunabot_gui.py \
 **Communication:**
 - All ROS topics flow over the network via DDS
 - Both machines must have matching ROS_DOMAIN_ID
+
+## Action Servers
+
+The GUI interacts with the following action servers for manual operations:
+- **assisted_excavation_action**: Teleop-assisted excavation with full vibration control
+- **assisted_depositing_action**: Teleop-assisted depositing sequence
+
+For autonomous operations, the navigation client uses:
+- **auto_excavation_action**: Autonomous excavation with minimal vibration
+- **auto_depositing_action**: Autonomous depositing with forward drive positioning

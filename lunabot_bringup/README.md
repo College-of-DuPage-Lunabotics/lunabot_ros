@@ -24,7 +24,6 @@ These are launched individually via GUI buttons or for specific subsystems:
 - **pointlio_launch.py**: Launches Point-LIO SLAM system
 - **mapping_launch.py**: Launches RTAB-Map for dense 3D mapping
 - **nav2_stack_launch.py**: Launches Nav2 navigation stack
-- **localization_launch.py**: Launches AprilTag-based localization
 - **launch_manager.launch.py**: Launches the launch manager service node for remote robot control via ROS service
 
 ## Parameters
@@ -33,9 +32,9 @@ These are launched individually via GUI buttons or for specific subsystems:
 
 - `use_sim`: Specifies whether to run in simulation or real robot mode.
   - Options:
-    - `true`: Launches simulated robot in Gazebo. **(Default)**
-    - `false`: Real robot mode - uses real hardware data and automatically starts joy_node for controller input.
-  - Example: `use_sim:=false`
+    - `true`: Launches simulated robot in Gazebo.
+    - `false`: Real robot mode - uses real hardware data and automatically starts joy_node for controller input. **(Default)**
+  - Example: `use_sim:=true`
 
 - `viz_mode`: Selects the visualization interface.
   - Options:
@@ -83,21 +82,24 @@ When using the custom PyQt GUI, you can configure remote robot operation:
 
 ### Simulation
 ```bash
-# Default - GUI with Gazebo
-ros2 launch lunabot_bringup gui_launch.py
+# GUI with Gazebo
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true
 
 # RViz with Gazebo
-ros2 launch lunabot_bringup gui_launch.py viz_mode:=rviz
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true viz_mode:=rviz
 
 # Different arena
-ros2 launch lunabot_bringup gui_launch.py arena_type:=ucf
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true arena_type:=ucf
 
 # Headless Gazebo
-ros2 launch lunabot_bringup gui_launch.py sim_gui:=false
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true sim_gui:=false
 ```
 
 ### Real Robot - Local
 ```bash
+# Default - real robot with GUI
+ros2 launch lunabot_bringup gui_launch.py
+
 # GUI on robot PC (joy_node starts automatically)
 ros2 launch lunabot_bringup gui_launch.py use_sim:=false
 

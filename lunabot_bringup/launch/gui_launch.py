@@ -128,7 +128,6 @@ def create_sim_group(context, *args, **kwargs):
         actions_launch,
     ]
 
-    # v2_bot also needs the position controller for the bucket joint
     if context.launch_configurations.get("robot_type") == "v2_bot":
         actions.append(Node(
             package="controller_manager",
@@ -187,13 +186,6 @@ def generate_launch_description():
         description="Choose visualization mode: 'rviz' for RViz2 or 'gui' for custom PyQt GUI.",
     )
 
-    declare_steam_mode = DeclareLaunchArgument(
-        "steam_mode",
-        default_value="false",
-        choices=["true", "false"],
-        description="Use Steam Deck controller mapping (true) or Xbox controller mapping (false).",
-    )
-
     rviz_launch = Node(
         package="rviz2",
         executable="rviz2",
@@ -208,7 +200,6 @@ def generate_launch_description():
         parameters=[
             gui_params_file,
             {'mode': LaunchConfiguration('use_sim', default='true')},
-            {'steam_mode': LaunchConfiguration('steam_mode', default='false')},
         ],
         output="screen",
     )
@@ -269,11 +260,6 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
-    image_compressor_real = GroupAction(
-        actions=[image_compressor_node],
-        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
-    )
-
     image_compressor_sim_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -308,7 +294,6 @@ def generate_launch_description():
     ld.add_action(declare_sim_gui)
     ld.add_action(declare_arena_type)
     ld.add_action(declare_viz_mode)
-    ld.add_action(declare_steam_mode)
 
     ld.add_action(OpaqueFunction(function=set_robot_urdf))
     ld.add_action(OpaqueFunction(function=set_robot_entity_name))
@@ -322,7 +307,6 @@ def generate_launch_description():
     ld.add_action(bandwidth_monitor_node)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
-    ld.add_action(image_compressor_real)
     ld.add_action(image_compressor_sim)
 
     ld.add_action(OpaqueFunction(function=create_sim_group))
