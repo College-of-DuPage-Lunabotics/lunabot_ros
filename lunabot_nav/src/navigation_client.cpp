@@ -16,14 +16,21 @@
 #include <chrono>
 #include <thread>
 
+enum class CompetitionMode { KSC, UCF };
+
 static constexpr double drive_speed = 0.3;
 static constexpr int forward_drive_seconds = 15;
+static constexpr double rotation_speed = 0.3;
+static constexpr int rotation_90_deg_seconds = 3;
 
 static constexpr double intermediate_waypoint_x = -4.8;
 static constexpr double intermediate_waypoint_y = -3.0;
 
-static constexpr double construction_zone_x = -4.5;
-static constexpr double construction_zone_y = 0.4;
+static constexpr double ksc_construction_zone_x = -4.5;
+static constexpr double ksc_construction_zone_y = 0.4;
+
+static constexpr double ucf_construction_zone_x = 6.1;
+static constexpr double ucf_construction_zone_y = -3.0;
 
 /**
  * @class NavigationClient
@@ -43,6 +50,7 @@ public:
     IDLE,
     DRIVING_FROM_START,
     EXCAVATING,
+    ROTATING,
     NAVIGATING_TO_INTERMEDIATE,
     NAVIGATING_TO_CONSTRUCTION,
     DEPOSITING,
@@ -54,7 +62,20 @@ public:
    */
   NavigationClient() : Node("navigation_client")
   {
-    current_state_ = State::DRIVING_FROM_START;
+    this->declare_parameter("mode", "ksc");
+    std::string mode_str = this->get_parameter("mode").as_string();
+
+    if (mode_str == "ucf")
+    {
+      mode_ = CompetitionMode::UCF;
+      current_state_ = State::EXCAVATING;
+      LOGGER_INFO(this->get_logger(), "UCF Mode");
+    } else
+    {
+      mode_ = CompetitionMode::KSC;
+      current_state_ = State::EXCAVATING;
+      LOGGER_INFO(this->get_logger(), "KSC Mode");
+    }
 
     navigation_client_ = rclcpp_action::create_client<NavigateToPose>(this, "navigate_to_pose");
 
@@ -84,6 +105,16 @@ private:
       case State::EXCAVATING:
         request_excavation();
         current_state_ = State::IDLE;
+        break;
+      case State::ROTATING:
+        rotate_90_degrees();
+        if (mode_ == CompetitionMode::UCF)
+        {
+          current_state_ = State::NAVIGATING_TO_CONSTRUCTION;
+        } else
+        {
+          current_state_ = State::NAVIGATING_TO_INTERMEDIATE;
+        }
         break;
       case State::NAVIGATING_TO_INTERMEDIATE:
         request_navigation_to_intermediate();
@@ -135,6 +166,42 @@ private:
     LOGGER_SUCCESS(this->get_logger(), "Forward drive complete. Ready for excavation.");
   }
 
+  void rotate_90_degrees()
+  {
+    LOGGER_ACTION(
+      this->get_logger(), "Rotating 90 degrees to the right for %d seconds...",
+      rotation_90_deg_seconds);
+
+    auto motor_cmd = lunabot_msgs::msg::MotorCommands();
+    motor_cmd.left_actuator = 0.0;
+    motor_cmd.right_actuator = 0.0;
+    motor_cmd.vibration = 0.0;
+
+    auto start_time = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start_time <
+           std::chrono::seconds(rotation_90_deg_seconds))
+    {
+      if (mode_ == CompetitionMode::UCF)
+      {
+        motor_cmd.left_wheel = -rotation_speed;
+        motor_cmd.right_wheel = -rotation_speed;
+      } else
+      {
+        motor_cmd.left_wheel = rotation_speed;
+        motor_cmd.right_wheel = rotation_speed;
+      }
+      motor_cmd_publisher_->publish(motor_cmd);
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    motor_cmd.left_wheel = 0.0;
+    motor_cmd.right_wheel = 0.0;
+    motor_cmd_publisher_->publish(motor_cmd);
+
+    LOGGER_SUCCESS(this->get_logger(), "Rotation complete. Ready for navigation.");
+  }
+
   /**
    * @brief Sends a request to the excavation server.
    */
@@ -162,9 +229,8 @@ private:
   {
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
     {
-      LOGGER_SUCCESS(
-        this->get_logger(), "Excavation success! Navigating to intermediate waypoint...");
-      current_state_ = State::NAVIGATING_TO_INTERMEDIATE;
+      LOGGER_SUCCESS(this->get_logger(), "Excavation success! Rotating 90 degrees...");
+      current_state_ = State::ROTATING;
     } else
     {
       LOGGER_FAILURE(this->get_logger(), "Excavation failed.");
@@ -246,7 +312,6 @@ private:
    */
   void request_navigation_to_construction()
   {
-    // Wait for Nav2 action server to be ready
     LOGGER_INFO(this->get_logger(), "Waiting for Nav2 action server to be ready...");
     if (!navigation_client_->wait_for_action_server(std::chrono::seconds(30)))
     {
@@ -259,7 +324,17 @@ private:
     auto goal_msg = NavigateToPose::Goal();
     geometry_msgs::msg::Pose goal_pose;
 
-    // Navigate to construction zone coordinates
+    double construction_zone_x, construction_zone_y;
+    if (mode_ == CompetitionMode::UCF)
+    {
+      construction_zone_x = ucf_construction_zone_x;
+      construction_zone_y = ucf_construction_zone_y;
+    } else
+    {
+      construction_zone_x = ksc_construction_zone_x;
+      construction_zone_y = ksc_construction_zone_y;
+    }
+
     goal_pose.position.x = construction_zone_x;
     goal_pose.position.y = construction_zone_y;
     goal_pose.orientation.x = 0.0;
@@ -364,6 +439,7 @@ private:
   rclcpp::TimerBase::SharedPtr execution_timer_;
 
   State current_state_;
+  CompetitionMode mode_;
 };
 
 /**
