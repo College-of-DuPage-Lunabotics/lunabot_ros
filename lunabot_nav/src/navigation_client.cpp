@@ -181,8 +181,15 @@ private:
     while (std::chrono::steady_clock::now() - start_time <
            std::chrono::seconds(rotation_90_deg_seconds))
     {
-      motor_cmd.left_wheel = rotation_speed;
-      motor_cmd.right_wheel = rotation_speed;
+      if (mode_ == CompetitionMode::UCF)
+      {
+        motor_cmd.left_wheel = -rotation_speed;
+        motor_cmd.right_wheel = -rotation_speed;
+      } else
+      {
+        motor_cmd.left_wheel = rotation_speed;
+        motor_cmd.right_wheel = rotation_speed;
+      }
       motor_cmd_publisher_->publish(motor_cmd);
 
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
