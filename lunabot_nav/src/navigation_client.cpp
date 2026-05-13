@@ -183,12 +183,12 @@ private:
     {
       if (mode_ == CompetitionMode::UCF)
       {
-        motor_cmd.left_wheel = -rotation_speed;
-        motor_cmd.right_wheel = -rotation_speed;
-      } else
-      {
         motor_cmd.left_wheel = rotation_speed;
         motor_cmd.right_wheel = rotation_speed;
+      } else
+      {
+        motor_cmd.left_wheel = -rotation_speed;
+        motor_cmd.right_wheel = -rotation_speed;
       }
       motor_cmd_publisher_->publish(motor_cmd);
 
