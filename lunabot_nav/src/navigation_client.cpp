@@ -62,7 +62,7 @@ public:
    */
   NavigationClient() : Node("navigation_client")
   {
-    this->declare_parameter("mode", "ksc");
+    this->declare_parameter("mode", "ucf");
     std::string mode_str = this->get_parameter("mode").as_string();
 
     if (mode_str == "ucf")
@@ -183,12 +183,12 @@ private:
     {
       if (mode_ == CompetitionMode::UCF)
       {
-        motor_cmd.left_wheel = rotation_speed;
-        motor_cmd.right_wheel = rotation_speed;
-      } else
-      {
         motor_cmd.left_wheel = -rotation_speed;
         motor_cmd.right_wheel = -rotation_speed;
+      } else
+      {
+        motor_cmd.left_wheel = rotation_speed;
+        motor_cmd.right_wheel = rotation_speed;
       }
       motor_cmd_publisher_->publish(motor_cmd);
 
