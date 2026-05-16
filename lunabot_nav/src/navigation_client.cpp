@@ -207,7 +207,7 @@ private:
    */
   void request_excavation()
   {
-    if (!excavation_client_->wait_for_action_server(std::chrono::seconds(10)))
+    if (!excavation_client_->wait_for_action_server(std::chrono::seconds(30)))
     {
       LOGGER_WARN_ONCE(this->get_logger(), "Excavation action server not available.");
       return;
@@ -401,7 +401,7 @@ private:
    */
   void request_depositing()
   {
-    if (!depositing_client_->wait_for_action_server(std::chrono::seconds(10)))
+    if (!depositing_client_->wait_for_action_server(std::chrono::seconds(30)))
     {
       LOGGER_WARN_ONCE(this->get_logger(), "Depositing action server not available.");
       return;
