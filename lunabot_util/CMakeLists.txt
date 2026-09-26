@@ -43,7 +43,6 @@ install(TARGETS topic_remapper livox_reorient DESTINATION lib/${PROJECT_NAME})
 install(PROGRAMS src/bandwidth_monitor.py src/image_compressor.py
                  src/power_monitor.py src/fisheye_rotation.py
                  src/fisheye_camera.py src/encoder_reader.py
-                 src/livox_to_pointcloud.py
                  DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

@@ -24,7 +24,7 @@ def generate_launch_description():
     
     declare_use_lidar = DeclareLaunchArgument(
         "use_lidar",
-        default_value="false",
+        default_value="true",
         description="Whether to use LiDAR for mapping",
     )
 
