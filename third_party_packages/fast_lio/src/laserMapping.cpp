@@ -545,7 +545,7 @@ void publish_frame_world(
     pcl::toROSMsg(*laserCloudWorld, laserCloudmsg);
     // laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-    laserCloudmsg.header.frame_id = "camera_init";
+    laserCloudmsg.header.frame_id = odom_frame_id;
     pubLaserCloudFull->publish(laserCloudmsg);
     publish_count -= PUBFRAME_PERIOD;
   }
@@ -596,7 +596,7 @@ void publish_frame_body(
   sensor_msgs::msg::PointCloud2 laserCloudmsg;
   pcl::toROSMsg(*laserCloudIMUBody, laserCloudmsg);
   laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudmsg.header.frame_id = "body";
+  laserCloudmsg.header.frame_id = base_frame_id;
   pubLaserCloudFull_body->publish(laserCloudmsg);
   publish_count -= PUBFRAME_PERIOD;
 }
@@ -612,7 +612,7 @@ void publish_effect_world(
   sensor_msgs::msg::PointCloud2 laserCloudFullRes3;
   pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
   laserCloudFullRes3.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudFullRes3.header.frame_id = "camera_init";
+  laserCloudFullRes3.header.frame_id = odom_frame_id;
   pubLaserCloudEffect->publish(laserCloudFullRes3);
 }
 
@@ -632,7 +632,7 @@ void publish_map(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub
   pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
   // laserCloudmsg.header.stamp = ros::Time().fromSec(lidar_end_time);
   laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
-  laserCloudmsg.header.frame_id = "camera_init";
+  laserCloudmsg.header.frame_id = odom_frame_id;
   pubLaserCloudMap->publish(laserCloudmsg);
 
   // sensor_msgs::msg::PointCloud2 laserCloudMap;
@@ -925,7 +925,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "p_pre->lidar_type %d", p_pre->lidar_type);
 
     path.header.stamp = this->get_clock()->now();
-    path.header.frame_id = "camera_init";
+    path.header.frame_id = odom_frame_id;
 
     // /*** variables definition ***/
     // int effect_feat_num = 0, frame_num = 0;

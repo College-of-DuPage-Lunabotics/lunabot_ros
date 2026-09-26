@@ -11,6 +11,8 @@
     <xacro:property name="camera_sim_link_offset" value="0.019" />
   </xacro:unless>
 
+  <xacro:property name="sensor_plate_pitch" value="0.0873" />
+
   <material name="camera_grey">
     <color rgba="0.81 0.81 0.81 1.0" />
   </material>
@@ -98,7 +100,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${-camera_sim_link_offset - 0.08} 0" rpy="0 0 0" />  <!-- model drawn on the lidar centreline; the frame itself is offset -->
       <material name="camera_grey" />
     </visual>
     <collision>
@@ -106,7 +108,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_d456_camera.stl" />
       </geometry>
-      <origin xyz="0 -${camera_sim_link_offset} 0" rpy="0 0 0" />
+      <origin xyz="0 ${-camera_sim_link_offset - 0.08} 0" rpy="0 0 0" />  <!-- model drawn on the lidar centreline; the frame itself is offset -->
     </collision>
   </link>
 
@@ -132,14 +134,14 @@
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.dae" />
       </geometry>
       <material name="camera_grey" />
-      <origin xyz="0 0 0" rpy="0 0 1.5708" />
+      <origin xyz="0 -0.01 0" rpy="0 0 -1.5708" />
     </visual>
     <collision>
       <geometry>
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.stl" />
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 1.5708" />
+      <origin xyz="0 -0.01 0" rpy="0 0 -1.5708" />
     </collision>
   </link>
 
@@ -154,7 +156,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 3.14" />
+      <origin xyz="0 0.01 0" rpy="0 0 0" />
       <material name="black" />
     </visual>
         <collision>
@@ -163,7 +165,7 @@
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_camera.stl" />
       </geometry>
       <material name="black" />
-      <origin xyz="0 0 0" rpy="0 0 3.14" />
+      <origin xyz="0 0.01 0" rpy="0 0 0" />
     </collision>
   </link>
 
@@ -175,6 +177,7 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_mid360_lidar.dae" />
       </geometry>
+      <origin xyz="0.02 0 0" rpy="0 0 0" />  <!-- model nudged 2 cm to robot -y to match the base mesh -->
       <material name="camera_grey" />
     </visual>
     <collision>
@@ -182,10 +185,13 @@
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_mid360_lidar.stl" />
       </geometry>
+      <origin xyz="0.02 0 0" rpy="0 0 0" />
     </collision>
   </link>
 
   <link name="mid360_imu_link"></link>
+
+  <link name="sensor_plate_link"></link>
 
   <!-- ================================= -->
   <!--            WHEEL LINKS            -->
@@ -264,9 +270,9 @@
   </joint>
 
   <joint name="base_camera_back_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="sensor_plate_link" />
     <child link="camera_back_link" />
-    <origin xyz="-0.348 0 0.548" rpy="0 0.837758 3.14" />
+    <origin xyz="-0.048 -0.1 0" rpy="0 0.837758 3.14" />
   </joint>
 
   <joint name="camera_back_optical_joint" type="fixed">
@@ -278,13 +284,13 @@
   <joint name="base_camera_fisheye_mount_joint" type="fixed">
     <parent link="base_link" />
     <child link="camera_fisheye_mount_link" />
-    <origin xyz="-0.34 -0.01 0.58" rpy="0 0 0" />
+    <origin xyz="-0.34 0.0 0.58" rpy="0 0 0" />
   </joint>
 
   <joint name="camera_fisheye_yaw_joint" type="revolute">
     <parent link="camera_fisheye_mount_link" />
     <child link="camera_fisheye_yaw_link" />
-    <origin xyz="0 0 0" rpy="0 0 3.1416" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
     <axis xyz="0 0 1" />
     <limit effort="10" velocity="1.0" lower="-3.1416" upper="3.1416" />
     <dynamics damping="0.1" friction="0.1" />
@@ -293,7 +299,7 @@
   <joint name="camera_fisheye_pitch_joint" type="fixed">
     <parent link="camera_fisheye_yaw_link" />
     <child link="camera_fisheye_link" />
-    <origin xyz="-0.045 0 -0.005" rpy="0 0.785398 0" />
+    <origin xyz="-0.045 0 -0.005" rpy="0 0.785398 3.14159" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">
@@ -302,16 +308,22 @@
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
   </joint>
 
-  <joint name="base_mid360_joint" type="fixed">
+  <joint name="base_sensor_plate_joint" type="fixed">
     <parent link="base_link" />
+    <child link="sensor_plate_link" />
+    <origin xyz="-0.3 0 0.548" rpy="0 ${sensor_plate_pitch} 0" />
+  </joint>
+
+  <joint name="base_mid360_joint" type="fixed">
+    <parent link="sensor_plate_link" />
     <child link="livox_frame" />
-    <origin xyz="-0.3 0 0.548" rpy="3.14159 0 1.5708" />
+    <origin xyz="0 0 0" rpy="3.14159 0 -1.5708" />
   </joint>
 
   <joint name="mid360_imu_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="sensor_plate_link" />
     <child link="mid360_imu_link" />
-    <origin xyz="-0.3 0 0.548" rpy="3.14159 0 1.5708" />
+    <origin xyz="0 0 0" rpy="3.14159 0 -1.5708" />
   </joint>
 
   <!-- ================================= -->

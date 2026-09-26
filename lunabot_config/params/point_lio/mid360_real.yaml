@@ -63,7 +63,7 @@
     publish:
       path_en: true
       scan_publish_en: true
-      scan_bodyframe_pub_en: false
+      scan_bodyframe_pub_en: true
       tf_send_en: true
       odom_frame_id: "odom"
       base_frame_id: "base_link"
