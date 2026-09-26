@@ -10,8 +10,8 @@
         map_file_path: ""
 
         common:
-            lid_topic: "/livox/lidar"
-            imu_topic: "/livox/imu"
+            lid_topic: "/livox/lidar_body"
+            imu_topic: "/livox/imu_body"
             time_sync_en: false
             time_offset_lidar_to_imu: 0.0
 
@@ -30,10 +30,10 @@
             fov_degree: 360.0
             det_range: 100.0
             extrinsic_est_en: false
-            extrinsic_T: [0.0, 0.0, 0.0]
+            extrinsic_T: [-0.3, 0.0, 0.548]  # lidar position in base_link (from URDF)
             extrinsic_R: [1., 0., 0.,
-                          0., -1., 0.,
-                          0., 0., -1.]
+                          0., 1., 0.,
+                          0., 0., 1.]
 
         publish:
             path_en: true

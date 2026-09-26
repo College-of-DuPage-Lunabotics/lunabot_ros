@@ -20,6 +20,24 @@ def launch_setup(context, *args, **kwargs):
             config_dir, "params", "fast_lio", "mid360_real.yaml"
         )
 
+    livox_reorient_node = Node(
+        package="lunabot_util",
+        executable="livox_reorient",
+        name="livox_reorient",
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": LaunchConfiguration("use_sim"),
+                "target_frame": "base_link",
+                "lidar_frame": "livox_frame",
+                "input_lidar_topic": "/livox/lidar",
+                "input_imu_topic": "/livox/imu",
+                "output_lidar_topic": "/livox/lidar_body",
+                "output_imu_topic": "/livox/imu_body",
+            }
+        ],
+    )
+
     fast_lio_node = Node(
         package="fast_lio",
         executable="fastlio_mapping",
@@ -37,6 +55,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     return [
+        livox_reorient_node,
         fast_lio_node,
     ]
 

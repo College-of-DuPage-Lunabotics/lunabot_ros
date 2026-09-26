@@ -25,14 +25,20 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(livox_ros_driver2 REQUIRED)
 
 # Define build targets
 add_executable(topic_remapper src/topic_remapper.cpp)
+add_executable(livox_reorient src/livox_reorient.cpp)
 
 ament_target_dependencies(topic_remapper rclcpp geometry_msgs nav_msgs)
+ament_target_dependencies(livox_reorient rclcpp geometry_msgs sensor_msgs tf2 tf2_ros livox_ros_driver2)
 
 # Install package files
-install(TARGETS topic_remapper DESTINATION lib/${PROJECT_NAME})
+install(TARGETS topic_remapper livox_reorient DESTINATION lib/${PROJECT_NAME})
 
 install(PROGRAMS src/bandwidth_monitor.py src/image_compressor.py
                  src/power_monitor.py src/fisheye_rotation.py

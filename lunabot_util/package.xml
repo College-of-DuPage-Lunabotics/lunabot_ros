@@ -19,10 +19,11 @@
   <exec_depend>python3-opencv</exec_depend>
   <build_depend>rclcpp</build_depend>
   <build_depend>rclcpp_action</build_depend>
-  <build_depend>sensor_msgs</build_depend>
+  <depend>sensor_msgs</depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>nav2_msgs</build_depend>
-  <build_depend>tf2_ros</build_depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
   <build_depend>eigen</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>libpcl-all-dev</build_depend>
