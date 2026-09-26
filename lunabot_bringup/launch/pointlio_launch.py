@@ -34,6 +34,7 @@ def launch_setup(context, *args, **kwargs):
                 "use_sim_time": LaunchConfiguration("use_sim"),
                 "target_frame": "base_link",
                 "lidar_frame": "livox_frame",
+                "imu_frame": "mid360_imu_link",
                 "input_lidar_topic": "/livox/lidar",
                 "input_imu_topic": "/livox/imu",
                 "output_lidar_topic": "/livox/lidar_body",

@@ -263,6 +263,11 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
     )
 
+    bandwidth_monitor_real = GroupAction(
+        actions=[bandwidth_monitor_node],
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "false")),
+    )
+
     image_compressor_sim_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -307,7 +312,7 @@ def generate_launch_description():
     ld.add_action(rviz_group)
     ld.add_action(custom_gui_group)
     ld.add_action(robot_state_publisher)
-    ld.add_action(bandwidth_monitor_node)
+    ld.add_action(bandwidth_monitor_real)
     ld.add_action(joint_state_publisher_real)
     ld.add_action(joy_group)
     ld.add_action(image_compressor_sim)
