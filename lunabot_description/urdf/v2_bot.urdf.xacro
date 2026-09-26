@@ -132,14 +132,14 @@
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.dae" />
       </geometry>
       <material name="camera_grey" />
-      <origin xyz="0 0 0" rpy="0 0 -1.5708" />
+      <origin xyz="0 0 0" rpy="0 0 1.5708" />
     </visual>
     <collision>
       <geometry>
         <mesh
           filename="file:///$(find lunabot_description)/meshes/v2_bot/v2_bot_fisheye_mount.stl" />
       </geometry>
-      <origin xyz="0 0 0" rpy="0 0 -1.5708" />
+      <origin xyz="0 0 0" rpy="0 0 1.5708" />
     </collision>
   </link>
 
@@ -284,16 +284,16 @@
   <joint name="camera_fisheye_yaw_joint" type="revolute">
     <parent link="camera_fisheye_mount_link" />
     <child link="camera_fisheye_yaw_link" />
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 3.1416" />
     <axis xyz="0 0 1" />
-    <limit effort="10" velocity="1.0" lower="-1.5708" upper="1.5708" />
+    <limit effort="10" velocity="1.0" lower="-3.1416" upper="3.1416" />
     <dynamics damping="0.1" friction="0.1" />
   </joint>
 
   <joint name="camera_fisheye_pitch_joint" type="fixed">
     <parent link="camera_fisheye_yaw_link" />
     <child link="camera_fisheye_link" />
-    <origin xyz="-0.045 0 -0.005" rpy="0 -0.785398 0" />
+    <origin xyz="-0.045 0 -0.005" rpy="0 0.785398 0" />
   </joint>
 
   <joint name="camera_fisheye_optical_joint" type="fixed">
@@ -533,7 +533,7 @@
             <p2>0.0</p2>
           </distortion>
           <clip>
-            <near>0.05</near>
+            <near>0.15</near>
             <far>6.0</far>
           </clip>
         </camera>

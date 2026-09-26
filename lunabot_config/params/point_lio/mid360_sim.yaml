@@ -1,5 +1,9 @@
 /**:
   ros__parameters:
+    point_filter_num: 2
+    filter_size_surf: 0.1
+    filter_size_map: 0.1
+    check_satu: false
     common:
       lid_topic: "/livox/lidar_body"
       imu_topic: "/livox/imu_body"

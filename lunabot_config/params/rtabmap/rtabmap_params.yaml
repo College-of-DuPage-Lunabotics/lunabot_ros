@@ -19,7 +19,6 @@ rtabmap:
     Grid/NoiseFilteringMinNeighbors: "15"
     Grid/ClusterRadius: "0.2"
     Grid/FlatObstacleDetected: "false"
-    Grid/FromDepth: "true"
     Reg/Force3DoF: "true"
     Reg/Strategy: "2"
     RGBD/ProximityBySpace: "true"

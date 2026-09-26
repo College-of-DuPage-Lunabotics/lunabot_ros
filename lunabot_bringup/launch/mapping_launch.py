@@ -72,6 +72,28 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_sim"), "true")),
     )
 
+    point_cloud_assembler = Node(
+        package="rtabmap_util",
+        executable="point_cloud_assembler",
+        name="point_cloud_assembler",
+        output="log",
+        parameters=[
+            {
+                "use_sim_time": LaunchConfiguration("use_sim"),
+                "fixed_frame_id": "odom",
+                "frame_id": "livox_frame",
+                "assembling_time": 1.0,
+                "voxel_size": 0.02,
+                "wait_for_transform": 0.2,
+            }
+        ],
+        remappings=[
+            ("cloud", "/cloud_registered_body"),
+            ("assembled_cloud", "/assembled_cloud"),
+        ],
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_lidar"), "true")),
+    )
+
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
@@ -96,7 +118,7 @@ def generate_launch_description():
                 "qos": 1,
                 "sync_queue_size": 200,
                 "wait_for_transform": 0.5,
-                "subscribe_scan_cloud": False,
+                "subscribe_scan_cloud": LaunchConfiguration("use_lidar"),
                 "subscribe_scan": False,
                 "wait_imu_to_init": False,
                 "subscribe_odom": True,
@@ -107,7 +129,7 @@ def generate_launch_description():
             ("rgbd_image0", "/camera_front/rgbd_image"),
             ("rgbd_image1", "/camera_back/rgbd_image"),
             ("odom", "/lio_odom"),
-            ("scan_cloud", "/livox/pointcloud"),
+            ("scan_cloud", "/assembled_cloud"),
         ],
         arguments=["--ros-args", "--log-level", "warn"],
     )
@@ -117,5 +139,6 @@ def generate_launch_description():
         declare_use_lidar,
         rgbd_sync_front,
         rgbd_sync_back,
+        point_cloud_assembler,
         slam_node,
     ])

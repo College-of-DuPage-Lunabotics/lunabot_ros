@@ -35,6 +35,8 @@ def launch_setup(context, *args, **kwargs):
                 "target_frame": "base_link",
                 "lidar_frame": "livox_frame",
                 "imu_frame": "mid360_imu_link",
+                "body_min": [-0.55, -0.50, -0.10],
+                "body_max": [0.70, 0.50, 0.80],
                 "input_lidar_topic": "/livox/lidar",
                 "input_imu_topic": "/livox/imu",
                 "output_lidar_topic": "/livox/lidar_body",
