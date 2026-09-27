@@ -82,7 +82,7 @@ def generate_launch_description():
                 "use_sim_time": LaunchConfiguration("use_sim"),
                 "fixed_frame_id": "odom",
                 "frame_id": "livox_frame",
-                "assembling_time": 1.0,
+                "assembling_time": 0.5,
                 "voxel_size": 0.02,
                 "wait_for_transform": 0.2,
             }
