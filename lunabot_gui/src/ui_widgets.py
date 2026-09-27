@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtCore import Qt, QRectF, QSize
 from PyQt5.QtGui import QColor, QFont, QPainter
-from PyQt5.QtWidgets import (QGridLayout, QGroupBox, QHBoxLayout, QLabel,
+from PyQt5.QtWidgets import (QGridLayout, QGroupBox, QHBoxLayout, QLabel, QScrollArea,
                               QProgressBar, QPushButton, QSizePolicy,
                               QVBoxLayout, QWidget)
 
@@ -9,6 +9,31 @@ from gui_styles import Colors, Styles, ACTION_BTN_CSS, ESTOP_BTN_NORMAL_CSS
 
 _FONT_SM = 9
 _FONT_MD = 10
+
+
+class VerticalScrollArea(QScrollArea):
+    """Scroll area that only scrolls vertically and never crops its content sideways."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWidgetResizable(True)
+        self.setFrameShape(QScrollArea.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.horizontalScrollBar().setEnabled(False)
+
+    def _content_width(self):
+        widget = self.widget()
+        if widget is None:
+            return 0
+        return widget.minimumSizeHint().width() + self.verticalScrollBar().sizeHint().width() + 2
+
+    def minimumSizeHint(self):
+        return QSize(self._content_width(), super().minimumSizeHint().height())
+
+    def sizeHint(self):
+        return QSize(max(self._content_width(), self.widget().sizeHint().width() if self.widget() else 0),
+                     super().sizeHint().height())
 
 _GROUP_BG_DARK  = "QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }"
 _GROUP_BG_DARK2 = "QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }"

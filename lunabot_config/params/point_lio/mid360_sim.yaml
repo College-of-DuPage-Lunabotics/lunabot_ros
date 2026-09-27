@@ -1,8 +1,12 @@
 /**:
   ros__parameters:
+    point_filter_num: 2
+    filter_size_surf: 0.1
+    filter_size_map: 0.1
+    check_satu: false
     common:
-      lid_topic: "/livox/lidar"
-      imu_topic: "/livox/imu"
+      lid_topic: "/livox/lidar_body"
+      imu_topic: "/livox/imu_body"
       con_frame: false
       con_frame_num: 1
       cut_frame: false
@@ -39,8 +43,8 @@
       gravity_align: true
       gravity: [0.0, 0.0, -9.810]
       gravity_init: [0.0, 0.0, -9.810]
-      extrinsic_T: [0.0, 0.0, 0.0]
-      extrinsic_R: [1., 0., 0., 0., -1., 0., 0., 0., -1.]
+      extrinsic_T: [-0.3, 0.0, 0.548]  # lidar position in base_link (from URDF)
+      extrinsic_R: [1., 0., 0., 0., 1., 0., 0., 0., 1.]
 
     odometry:
       publish_odometry_without_downsample: false
@@ -49,7 +53,8 @@
       path_en: true
       scan_publish_en: true
       scan_bodyframe_pub_en: true
-      tf_send_en: false
+      tf_send_en: true
+      odom_frame_id: "odom"
       base_frame_id: "base_link"
 
     pcd_save:

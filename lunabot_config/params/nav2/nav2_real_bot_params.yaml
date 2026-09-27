@@ -3,11 +3,11 @@ bt_navigator:
     use_sim_time: false
     global_frame: map
     robot_base_frame: base_link
-    odom_topic: /lio_odom  # Use point_lio odometry directly
+    odom_topic: /lio_odom
     bt_loop_duration: 20
-    default_server_timeout: 100
+    default_server_timeout: 1000
     wait_for_service_timeout: 5000
-    action_server_result_timeout: 900.0
+    action_server_result_timeout: 2000.0
 
     navigators: ['navigate_to_pose', 'navigate_through_poses']
     navigate_to_pose:
@@ -86,8 +86,8 @@ global_costmap:
       rolling_window: true
       width: 50
       height: 50
-      footprint: "[ [0.5, 0.41], [0.5, -0.41], [-0.3, -0.41], [-0.3, 0.41] ]"
-      resolution: 0.05
+      footprint: "[ [0.6, 0.41], [0.6, -0.41], [-0.45, -0.41], [-0.45, 0.41] ]"
+      resolution: 0.03
       track_unknown_space: true
       unknown_cost_value: 255
       plugins: ["static_layer", "voxel_layer", "denoise_layer", "inflation_layer"]
@@ -98,7 +98,7 @@ global_costmap:
         max_obstacle_height: 2.0
         publish_voxel_map: false
         origin_z: 0.0
-        z_resolution: 0.05
+        z_resolution: 0.02
         z_voxels: 16
         max_obstacle_height: 2.0
         unknown_threshold: 15
@@ -113,7 +113,7 @@ global_costmap:
           obstacle_min_range: 0.2
           raytrace_max_range: 5.0
           raytrace_min_range: 0.0
-          clearing: false
+          clearing: true
           marking: true
           data_type: "PointCloud2"
       denoise_layer:
@@ -132,7 +132,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
         footprint_clearing_enabled: true
-        inflation_radius: 0.5
+        inflation_radius: 0.3
         cost_scaling_factor: 5.0
         inflate_unknown: false
         inflate_around_unknown: false
@@ -149,9 +149,9 @@ local_costmap:
       rolling_window: true
       width: 5
       height: 5
-      resolution: 0.05
-      footprint: "[ [0.5, 0.41], [0.5, -0.41], [-0.3, -0.41], [-0.3, 0.41] ]"
-      plugins: ["voxel_layer", "inflation_layer", "static_layer"]
+      resolution: 0.03
+      footprint: "[ [0.6, 0.41], [0.6, -0.41], [-0.45, -0.41], [-0.45, 0.41] ]"
+      plugins: ["static_layer", "voxel_layer", "inflation_layer"]
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -159,7 +159,7 @@ local_costmap:
         max_obstacle_height: 2.0
         publish_voxel_map: false
         origin_z: 0.0
-        z_resolution: 0.05
+        z_resolution: 0.02
         z_voxels: 16
         unknown_threshold: 15
         mark_threshold: 2
@@ -173,13 +173,13 @@ local_costmap:
           obstacle_min_range: 0.2
           raytrace_max_range: 3.5
           raytrace_min_range: 0.0
-          clearing: false
+          clearing: true
           marking: true
           data_type: "PointCloud2"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.8
+        inflation_radius: 0.3
         footprint_clearing_enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -229,11 +229,13 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 20.0
-    behavior_plugins: ["drive_on_heading", "assisted_teleop", "wait"]
+    behavior_plugins: ["drive_on_heading", "assisted_teleop", "wait", "backup"]
     drive_on_heading:
       plugin: "nav2_behaviors::DriveOnHeading"
     wait:
       plugin: "nav2_behaviors::Wait"
+    backup:
+      plugin: "nav2_behaviors::BackUp"
     assisted_teleop:
       plugin: "nav2_behaviors::AssistedTeleop"
     global_frame: odom

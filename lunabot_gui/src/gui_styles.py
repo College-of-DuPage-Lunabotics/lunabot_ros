@@ -56,6 +56,7 @@ class Colors:
     PALETTE_BASE = (35, 35, 35)
     PALETTE_TOOLTIP_BASE = (25, 25, 25)
     PALETTE_LINK = (42, 130, 218)
+    PALETTE_LINK_HEX = "#2a82da"
     PALETTE_HIGHLIGHT = (42, 130, 218)
 
 
@@ -123,6 +124,44 @@ MAIN_STYLESHEET = f"""
     QProgressBar::chunk {{
         background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #42a5f5, stop:1 #1976d2);
         border-radius: 2px;
+    }}
+    QScrollBar:vertical {{
+        background: transparent;
+        width: 8px;
+        margin: 2px 1px 2px 1px;
+    }}
+    QScrollBar:horizontal {{
+        background: transparent;
+        height: 8px;
+        margin: 1px 2px 1px 2px;
+    }}
+    QScrollBar::handle:vertical, QScrollBar::handle:horizontal {{
+        background: #3c3c3c;
+        border-radius: 3px;
+        min-height: 24px;
+        min-width: 24px;
+    }}
+    QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {{
+        background: {Colors.PALETTE_LINK_HEX};
+    }}
+    QScrollBar::add-line, QScrollBar::sub-line {{
+        width: 0px;
+        height: 0px;
+    }}
+    QScrollBar::add-page, QScrollBar::sub-page {{
+        background: none;
+    }}
+    QSplitter::handle {{
+        background: transparent;
+    }}
+    QSplitter::handle:horizontal {{
+        width: 5px;
+    }}
+    QSplitter::handle:vertical {{
+        height: 5px;
+    }}
+    QSplitter::handle:hover {{
+        background: {Colors.PALETTE_LINK_HEX};
     }}
 """
 

@@ -142,23 +142,6 @@ def generate_launch_description():
         ],
     )
 
-    livox_converter = Node(
-        package="lunabot_util",
-        executable="livox_to_pointcloud.py",
-        name="livox_to_pointcloud",
-        output="screen",
-        parameters=[
-            {
-                "input_topic": "/livox/lidar",
-                "output_topic": "/livox/pointcloud",
-                "min_range": 0.8,
-                "max_range": 50.0,
-                "yaw_offset": 180.0,  # Rotate 180 degrees
-            }
-        ],
-        arguments=["--ros-args", "--log-level", "info"],
-    )
-
     image_compressor_node = Node(
         package="lunabot_util",
         executable="image_compressor.py",
@@ -213,7 +196,6 @@ def generate_launch_description():
     return LaunchDescription([
         motor_controller_node,
         livox_driver,
-        livox_converter,
         image_compressor_node,
         d456_front_launch,
         d456_back_launch,

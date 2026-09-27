@@ -2,7 +2,7 @@
 
 # Project Overview
 
-This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It supports ROS 2 Jazzy on Ubuntu 24.04 (real robot only) and ROS 2 Humble on Ubuntu 22.04 (real robot and Gazebo Classic simulation) for x86-64 architecture.
+This repository contains the software developed by the College of DuPage team for the NASA Lunabotics competition. It supports ROS 2 Jazzy on Ubuntu 24.04 (real robot only) and ROS 2 Humble on Ubuntu 22.04 (real robot and Gazebo Classic simulation) for x86-64 architecture. On 24.04 the simulation can run in a Humble Docker container, see [Simulation on Ubuntu 24.04](#simulation-on-ubuntu-2404-docker).
 
 ## System Components
 
@@ -123,6 +123,41 @@ ros2 launch lunabot_bringup gui_launch.py use_sim:=true
 <p align="center">
   <img src="gui_view.png">
 </p>
+
+## Simulation on Ubuntu 24.04 (Docker)
+
+Gazebo Classic is not available on 24.04, so the simulation runs in a ROS 2 Humble container built from [docker/Dockerfile](docker/Dockerfile). The container shares this workspace's `src` folder, so you edit and commit on the host as usual, and keeps its own `build` and `install` in a Docker volume.
+
+#### 1. Install Docker (once)
+
+```bash
+sudo apt install docker.io
+sudo usermod -aG docker $USER   # then log out and back in
+```
+
+#### 2. Build the image and open a shell in the container
+
+```bash
+~/lunabot_ws/src/lunabot_ros/docker/run.sh
+```
+
+The first run builds the image, which takes a while. Run the script again from another terminal to open a second shell in the same container, or with `--build` after changing the Dockerfile.
+
+#### 3. Build the workspace inside the container
+
+```bash
+cd ~/lunabot_ws
+colcon build --symlink-install --cmake-args -DRTABMAP_SYNC_MULTI_RGBD=ON -DWITH_OPENCV=ON -DWITH_APRILTAG=ON -DWITH_OPENGV=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 --parallel-workers 4
+source install/setup.bash
+```
+
+#### 4. Launch the simulation
+
+```bash
+ros2 launch lunabot_bringup gui_launch.py use_sim:=true
+```
+
+Notes: the container shares the host network, so `ros2 topic list` on the host sees its topics. If Gazebo shows a black window, start with `LIBGL_ALWAYS_SOFTWARE=1 docker/run.sh`. You can remove the container's build with `docker volume rm lunabot_humble_ws`.
 
 ## Physical Robot Setup
 

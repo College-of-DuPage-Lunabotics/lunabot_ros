@@ -23,8 +23,8 @@ from ros_interface import RobotInterface
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QIcon, QImage, QPalette, QPixmap, QFont
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-                              QMainWindow, QTextEdit, QPushButton, QSizePolicy, QVBoxLayout,
-                              QWidget)
+                              QMainWindow, QSplitter, QTextEdit, QPushButton,
+                              QSizePolicy, QVBoxLayout, QWidget)
 
 try:
     import cv2
@@ -170,7 +170,6 @@ class LunabotGUI(QMainWindow):
         main_layout.addWidget(self.create_content_area(), 10)
 
         sidebar = self.create_sidebar()
-        sidebar.setMinimumWidth(SIDEBAR_MIN_WIDTH)
         main_layout.addWidget(sidebar, 0)
 
     # -------------------------------------------------------------------------
@@ -183,8 +182,14 @@ class LunabotGUI(QMainWindow):
         layout.setContentsMargins(4, 0, 0, 4)
         layout.setSpacing(5)
         widget.setLayout(layout)
-        layout.addWidget(self.create_camera_displays(), 10)
-        layout.addWidget(self.create_bottom_row(), 0)
+        # Vertical splitter: drag to trade camera height for terminal height
+        main_split = QSplitter(Qt.Vertical)
+        main_split.setChildrenCollapsible(False)
+        main_split.addWidget(self.create_camera_displays())
+        main_split.addWidget(self.create_bottom_row())
+        main_split.setStretchFactor(0, 10)
+        main_split.setStretchFactor(1, 0)
+        layout.addWidget(main_split)
         return widget
 
     def create_camera_displays(self):
@@ -242,11 +247,9 @@ class LunabotGUI(QMainWindow):
         return row
 
     def create_bottom_row(self):
-        row = QWidget()
-        row_layout = QHBoxLayout()
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(3)
-        row.setLayout(row_layout)
+        # Horizontal splitter: drag to give the terminal more width on narrow windows
+        row = QSplitter(Qt.Horizontal)
+        row.setChildrenCollapsible(False)
 
         left_col = QWidget()
         left_layout = QVBoxLayout()
@@ -271,8 +274,10 @@ class LunabotGUI(QMainWindow):
         left_layout.addWidget(ui_widgets.create_bucket_state_widget(self))
         left_layout.addStretch()
 
-        row_layout.addWidget(left_col, 1)
-        row_layout.addWidget(self.create_terminal_output(), 1)
+        row.addWidget(left_col)
+        row.addWidget(self.create_terminal_output())
+        row.setStretchFactor(0, 1)
+        row.setStretchFactor(1, 1)
         return row
 
     def create_terminal_output(self):
@@ -296,20 +301,6 @@ class LunabotGUI(QMainWindow):
                 border: 1px solid #2a2a2a;
                 border-radius: 2px;
             }}
-            QScrollBar:vertical {{
-                background: #0d0d0d;
-                width: 10px;
-                border: none;
-            }}
-            QScrollBar::handle:vertical {{
-                background: #2a2a2a;
-                min-height: 20px;
-                border-radius: 4px;
-                margin: 2px;
-            }}
-            QScrollBar::handle:vertical:hover {{ background: #3a3a3a; }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
         """)
         layout.addWidget(self.terminal_text)
         return group
@@ -324,7 +315,6 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget = QWidget()
         self.sidebar_widget.setStyleSheet("background-color: #1a1a1a;")
         self.sidebar_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        self.sidebar_widget.setMinimumWidth(300)
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setContentsMargins(4, 4, 4, 4)
         sidebar_layout.setSpacing(6)
@@ -342,7 +332,12 @@ class LunabotGUI(QMainWindow):
             sidebar_layout.addWidget(teleop_group, 0)
 
         sidebar_layout.addStretch(1)
-        container_layout.addWidget(self.sidebar_widget)
+
+        # Scroll instead of squeezing the groups together when the window is short
+        self.sidebar_scroll = ui_widgets.VerticalScrollArea()
+        self.sidebar_scroll.setWidget(self.sidebar_widget)
+        self.sidebar_scroll.setStyleSheet("background-color: #1a1a1a;")
+        container_layout.addWidget(self.sidebar_scroll)
 
         edge_container = QWidget()
         edge_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -410,13 +405,13 @@ class LunabotGUI(QMainWindow):
     def toggle_sidebar(self):
         self.sidebar_collapsed = not self.sidebar_collapsed
         if self.sidebar_collapsed:
-            self.sidebar_widget.hide()
+            self.sidebar_scroll.hide()
             self.sidebar_container.setMinimumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.sidebar_container.setMaximumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
         else:
-            self.sidebar_widget.show()
-            self.sidebar_container.setMinimumWidth(SIDEBAR_MIN_WIDTH)
+            self.sidebar_scroll.show()
+            self.sidebar_container.setMinimumWidth(0)
             self.sidebar_container.setMaximumWidth(16777215)
             self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
 
@@ -1051,6 +1046,12 @@ def main(args=None):
         pass
 
     app.setStyle('Fusion')
+
+    # Fix the UI font instead of inheriting the desktop's, so the GUI looks the same on
+    # every machine and inside the sim container (which has no desktop theme to inherit)
+    # Single family on purpose: a families() list would be inherited by every child font
+    # that only sets a family, turning the Monospace labels into sans-serif
+    app.setFont(QFont("Ubuntu Sans", 11))
 
     palette = QPalette()
     palette.setColor(QPalette.Window,          QColor(*Colors.PALETTE_WINDOW))
