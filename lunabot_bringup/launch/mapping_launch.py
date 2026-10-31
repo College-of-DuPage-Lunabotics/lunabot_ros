@@ -32,6 +32,7 @@ def generate_launch_description():
         package="rtabmap_sync",
         executable="rgbd_sync",
         name="rgbd_sync_front",
+        prefix="nice -n 10",
         output="screen",
         parameters=[
             {
@@ -54,6 +55,7 @@ def generate_launch_description():
         package="rtabmap_sync",
         executable="rgbd_sync",
         name="rgbd_sync_back",
+        prefix="nice -n 10",
         output="screen",
         parameters=[
             {
@@ -76,6 +78,7 @@ def generate_launch_description():
         package="rtabmap_util",
         executable="point_cloud_assembler",
         name="point_cloud_assembler",
+        prefix="nice -n 10",
         output="log",
         parameters=[
             {
@@ -84,7 +87,7 @@ def generate_launch_description():
                 "frame_id": "livox_frame",
                 "assembling_time": 0.5,
                 "voxel_size": 0.02,
-                "wait_for_transform": 0.2,
+                "wait_for_transform": 1.0,
             }
         ],
         remappings=[
@@ -94,10 +97,40 @@ def generate_launch_description():
         condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_lidar"), "true")),
     )
 
+    obstacles_detection = Node(
+        package="rtabmap_util",
+        executable="obstacles_detection",
+        name="obstacles_detection",
+        prefix="nice -n 10",
+        output="log",
+        parameters=[
+            {
+                "use_sim_time": LaunchConfiguration("use_sim"),
+                "frame_id": "base_link",
+                "wait_for_transform": 1.0,
+                "Grid/NormalsSegmentation": "true",
+                "Grid/MaxGroundAngle": "30",
+                "Grid/NormalK": "20",
+                "Grid/MaxObstacleHeight": "1.0",
+                "Grid/ClusterRadius": "0.2",
+                "Grid/MinClusterSize": "8",
+                "Grid/RangeMin": "0.0",
+                "Grid/RangeMax": "6.0",
+            }
+        ],
+        remappings=[
+            ("cloud", "/assembled_cloud"),
+            ("obstacles", "/local_obstacles"),
+            ("ground", "/local_ground"),
+        ],
+        condition=IfCondition(EqualsSubstitution(LaunchConfiguration("use_lidar"), "true")),
+    )
+
     slam_node = Node(
         package="rtabmap_slam",
         executable="rtabmap",
         name="rtabmap",
+        prefix="nice -n 10",
         output="log",
         parameters=[
             {
@@ -140,5 +173,6 @@ def generate_launch_description():
         rgbd_sync_front,
         rgbd_sync_back,
         point_cloud_assembler,
+        obstacles_detection,
         slam_node,
     ])

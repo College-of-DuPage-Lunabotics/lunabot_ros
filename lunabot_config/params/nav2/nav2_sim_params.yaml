@@ -1,34 +1,31 @@
 bt_navigator:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /lio_odom
     bt_loop_duration: 20
-    default_server_timeout: 1000
-    wait_for_service_timeout: 5000
-    action_server_result_timeout: 2000.0
+    default_server_timeout: 100
+    wait_for_service_timeout: 1000
+    action_server_result_timeout: 900.0
 
     navigators: ['navigate_to_pose', 'navigate_through_poses']
     navigate_to_pose:
-      plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
+      plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
     navigate_through_poses:
-      plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
+      plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+
+    # plugin_lib_names is used to add custom BT plugins to the executor (vector of strings).
+    # Built-in plugins are added automatically
+    # plugin_lib_names: []
+
     error_code_names:
       - compute_path_error_code
       - follow_path_error_code
 
-bt_navigator_navigate_through_poses_rclcpp_node:
-  ros__parameters:
-    use_sim_time: false
-
-bt_navigator_navigate_to_pose_rclcpp_node:
-  ros__parameters:
-    use_sim_time: false
-
 controller_server:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.05
@@ -42,20 +39,20 @@ controller_server:
       movement_time_allowance: 60.0
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.4
+      xy_goal_tolerance: 0.15
       yaw_goal_tolerance: 3.14
       stateful: true
     PurePursuit:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 0.08
+      desired_linear_vel: 0.15
       lookahead_dist: 1.0
       min_lookahead_dist: 0.6
       max_lookahead_dist: 1.5
       lookahead_time: 2.0
       transform_tolerance: 1.0
       use_velocity_scaled_lookahead_dist: true
-      min_approach_linear_velocity: 0.02
-      approach_velocity_scaling_dist: 1.0
+      min_approach_linear_velocity: 0.05
+      approach_velocity_scaling_dist: 0.5
       use_collision_detection: false
       max_allowed_time_to_collision_up_to_carrot: 1.0
       use_regulated_linear_velocity_scaling: true
@@ -66,10 +63,11 @@ controller_server:
       cost_scaling_gain: 2.0
       regulated_linear_scaling_min_radius: 1.0
       regulated_linear_scaling_min_speed: 0.05
-      use_rotate_to_heading: false
-      rotate_to_heading_angular_vel: 0.05
+      use_rotate_to_heading: true
+      rotate_to_heading_angular_vel: 0.15
+      rotate_to_heading_min_angle: 0.6
       allow_reversing: false
-      max_angular_accel: 0.15
+      max_angular_accel: 3.0
       max_angular_velocity: 0.05
       min_turning_radius: 0.8
       max_robot_pose_search_dist: 10.0
@@ -82,11 +80,12 @@ global_costmap:
       publish_frequency: 3.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: false
+      use_sim_time: true
       rolling_window: true
       width: 50
       height: 50
-      footprint: "[ [0.6, 0.41], [0.6, -0.41], [-0.45, -0.41], [-0.45, 0.41] ]"
+      footprint: "[ [0.45, 0.41], [0.45, -0.41], [-0.6, -0.41], [-0.6, 0.41] ]"
+      footprint_padding: 0.15
       resolution: 0.03
       track_unknown_space: true
       unknown_cost_value: 255
@@ -98,20 +97,31 @@ global_costmap:
         max_obstacle_height: 2.0
         publish_voxel_map: false
         origin_z: 0.0
-        z_resolution: 0.02
+        z_resolution: 0.05
         z_voxels: 16
         max_obstacle_height: 2.0
         unknown_threshold: 15
-        mark_threshold: 2
-        observation_sources: pointcloud
+        mark_threshold: 0
+        observation_sources: pointcloud local_pointcloud
         combination_method: 1
         pointcloud:
           topic: /cloud_obstacles
           max_obstacle_height: 2.0
-          min_obstacle_height: 0.15
-          obstacle_max_range: 4.0
+          min_obstacle_height: 0.10
+          obstacle_max_range: 15.0
           obstacle_min_range: 0.2
-          raytrace_max_range: 5.0
+          raytrace_max_range: 16.0
+          raytrace_min_range: 0.0
+          clearing: true
+          marking: true
+          data_type: "PointCloud2"
+        local_pointcloud:
+          topic: /local_obstacles
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.15
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.2
+          raytrace_max_range: 7.0
           raytrace_min_range: 0.0
           clearing: true
           marking: true
@@ -119,7 +129,7 @@ global_costmap:
       denoise_layer:
         plugin: "nav2_costmap_2d::DenoiseLayer"
         enabled: true
-        minimal_group_size: 12
+        minimal_group_size: 4
         group_connectivity_type: 8
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -132,8 +142,8 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
         footprint_clearing_enabled: true
-        inflation_radius: 0.3
-        cost_scaling_factor: 5.0
+        inflation_radius: 1.5
+        cost_scaling_factor: 3.0
         inflate_unknown: false
         inflate_around_unknown: false
       always_send_full_costmap: true
@@ -150,7 +160,7 @@ local_costmap:
       width: 5
       height: 5
       resolution: 0.03
-      footprint: "[ [0.6, 0.41], [0.6, -0.41], [-0.45, -0.41], [-0.45, 0.41] ]"
+      footprint: "[ [0.45, 0.41], [0.45, -0.41], [-0.6, -0.41], [-0.6, 0.41] ]"
       plugins: ["static_layer", "voxel_layer", "inflation_layer"]
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -159,14 +169,14 @@ local_costmap:
         max_obstacle_height: 2.0
         publish_voxel_map: false
         origin_z: 0.0
-        z_resolution: 0.02
+        z_resolution: 0.05
         z_voxels: 16
         unknown_threshold: 15
         mark_threshold: 2
         observation_sources: pointcloud
         combination_method: 1
         pointcloud:
-          topic: /cloud_obstacles
+          topic: /local_obstacles
           max_obstacle_height: 2.0
           min_obstacle_height: 0.15
           obstacle_max_range: 3.0
@@ -179,7 +189,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.3
+        inflation_radius: 0.6
         footprint_clearing_enabled: true
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -191,32 +201,19 @@ local_costmap:
 planner_server:
   ros__parameters:
     planner_plugins: ["GridBased"]
-    use_sim_time: false
+    use_sim_time: true
 
     GridBased:
-      plugin: "nav2_smac_planner::SmacPlanner2D"
+      plugin: "nav2_smac_planner/SmacPlanner2D"
       tolerance: 1.2
       downsample_costmap: false
       downsampling_factor: 1
       allow_unknown: true
       max_iterations: 100000
-      max_on_approach_iterations: 1000
+      max_on_approach_iterations: 100000
       max_planning_time: 3.5
-      cost_travel_multiplier: 5.0
+      cost_travel_multiplier: 20.0
       use_final_approach_orientation: false
-      motion_model_for_search: "MOORE"
-      angle_quantization_bins: 72
-      analytic_expansion_ratio: 3.5
-      analytic_expansion_max_length: 3.0
-      minimum_turning_radius: 0.40
-      reverse_penalty: 100.0
-      change_penalty: 1.0
-      non_straight_penalty: 1.2
-      cost_penalty: 2.0
-      retrospective_penalty: 0.015
-      lookup_table_size: 20.0
-      cache_obstacle_heuristic: false
-      smooth_path: true
       smoother:
         max_iterations: 5000
         w_smooth: 0.3
@@ -229,50 +226,20 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 20.0
-    behavior_plugins: ["drive_on_heading", "assisted_teleop", "wait", "backup"]
-    drive_on_heading:
-      plugin: "nav2_behaviors::DriveOnHeading"
-    wait:
-      plugin: "nav2_behaviors::Wait"
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
     backup:
-      plugin: "nav2_behaviors::BackUp"
-    assisted_teleop:
-      plugin: "nav2_behaviors::AssistedTeleop"
+      plugin: "nav2_behaviors/BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+    wait:
+      plugin: "nav2_behaviors/Wait"
     global_frame: odom
     robot_base_frame: base_link
     transform_tolerance: 1.0
-    use_sim_time: false
+    use_sim_time: true
     simulate_ahead_time: 2.0
-    max_rotational_vel: 0.05
+    max_rotational_vel: 0.15
     min_rotational_vel: 0.02
     rotational_acc_lim: 0.1
-
-robot_state_publisher:
-  ros__parameters:
-    use_sim_time: false
-
-waypoint_follower:
-  ros__parameters:
-    use_sim_time: false
-    loop_rate: 20
-    stop_on_failure: false
-    waypoint_task_executor_plugin: "wait_at_waypoint"
-    wait_at_waypoint:
-      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-      enabled: true
-      waypoint_pause_duration: 200
-
-velocity_smoother:
-  ros__parameters:
-    use_sim_time: false
-    smoothing_frequency: 20.0
-    scale_velocities: false
-    feedback: "OPEN_LOOP"
-    max_velocity: [0.125, 0.0, 0.05]
-    min_velocity: [-0.1, 0.0, -0.05]
-    max_accel: [2.5, 0.0, 0.2]
-    max_decel: [-2.5, 0.0, -0.2]
-    odom_topic: "odom"
-    odom_duration: 0.1
-    deadband_velocity: [0.0, 0.0, 0.0]
-    velocity_timeout: 1.0

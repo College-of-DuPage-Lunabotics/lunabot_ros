@@ -25,7 +25,16 @@
   <!--            BODY LINKS             -->
   <!-- ================================= -->
 
-  <link name="base_link">
+  <!-- base_link +x is the driving front (lidar end), the chassis model has the bucket end at +x -->
+  <link name="base_link"></link>
+
+  <joint name="base_chassis_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="chassis_link" />
+    <origin xyz="0 0 0" rpy="0 0 3.14159" />
+  </joint>
+
+  <link name="chassis_link">
     <visual>
       <geometry>
         <mesh
@@ -258,7 +267,7 @@
   <!-- ================================= -->
 
   <joint name="base_camera_front_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="camera_front_link" />
     <origin xyz="0.55 0 0.412" rpy="0 0.837758 0" />
   </joint>
@@ -282,7 +291,7 @@
   </joint>
 
   <joint name="base_camera_fisheye_mount_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="camera_fisheye_mount_link" />
     <origin xyz="-0.34 0.0 0.58" rpy="0 0 0" />
   </joint>
@@ -309,7 +318,7 @@
   </joint>
 
   <joint name="base_sensor_plate_joint" type="fixed">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="sensor_plate_link" />
     <origin xyz="-0.3 0 0.548" rpy="0 ${sensor_plate_pitch} 0" />
   </joint>
@@ -331,7 +340,7 @@
   <!-- ================================= -->
 
   <joint name="base_bucket_joint" type="revolute">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="bucket_link" />
     <origin xyz="-0.204 0 0.162" rpy="0 0 0" />
     <axis xyz="0 1 0" />
@@ -344,28 +353,28 @@
   <!-- ================================= -->
 
   <joint name="base_rear_right_wheel_joint" type="continuous">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="rear_right_wheel_link" />
     <origin xyz="-0.235 -0.25 0.08" rpy="0 0 0" />
     <axis xyz="0 1 0" />
   </joint>
 
   <joint name="base_rear_left_wheel_joint" type="continuous">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="rear_left_wheel_link" />
     <origin xyz="-0.235 0.25 0.08" rpy="0 0 0" />
     <axis xyz="0 1 0" />
   </joint>
 
   <joint name="base_front_right_wheel_joint" type="continuous">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="front_right_wheel_link" />
     <origin xyz="0.215 -0.25 0.08" rpy="0 0 0" />
     <axis xyz="0 1 0" />
   </joint>
 
   <joint name="base_front_left_wheel_joint" type="continuous">
-    <parent link="base_link" />
+    <parent link="chassis_link" />
     <child link="front_left_wheel_link" />
     <origin xyz="0.215 0.25 0.08" rpy="0 0 0" />
     <axis xyz="0 1 0" />
@@ -377,7 +386,7 @@
   <!-- ================================= -->
 
   <xacro:if value="$(arg use_sim)">
-    <gazebo reference="base_link">
+    <gazebo reference="chassis_link">
     </gazebo>
 
     <gazebo reference="camera_fisheye_yaw_link">
@@ -385,7 +394,9 @@
 
     <gazebo reference="front_right_wheel_link">
       <material>Gazebo/Grey</material>
-      <mu>1.0</mu>
+      <!-- Low friction along the axle (z in the collision frame) so skid turns can scrub -->
+      <fdir1>0 0 1</fdir1>
+      <mu1>0.3</mu1>
       <mu2>1.0</mu2>
       <surface>
         <contact>
@@ -401,7 +412,9 @@
 
     <gazebo reference="front_left_wheel_link">
       <material>Gazebo/Grey</material>
-      <mu>1.0</mu>
+      <!-- Low friction along the axle (z in the collision frame) so skid turns can scrub -->
+      <fdir1>0 0 1</fdir1>
+      <mu1>0.3</mu1>
       <mu2>1.0</mu2>
       <surface>
         <contact>
@@ -417,7 +430,9 @@
 
     <gazebo reference="rear_right_wheel_link">
       <material>Gazebo/Grey</material>
-      <mu>1.0</mu>
+      <!-- Low friction along the axle (z in the collision frame) so skid turns can scrub -->
+      <fdir1>0 0 1</fdir1>
+      <mu1>0.3</mu1>
       <mu2>1.0</mu2>
       <surface>
         <contact>
@@ -433,7 +448,9 @@
 
     <gazebo reference="rear_left_wheel_link">
       <material>Gazebo/Grey</material>
-      <mu>1.0</mu>
+      <!-- Low friction along the axle (z in the collision frame) so skid turns can scrub -->
+      <fdir1>0 0 1</fdir1>
+      <mu1>0.3</mu1>
       <mu2>1.0</mu2>
       <surface>
         <contact>
@@ -643,32 +660,32 @@
       </hardware>
       <joint name="base_front_right_wheel_joint">
         <command_interface name="velocity">
-          <param name="min">-1</param>
-          <param name="max">1</param>
+          <param name="min">-5</param>
+          <param name="max">5</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
       </joint>
       <joint name="base_front_left_wheel_joint">
         <command_interface name="velocity">
-          <param name="min">-1</param>
-          <param name="max">1</param>
+          <param name="min">-5</param>
+          <param name="max">5</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
       </joint>
       <joint name="base_rear_right_wheel_joint">
         <command_interface name="velocity">
-          <param name="min">-1</param>
-          <param name="max">1</param>
+          <param name="min">-5</param>
+          <param name="max">5</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />
       </joint>
       <joint name="base_rear_left_wheel_joint">
         <command_interface name="velocity">
-          <param name="min">-1</param>
-          <param name="max">1</param>
+          <param name="min">-5</param>
+          <param name="max">5</param>
         </command_interface>
         <state_interface name="position" />
         <state_interface name="velocity" />

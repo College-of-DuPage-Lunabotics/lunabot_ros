@@ -1,4 +1,6 @@
 # Excavation action - performs excavation sequence
+# true: drive without moving the bucket
+bool drive_only
 ---
 bool success
 string message

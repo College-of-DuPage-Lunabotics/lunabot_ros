@@ -29,9 +29,9 @@ find_package(std_msgs REQUIRED)
 # Define build targets
 rosidl_generate_interfaces(
   ${PROJECT_NAME}
-  "msg/ControlState.msg"
   "msg/PowerMonitor.msg"
   "msg/MotorCommands.msg"
+  "msg/LaunchStatus.msg"
   "srv/LaunchSystem.srv"
   "srv/StopSystem.srv"
   "action/Excavation.action"

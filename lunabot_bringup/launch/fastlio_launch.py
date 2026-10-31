@@ -10,6 +10,8 @@ from launch.actions import OpaqueFunction
 def launch_setup(context, *args, **kwargs):
     config_dir = get_package_share_directory("lunabot_config")
     use_sim = LaunchConfiguration("use_sim").perform(context)
+    # Real robot: run the lidar path ahead of everything else (launch manager allows nice -15)
+    lio_prefix = "" if use_sim.lower() == "true" else "nice -n -10"
     
     if use_sim.lower() == "true":
         fast_lio_config = os.path.join(
@@ -24,6 +26,7 @@ def launch_setup(context, *args, **kwargs):
         package="lunabot_util",
         executable="livox_reorient",
         name="livox_reorient",
+        prefix=lio_prefix,
         output="screen",
         parameters=[
             {
@@ -31,8 +34,8 @@ def launch_setup(context, *args, **kwargs):
                 "target_frame": "base_link",
                 "lidar_frame": "livox_frame",
                 "imu_frame": "mid360_imu_link",
-                "body_min": [-0.55, -0.50, -0.10],
-                "body_max": [0.70, 0.50, 0.80],
+                "body_min": [-0.70, -0.50, -0.10],
+                "body_max": [0.55, 0.50, 0.80],
                 "input_lidar_topic": "/livox/lidar",
                 "input_imu_topic": "/livox/imu",
                 "output_lidar_topic": "/livox/lidar_body",
@@ -45,6 +48,7 @@ def launch_setup(context, *args, **kwargs):
         package="fast_lio",
         executable="fastlio_mapping",
         name="fastlio_mapping",
+        prefix=lio_prefix,
         output="screen",
         parameters=[
             fast_lio_config,
@@ -53,13 +57,31 @@ def launch_setup(context, *args, **kwargs):
             },
         ],
         remappings=[
-            ("/Odometry", "/lio_odom"),
+            ("/Odometry", "/lio_odom_imu"),
+        ],
+    )
+
+    lio_odom_to_base_node = Node(
+        package="lunabot_util",
+        executable="lio_odom_to_base",
+        name="lio_odom_to_base",
+        prefix=lio_prefix,
+        output="screen",
+        parameters=[
+            {
+                "use_sim_time": LaunchConfiguration("use_sim"),
+                "lidar_frame": "livox_frame",
+                "imu_offset": [0.0, 0.0, 0.0] if use_sim.lower() == "true" else [0.011, 0.02329, -0.04412],
+                "input_odom_topic": "/lio_odom_imu",
+                "output_odom_topic": "/lio_odom",
+            }
         ],
     )
 
     return [
         livox_reorient_node,
         fast_lio_node,
+        lio_odom_to_base_node,
     ]
 
 

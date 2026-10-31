@@ -13,15 +13,16 @@ This package contains configuration files for Nav2 behavior trees, RViz2 configu
 - **mid360**
   - **mid360.json**: Livox Mid-360 LiDAR driver configuration.
 - **nav2**
-  - **nav2_v1_bot_params.yaml**: Nav2 parameters for simulation.
-  - **nav2_real_bot_params.yaml**: Nav2 parameters for physical robot.
+  - **nav2_sim_params.yaml**: Nav2 parameters for simulation.
+  - **nav2_real_params.yaml**: Nav2 parameters for physical robot.
 - **gui**
   - **gui_params.yaml**: GUI parameter defaults.
-- **point_lio**
+- **fast_lio** (used)
+  - **mid360_real.yaml**: FAST-LIO configuration for physical Mid-360 LiDAR.
+  - **mid360_sim.yaml**: FAST-LIO configuration for simulated Mid-360 LiDAR.
+- **point_lio** (kept for comparison)
   - **mid360_real.yaml**: Point-LIO configuration for physical Mid-360 LiDAR.
   - **mid360_sim.yaml**: Point-LIO configuration for simulated Mid-360 LiDAR.
-- **robot_localization**
-  - **ukf_params.yaml**: Unscented Kalman Filter (UKF) parameters.
 - **rtabmap**
   - **rtabmap_params.yaml**: RTAB-Map configuration parameters.
 

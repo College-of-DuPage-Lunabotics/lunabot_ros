@@ -25,10 +25,15 @@ print('Installing Lunabot Launch Manager service. ROS_DOMAIN_ID={0}'.format(doma
 workspace_dir = os.environ.get('LUNABOT_WS', os.path.expanduser('~/lunabot_ws'))
 workspace_setup = workspace_dir + '/install/setup.bash'
 
+# Run as the real user, not root, so logs and DDS shared memory match SSH-started nodes
+service_user = os.environ.get('SUDO_USER') or None
+
 print(f'Using workspace: {workspace_setup}')
+print(f'Running as user: {service_user or "current user"}')
 
 launch_manager_job = robot_upstart.Job(
     name='lunabot-launch-manager',
+    user=service_user,
     workspace_setup=workspace_setup,
     ros_domain_id=domain_id
 )

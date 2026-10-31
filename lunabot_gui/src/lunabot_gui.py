@@ -16,6 +16,7 @@ from ament_index_python.packages import get_package_share_directory
 import ui_widgets
 from gui_styles import (Colors, MAIN_STYLESHEET, Styles,
                         ACTION_BTN_CSS, ACTION_BTN_ACTIVE_CSS, ACTION_BTN_DISABLED_CSS,
+                        ACTION_BTN_ERROR_CSS,
                         ESTOP_BTN_NORMAL_CSS, ESTOP_BTN_ACTIVE_CSS,
                         CAN_RESTART_SUCCESS_CSS)
 from ros_interface import RobotInterface
@@ -90,7 +91,6 @@ class LunabotGUI(QMainWindow):
         
         self.robot = RobotInterface(mode_param=mode_val)
         self.robot.on_robot_state_update = self._queue_robot_state_update
-        self.robot.on_control_state_update = self._queue_control_state_update
         self.robot.on_log = self._queue_log
 
         self.sidebar_collapsed = False
@@ -98,7 +98,6 @@ class LunabotGUI(QMainWindow):
         self.fisheye_showing_deposit = True
         self.full_auto_active = False
         self.emergency_stopped = False
-        self.excavation_angle = 1.59
 
         self.teleop_keys = {
             'w': False, 'a': False, 's': False, 'd': False,
@@ -120,8 +119,6 @@ class LunabotGUI(QMainWindow):
         self._ros_thread = threading.Thread(target=self._ros_executor.spin, daemon=True)
         self._ros_thread.start()
 
-        self.robot.publish_excavation_angle(self.excavation_angle)
-
         self.ui_timer = QTimer()
         self.ui_timer.timeout.connect(self.update_ui)
         self.ui_timer.start(UI_UPDATE_INTERVAL_MS)
@@ -132,9 +129,6 @@ class LunabotGUI(QMainWindow):
 
     def _queue_robot_state_update(self):
         self._log_queue.put(('robot_state', None))
-    
-    def _queue_control_state_update(self, msg):
-        self._log_queue.put(('control_state', msg))
     
     def _queue_log(self, text):
         self._log_queue.put(('log', text))
@@ -265,7 +259,7 @@ class LunabotGUI(QMainWindow):
 
         mode_group = ui_widgets.create_mode_group(self)
         if not self.robot.is_real_mode:
-            mode_group.setEnabled(False)
+            self.mode_switch_btn.setEnabled(False)
         mode_bw_layout.addWidget(mode_group, 2)
         mode_bw_layout.addWidget(ui_widgets.create_bandwidth_group(self), 3)
 
@@ -321,10 +315,16 @@ class LunabotGUI(QMainWindow):
         self.sidebar_widget.setLayout(sidebar_layout)
 
         sidebar_layout.addWidget(ui_widgets.create_controls_reference_group(self))
-        sidebar_layout.addWidget(ui_widgets.create_excavation_angle_group(self))
-        sidebar_layout.addWidget(ui_widgets.create_hardware_group(self))
+        hardware_group = ui_widgets.create_hardware_group(self)
+        if not self.robot.is_real_mode:
+            hardware_group.setEnabled(False)
+            for btn in (self.can_btn, self.can_restart_btn, self.hardware_btn):
+                btn.setStyleSheet(ACTION_BTN_DISABLED_CSS)
+        sidebar_layout.addWidget(hardware_group)
         sidebar_layout.addWidget(ui_widgets.create_launch_group(self))
+        sidebar_layout.addWidget(ui_widgets.create_tools_group(self))
         sidebar_layout.addWidget(ui_widgets.create_action_control_group(self))
+        sidebar_layout.addWidget(ui_widgets.create_auto_group(self))
 
         if not self.robot.is_real_mode:
             teleop_group = ui_widgets.create_teleop_control_group(self)
@@ -337,7 +337,15 @@ class LunabotGUI(QMainWindow):
         self.sidebar_scroll = ui_widgets.VerticalScrollArea()
         self.sidebar_scroll.setWidget(self.sidebar_widget)
         self.sidebar_scroll.setStyleSheet("background-color: #1a1a1a;")
-        container_layout.addWidget(self.sidebar_scroll)
+
+        self.sidebar_column = QWidget()
+        column_layout = QVBoxLayout()
+        column_layout.setContentsMargins(0, 0, 0, 0)
+        column_layout.setSpacing(0)
+        self.sidebar_column.setLayout(column_layout)
+        column_layout.addWidget(self.sidebar_scroll, 1)
+        column_layout.addWidget(ui_widgets.create_estop_panel(self))
+        container_layout.addWidget(self.sidebar_column)
 
         edge_container = QWidget()
         edge_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -405,12 +413,12 @@ class LunabotGUI(QMainWindow):
     def toggle_sidebar(self):
         self.sidebar_collapsed = not self.sidebar_collapsed
         if self.sidebar_collapsed:
-            self.sidebar_scroll.hide()
+            self.sidebar_column.hide()
             self.sidebar_container.setMinimumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.sidebar_container.setMaximumWidth(SIDEBAR_COLLAPSED_WIDTH)
             self.edge_tab.setText("▶\n\nC\nO\nN\nT\nR\nO\nL\nS")
         else:
-            self.sidebar_scroll.show()
+            self.sidebar_column.show()
             self.sidebar_container.setMinimumWidth(0)
             self.sidebar_container.setMaximumWidth(16777215)
             self.edge_tab.setText("◀\n\nC\nO\nN\nT\nR\nO\nL\nS")
@@ -422,13 +430,10 @@ class LunabotGUI(QMainWindow):
         self.robot.start_can_interface()
 
     def launch_hardware(self):
-        if self.robot.launch_processes.get('hardware') is not None:
-            self.robot.stop_system('hardware')
-        else:
-            self.robot.launch_hardware()
+        self.launch_system('hardware')
 
     def launch_system(self, system_name):
-        if self.robot.launch_processes.get(system_name) is not None:
+        if self.robot.is_running(system_name):
             self.robot.stop_system(system_name)
         else:
             self.robot.launch_system(system_name)
@@ -597,8 +602,9 @@ class LunabotGUI(QMainWindow):
             if self.full_auto_active:
                 self.robot.stop_navigation_client()
                 self.full_auto_active = False
-                self.auto_btn.setText("One Cycle Auto")
+                self.auto_btn.setText(self.auto_btn_text())
                 self.auto_btn.setStyleSheet(ACTION_BTN_CSS)
+                self._set_auto_options_enabled(True)
             self.emergency_stopped = True
             self.emergency_stop_btn.setText("Re-Enable Robot")
             self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_ACTIVE_CSS)
@@ -609,24 +615,41 @@ class LunabotGUI(QMainWindow):
             self.emergency_stopped = False
             self.emergency_stop_btn.setText("Emergency Stop")
             self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_NORMAL_CSS)
+            # Sim never reports re-enabled
+            if not self.robot.is_real_mode:
+                self._set_operation_status("Status: Idle", 'idle')
 
-    def increase_excavation_angle(self):
-        self.excavation_angle = min(1.70, self.excavation_angle + 0.01)
-        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
-        self.robot.publish_excavation_angle(self.excavation_angle)
+    def auto_btn_text(self):
+        prefix = "Stop One Cycle Auto" if self.full_auto_active else "One Cycle Auto"
+        dry = ", DRY RUN" if self.robot.auto_dry_run else ""
+        return f"{prefix} ({self.robot.auto_mode.upper()}{dry})"
 
-    def decrease_excavation_angle(self):
-        self.excavation_angle = max(1.50, self.excavation_angle - 0.01)
-        self.excavation_angle_value_label.setText(f"{self.excavation_angle:.2f}")
-        self.robot.publish_excavation_angle(self.excavation_angle)
+    def dry_run_text(self):
+        return f"Dry Run: {'ON' if self.robot.auto_dry_run else 'OFF'}"
+
+    def _set_auto_options_enabled(self, enabled):
+        for btn in self.auto_mode_btns.values():
+            btn.setEnabled(enabled)
+        self.dry_run_btn.setEnabled(enabled)
+
+    def set_dry_run(self, checked):
+        self.robot.auto_dry_run = checked
+        self.auto_btn.setText(self.auto_btn_text())
+        self.robot.node.get_logger().info(f'One cycle auto {self.dry_run_text()}')
+
+    def set_auto_mode(self, mode):
+        self.robot.auto_mode = mode
+        self.auto_btn.setText(self.auto_btn_text())
+        self.robot.node.get_logger().info(f'One cycle auto mode: {self.robot.auto_mode.upper()}')
 
     def send_full_auto_goal(self):
         if self.full_auto_active:
             self.robot.node.get_logger().info('Stopping one cycle auto')
             self.robot.stop_navigation_client()
             self.full_auto_active = False
-            self.auto_btn.setText("One Cycle Auto")
+            self.auto_btn.setText(self.auto_btn_text())
             self.auto_btn.setStyleSheet(ACTION_BTN_CSS)
+            self._set_auto_options_enabled(True)
             self._set_operation_status("Status: One Cycle Auto Stopped", 'warning')
             return
 
@@ -634,16 +657,19 @@ class LunabotGUI(QMainWindow):
             self.robot.node.get_logger().warning('Operation already in progress')
             return
 
-        self.robot.node.get_logger().info('Starting one cycle auto')
+        self.robot.node.get_logger().info(
+            f'Starting one cycle auto ({self.robot.auto_mode.upper()}, {self.dry_run_text()})')
         self.full_auto_active = True
-        self.auto_btn.setText("Stop One Cycle Auto")
+        self.auto_btn.setText(self.auto_btn_text())
         self.auto_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
+        self._set_auto_options_enabled(False)
         self._set_operation_status("Status: One Cycle Auto Active...", 'warning')
 
         if not self.robot.launch_navigation_client():
             self.full_auto_active = False
-            self.auto_btn.setText("One Cycle Auto")
+            self.auto_btn.setText(self.auto_btn_text())
             self.auto_btn.setStyleSheet(ACTION_BTN_CSS)
+            self._set_auto_options_enabled(True)
             self._set_operation_status("Status: Failed to start", 'error')
 
     # -------------------------------------------------------------------------
@@ -721,17 +747,26 @@ class LunabotGUI(QMainWindow):
                 self.mode_switch_btn.setText("Switch to Manual")
 
         _system_btns = [
-            ('pointlio_btn',  'pointlio',  'Point-LIO',      'Stop Point-LIO'),
+            ('lio_btn',       'lio',       'FAST-LIO',       'Stop FAST-LIO'),
             ('mapping_btn',   'mapping',   'RTAB-Map',       'Stop RTAB-Map'),
             ('nav2_btn',      'nav2',      'Navigation2',    'Stop Navigation2'),
             ('hardware_btn',  'hardware',  'Launch Hardware', 'Stop Hardware'),
+            ('record_btn',    'record',    'Record',         'Stop Recording'),
         ]
         for attr, key, off_text, on_text in _system_btns:
+            if key == 'hardware' and not self.robot.is_real_mode:
+                continue
             if hasattr(self, attr):
                 btn = getattr(self, attr)
-                running = self.robot.launch_processes.get(key)
-                btn.setText(on_text if running else off_text)
-                btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS if running else ACTION_BTN_CSS)
+                running = self.robot.is_running(key)
+                if running and key in self.robot.degraded_systems:
+                    btn.setText(f'{on_text} (!)')
+                    btn.setStyleSheet(ACTION_BTN_ERROR_CSS)
+                    btn.setToolTip('A node died, see Terminal Output')
+                else:
+                    btn.setText(on_text if running else off_text)
+                    btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS if running else ACTION_BTN_CSS)
+                    btn.setToolTip('')
 
         current_status = self.operation_status_label.text()
         preserve = any(keyword in current_status for keyword in [
@@ -779,38 +814,6 @@ class LunabotGUI(QMainWindow):
                 self.emergency_stop_btn.setText("Emergency Stop")
                 self.emergency_stop_btn.setStyleSheet(ESTOP_BTN_NORMAL_CSS)
 
-    def handle_control_state_update(self, msg):
-        if msg.is_excavating:
-            self.excavate_btn.setText("Cancel Excavation")
-            self.excavate_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
-            if not self.robot.robot_disabled:
-                self.excavate_btn.setEnabled(True)
-            self._set_operation_status("Status: Excavating", 'warning')
-        else:
-            self.excavate_btn.setText("Excavate")
-            self.excavate_btn.setStyleSheet(ACTION_BTN_CSS)
-            if not self.robot.robot_disabled:
-                self.excavate_btn.setEnabled(True)
-
-        if msg.is_depositing:
-            self.deposit_btn.setText("Cancel Deposit")
-            self.deposit_btn.setStyleSheet(ACTION_BTN_ACTIVE_CSS)
-            if not self.robot.robot_disabled:
-                self.deposit_btn.setEnabled(True)
-            self._set_operation_status("Status: Depositing", 'warning')
-        else:
-            self.deposit_btn.setText("Deposit")
-            self.deposit_btn.setStyleSheet(ACTION_BTN_CSS)
-            if not self.robot.robot_disabled:
-                self.deposit_btn.setEnabled(True)
-
-        if msg.is_navigating:
-            self._set_operation_status("Status: Navigating", 'info')
-        elif msg.status_message and not (msg.is_excavating or msg.is_depositing):
-            self._set_operation_status(f"Status: {msg.status_message}", 'idle')
-        elif not (msg.is_excavating or msg.is_depositing or msg.is_navigating):
-            self._set_operation_status("Status: Idle", 'idle')
-
     def update_ui(self):
         # Process queued callbacks from ROS thread
         while not self._log_queue.empty():
@@ -818,8 +821,6 @@ class LunabotGUI(QMainWindow):
                 event_type, data = self._log_queue.get_nowait()
                 if event_type == 'robot_state':
                     self.handle_robot_state_update()
-                elif event_type == 'control_state':
-                    self.handle_control_state_update(data)
                 elif event_type == 'log':
                     self.append_log(data)
                 elif event_type == 'excavate_response':

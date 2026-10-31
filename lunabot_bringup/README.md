@@ -21,10 +21,12 @@ world_files = {
 These are launched individually via GUI buttons or for specific subsystems:
 - **hardware_launch.py**: Launches hardware drivers, cameras, LiDAR, and controller input for real robot
 - **actions_launch.py**: Launches action servers for excavation and dumping operations
-- **pointlio_launch.py**: Launches Point-LIO SLAM system
+- **fastlio_launch.py**: Launches FAST-LIO (the GUI's FAST-LIO button and the launch manager use this)
+- **pointlio_launch.py**: Launches Point-LIO, kept for comparison, not used by the GUI
 - **mapping_launch.py**: Launches RTAB-Map for dense 3D mapping
 - **nav2_stack_launch.py**: Launches Nav2 navigation stack
 - **launch_manager.launch.py**: Launches the launch manager service node for remote robot control via ROS service
+- **record_launch.py**: Records a rosbag for later review (raw lidar/IMU, camera footage, rtabmap map data with RGB-D per node, odometry, Nav2, commands, logs) to `lunabot_ws/src/bags`, split into 5 minute files.
 
 ## Parameters
 
@@ -44,10 +46,10 @@ These are launched individually via GUI buttons or for specific subsystems:
 
 - `robot_heading`: Sets the initial orientation of the robot in Gazebo (simulation only).
   - Options:
-    - `north`: Points the robot north. **(Default)**
+    - `north`: Points the robot north.
     - `south`: Points the robot south.
-    - `east`: Points the robot east.
-    - `west`: Points the robot west.
+    - `east`: Points the robot east, bucket facing west (UCF start). **(Default)**
+    - `west`: Points the robot west, bucket facing east.
   - Example: `robot_heading:=south`
 
 - `arena_type`: Selects the arena world file (simulation only).

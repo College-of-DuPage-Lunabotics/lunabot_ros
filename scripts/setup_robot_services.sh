@@ -3,10 +3,13 @@
 WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SCRIPTS_DIR="${WORKSPACE_DIR}/src/lunabot_ros/scripts"
 
+# Must match the laptop's ROS_DOMAIN_ID (sudo drops the environment)
+ROS_DOMAIN_ID_ARG="${1:-0}"
+
 # Check if we're running with sudo
 if [ "$EUID" -ne 0 ]; then
     echo "This script requires sudo privileges. Please run with sudo:"
-    echo "  sudo ./setup_robot_services.sh"
+    echo "  sudo ./setup_robot_services.sh [ROS_DOMAIN_ID]"
     exit 1
 fi
 
@@ -48,7 +51,7 @@ echo -e "\n------------------------ Install Launch Manager Service Using robot_u
 source /opt/ros/${ROS_DISTRO}/setup.bash
 source ${WORKSPACE_DIR}/install/setup.bash
 # Pass workspace directory via environment variable
-LUNABOT_WS="${WORKSPACE_DIR}" python3 ${SCRIPTS_DIR}/install_launch_manager_service.py 0
+LUNABOT_WS="${WORKSPACE_DIR}" python3 ${SCRIPTS_DIR}/install_launch_manager_service.py "${ROS_DOMAIN_ID_ARG}"
 
 # Complete the installation
 systemctl daemon-reload

@@ -37,7 +37,7 @@ public:
   ExcavationServerSim() : Node("excavation_server")
   {
     action_server_ = rclcpp_action::create_server<Excavation>(
-      this, "excavation_action",
+      this, "auto_excavation_action",
       [this](const auto &, const auto &) {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
@@ -85,7 +85,7 @@ private:
     LOGGER_ACTION(this->get_logger(), "Driving forward to excavate...");
 
     auto twist_msg = geometry_msgs::msg::Twist();
-    twist_msg.linear.x = drive_speed;
+    twist_msg.linear.x = -drive_speed;  // bucket first, backwards
 
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(drive_seconds))
@@ -133,12 +133,19 @@ private:
 
     try
     {
+      const bool drive_only = goal_handle->get_goal()->drive_only;
       // Lower bucket to ground
-      lower_bucket();
+      if (!drive_only)
+      {
+        lower_bucket();
+      }
       // Drive forward to collect material
       drive_forward();
       // Lift bucket back to travel position
-      lift_bucket();
+      if (!drive_only)
+      {
+        lift_bucket();
+      }
 
       result->success = true;
       goal_handle->succeed(result);

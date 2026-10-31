@@ -22,66 +22,47 @@ endif()
 
 # Find required dependencies
 find_package(geometry_msgs REQUIRED)
+find_package(lunabot_logger REQUIRED)
 find_package(lunabot_msgs REQUIRED)
-find_package(nav2_core REQUIRED)
-find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_msgs REQUIRED)
-find_package(nav2_util REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(sparkcan REQUIRED)
-find_package(lunabot_logger REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 set(DEPENDENCIES
     geometry_msgs
-    lunabot_msgs
     lunabot_logger
-    nav2_core
-    nav2_costmap_2d
+    lunabot_msgs
     nav2_msgs
-    nav2_util
     nav_msgs
-    pluginlib
     rclcpp
     rclcpp_action
-    sensor_msgs
-    tf2_ros
-    sparkcan)
+    std_msgs
+    std_srvs
+    tf2
+    tf2_ros)
 
 set(SIM_DEPENDENCIES
     geometry_msgs
-    lunabot_msgs
     lunabot_logger
-    nav2_core
-    nav2_costmap_2d
-    nav2_msgs
-    nav2_util
-    nav_msgs
-    pluginlib
+    lunabot_msgs
     rclcpp
     rclcpp_action
-    sensor_msgs
-    tf2_ros)
+    std_msgs)
 
 # Define build targets
-add_executable(assisted_excavation_server src/assisted_excavation_server.cpp)
 add_executable(auto_excavation_server src/auto_excavation_server.cpp)
-add_executable(assisted_depositing_server src/assisted_depositing_server.cpp)
 add_executable(auto_depositing_server src/auto_depositing_server.cpp)
 add_executable(navigation_client src/navigation_client.cpp)
 
 add_executable(excavation_server_sim src/excavation_server_sim.cpp)
 add_executable(depositing_server_sim src/depositing_server_sim.cpp)
 
-ament_target_dependencies(assisted_excavation_server ${DEPENDENCIES})
 ament_target_dependencies(auto_excavation_server ${DEPENDENCIES})
-ament_target_dependencies(assisted_depositing_server ${DEPENDENCIES})
 ament_target_dependencies(auto_depositing_server ${DEPENDENCIES})
 ament_target_dependencies(navigation_client ${DEPENDENCIES})
 
@@ -90,9 +71,7 @@ ament_target_dependencies(depositing_server_sim ${SIM_DEPENDENCIES})
 
 # Install package files
 install(
-  TARGETS assisted_excavation_server
-          auto_excavation_server
-          assisted_depositing_server
+  TARGETS auto_excavation_server
           auto_depositing_server
           navigation_client
           excavation_server_sim

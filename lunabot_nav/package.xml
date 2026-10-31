@@ -8,17 +8,17 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <build_depend>rclcpp</build_depend>
-  <build_depend>rclcpp_action</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>nav2_msgs</build_depend>
-  <build_depend>tf2_ros</build_depend>
-  <build_depend>eigen</build_depend>
-  <build_depend>libpcl-all-dev</build_depend>
-  <build_depend>lunabot_msgs</build_depend>
-  <build_depend>lunabot_logger</build_depend>
+  <depend>geometry_msgs</depend>
+  <depend>lunabot_logger</depend>
+  <depend>lunabot_msgs</depend>
+  <depend>nav2_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

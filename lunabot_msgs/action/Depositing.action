@@ -1,4 +1,6 @@
 # Depositing action - performs depositing sequence
+# true: skip the drive forward and dump in place
+bool dump_only
 ---
 bool success
 string message

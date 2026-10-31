@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from PyQt5.QtCore import Qt, QRectF, QSize
 from PyQt5.QtGui import QColor, QFont, QPainter
-from PyQt5.QtWidgets import (QGridLayout, QGroupBox, QHBoxLayout, QLabel, QScrollArea,
-                              QProgressBar, QPushButton, QSizePolicy,
+from PyQt5.QtWidgets import (QButtonGroup, QGridLayout, QGroupBox, QHBoxLayout, QLabel,
+                              QScrollArea, QProgressBar, QPushButton, QSizePolicy,
                               QVBoxLayout, QWidget)
 
 from gui_styles import Colors, Styles, ACTION_BTN_CSS, ESTOP_BTN_NORMAL_CSS
@@ -36,6 +36,32 @@ class VerticalScrollArea(QScrollArea):
                      super().sizeHint().height())
 
 _GROUP_BG_DARK  = "QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); padding-top: 16px; }"
+_COMPACT_BTN_CSS = f"""
+    QPushButton {{
+        background-color: {Colors.BTN_INACTIVE};
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 2px;
+    }}
+    QPushButton:hover {{ background-color: {Colors.BTN_HOVER}; }}
+    QPushButton:pressed {{ background-color: {Colors.BTN_PRESSED}; }}
+    QPushButton:disabled {{
+        background-color: {Colors.BTN_DISABLED};
+        color: {Colors.TEXT_GRAY};
+        border: none;
+        border-radius: 2px;
+    }}
+"""
+
+_TOGGLE_BTN_CSS = _COMPACT_BTN_CSS + f"""
+    QPushButton:checked {{ background-color: {Colors.BTN_PRESSED}; }}
+    QPushButton:checked:hover {{ background-color: {Colors.BTN_PRESSED}; }}
+    QPushButton:checked:disabled {{ background-color: {Colors.BTN_INACTIVE}; color: {Colors.TEXT_MAIN}; }}
+"""
+
 _GROUP_BG_DARK2 = "QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #202020, stop:1 #1a1a1a); padding-top: 24px; }"
 
 
@@ -293,7 +319,6 @@ def create_mode_group(app):
     group.setAutoFillBackground(True)
     group.setStyleSheet("QGroupBox { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1d1d1d); }")
     group.setMaximumHeight(100)
-    group.setMinimumWidth(220)
     layout = QHBoxLayout()
     layout.setSpacing(3)
     layout.setContentsMargins(4, 3, 4, 3)
@@ -314,25 +339,7 @@ def create_mode_group(app):
     layout.addWidget(app.mode_label, 1)
 
     mode_btn = QPushButton(btn_text)
-    mode_btn.setStyleSheet(f"""
-        QPushButton {{
-            background-color: {Colors.BTN_INACTIVE};
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 4px 10px;
-            border: none;
-            border-radius: 2px;
-        }}
-        QPushButton:hover {{ background-color: {Colors.BTN_HOVER}; }}
-        QPushButton:pressed {{ background-color: {Colors.BTN_PRESSED}; }}
-        QPushButton:disabled {{
-            background-color: {Colors.BTN_DISABLED};
-            color: {Colors.TEXT_GRAY};
-            border: none;
-            border-radius: 2px;
-        }}
-    """)
+    mode_btn.setStyleSheet(_COMPACT_BTN_CSS)
     mode_btn.clicked.connect(app.toggle_mode)
     layout.addWidget(mode_btn)
     app.mode_switch_btn = mode_btn
@@ -467,7 +474,7 @@ def create_launch_group(app):
     group.setLayout(layout)
 
     launch_btns = [
-        ('pointlio_btn', 'Point-LIO',   lambda: app.launch_system('pointlio')),
+        ('lio_btn',      'FAST-LIO',    lambda: app.launch_system('lio')),
         ('mapping_btn',  'RTAB-Map',    lambda: app.launch_system('mapping')),
         ('nav2_btn',     'Navigation2', lambda: app.launch_system('nav2')),
     ]
@@ -476,6 +483,20 @@ def create_launch_group(app):
         setattr(app, attr, btn)
         layout.addWidget(btn)
 
+    return group
+
+
+def create_tools_group(app):
+    group = QGroupBox("Tools")
+    group.setAutoFillBackground(True)
+    group.setStyleSheet(_GROUP_BG_DARK2)
+    layout = QHBoxLayout()
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
+    group.setLayout(layout)
+
+    app.record_btn = _action_btn("Record", lambda: app.launch_system('record'))
+    layout.addWidget(app.record_btn)
     layout.addWidget(_action_btn("RViz2", app.launch_rviz))
     return group
 
@@ -490,20 +511,77 @@ def create_action_control_group(app):
     group.setLayout(layout)
 
     action_btns = [
-        ('excavate_btn', 'Excavate',       app.send_excavate_goal),
-        ('deposit_btn',  'Deposit',         app.send_deposit_goal),
-        ('auto_btn',     'One Cycle Auto',  app.send_full_auto_goal),
+        ('excavate_btn', 'Excavate', app.send_excavate_goal),
+        ('deposit_btn',  'Deposit',  app.send_deposit_goal),
     ]
     for attr, text, slot in action_btns:
         btn = _action_btn(text, slot)
         setattr(app, attr, btn)
         layout.addWidget(btn)
 
+    return group
+
+
+def create_auto_group(app):
+    group = QGroupBox("Auto")
+    group.setAutoFillBackground(True)
+    group.setStyleSheet(_GROUP_BG_DARK2)
+    layout = QVBoxLayout()
+    layout.setSpacing(6)
+    layout.setContentsMargins(4, 8, 4, 4)
+    group.setLayout(layout)
+
+    options = QWidget()
+    options.setObjectName("autoOptions")
+    options.setStyleSheet("#autoOptions { background: transparent; }")
+    options_layout = QHBoxLayout()
+    options_layout.setContentsMargins(0, 0, 0, 0)
+    options_layout.setSpacing(0)
+    options.setLayout(options_layout)
+
+    app.auto_mode_group = QButtonGroup(options)
+    app.auto_mode_group.setExclusive(True)
+    app.auto_mode_btns = {}
+    for mode in ('ucf', 'ksc'):
+        btn = QPushButton(mode.upper())
+        btn.setCheckable(True)
+        btn.setChecked(app.robot.auto_mode == mode)
+        btn.setStyleSheet(_TOGGLE_BTN_CSS)
+        btn.toggled.connect(lambda checked, m=mode: checked and app.set_auto_mode(m))
+        app.auto_mode_group.addButton(btn)
+        app.auto_mode_btns[mode] = btn
+        options_layout.addWidget(btn)
+    options_layout.addStretch(1)
+
+    app.dry_run_btn = QPushButton("Dry run")
+    app.dry_run_btn.setCheckable(True)
+    app.dry_run_btn.setChecked(app.robot.auto_dry_run)
+    app.dry_run_btn.setStyleSheet(_TOGGLE_BTN_CSS)
+    app.dry_run_btn.toggled.connect(app.set_dry_run)
+    options_layout.addWidget(app.dry_run_btn)
+    layout.addWidget(options)
+
+    layout.addSpacing(8)
+
+    app.auto_btn = _action_btn(app.auto_btn_text(), app.send_full_auto_goal)
+    app.auto_btn.setMinimumHeight(40)
+    layout.addWidget(app.auto_btn)
+
+    return group
+
+
+def create_estop_panel(app):
+    panel = QWidget()
+    panel.setStyleSheet("background-color: #1a1a1a;")
+    layout = QVBoxLayout()
+    layout.setSpacing(4)
+    layout.setContentsMargins(4, 4, 4, 4)
+    panel.setLayout(layout)
+
     app.emergency_stop_btn = QPushButton("Emergency Stop")
     app.emergency_stop_btn.setStyleSheet(ESTOP_BTN_NORMAL_CSS)
     app.emergency_stop_btn.setMaximumHeight(50)
     app.emergency_stop_btn.clicked.connect(app.emergency_stop)
-    app.emergency_stop_btn.setEnabled(app.robot.is_real_mode)
     layout.addWidget(app.emergency_stop_btn)
 
     app.operation_status_label = QLabel("Status: Idle")
@@ -515,54 +593,7 @@ def create_action_control_group(app):
     app.operation_status_label.setMaximumHeight(60)
     layout.addWidget(app.operation_status_label)
 
-    return group
-
-
-def create_excavation_angle_group(app):
-    group = QGroupBox("Excavation Angle")
-    group.setAutoFillBackground(True)
-    group.setStyleSheet(_GROUP_BG_DARK2)
-    layout = QVBoxLayout()
-    layout.setSpacing(6)
-    layout.setContentsMargins(4, 8, 4, 4)
-    group.setLayout(layout)
-
-    angle_control = QWidget()
-    angle_layout = QHBoxLayout()
-    angle_layout.setContentsMargins(0, 0, 0, 0)
-    angle_layout.setSpacing(6)
-    angle_control.setLayout(angle_layout)
-    
-    angle_label = QLabel("Angle:")
-    angle_label.setFont(QFont("Monospace", _FONT_SM))
-    angle_label.setStyleSheet(f"color: {Colors.TEXT_MAIN};")
-    angle_layout.addWidget(angle_label)
-    
-    app.excavation_angle_value_label = QLabel(f"{app.excavation_angle:.2f}")
-    app.excavation_angle_value_label.setFont(QFont("Monospace", _FONT_MD, QFont.Bold))
-    app.excavation_angle_value_label.setStyleSheet(f"color: {Colors.BTN_LIGHT_BLUE}; min-width: 40px;")
-    app.excavation_angle_value_label.setAlignment(Qt.AlignCenter)
-    angle_layout.addWidget(app.excavation_angle_value_label)
-    
-    angle_layout.addStretch()
-    
-    down_btn = QPushButton("▼")
-    down_btn.setMaximumWidth(35)
-    down_btn.setMaximumHeight(28)
-    down_btn.setStyleSheet(ACTION_BTN_CSS)
-    down_btn.clicked.connect(app.decrease_excavation_angle)
-    angle_layout.addWidget(down_btn)
-    
-    up_btn = QPushButton("▲")
-    up_btn.setMaximumWidth(35)
-    up_btn.setMaximumHeight(28)
-    up_btn.setStyleSheet(ACTION_BTN_CSS)
-    up_btn.clicked.connect(app.increase_excavation_angle)
-    angle_layout.addWidget(up_btn)
-    
-    layout.addWidget(angle_control)
-
-    return group
+    return panel
 
 
 class BucketSliderWidget(QWidget):
@@ -680,10 +711,6 @@ def create_controls_reference_group(app):
         ("DRIVING", [
             ("Left Paddle",  "Toggle Speed"),
             ("Right Paddle", "Vibration"),
-        ]),
-        ("AUTONOMOUS ACTIONS", [
-            ("X Button", "Excavate"),
-            ("Y Button", "Deposit"),
         ]),
         ("BUCKET PRESET", [
             ("D-Pad Up",   "Deposit Ready"),
