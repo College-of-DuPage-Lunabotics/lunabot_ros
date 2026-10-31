@@ -15,14 +15,16 @@ from launch.actions import (
 
 
 def set_orientation(context, *args, **kwargs):
-    orientations = {"north": -1.5708, "east": 3.1416, "south": 1.5708, "west": 0.0}
+    # ENU yaw of the lidar end
+    orientations = {"north": 1.5708, "east": 0.0, "south": -1.5708, "west": 3.1416}
     chosen_orientation = context.launch_configurations.get("robot_heading")
     return [SetLaunchConfiguration("robot_heading", str(orientations.get(chosen_orientation, 0.0)))]
 
 
 def set_spawn_coordinates(context, *args, **kwargs):
     world_coords = {
-        "ucf": {"x": "1.0", "y": "-3.0", "z": "0.35"},
+        # Arena (-1.7, 1.56), arena origin is world (0, -4.07)
+        "ucf": {"x": "-1.7", "y": "-2.51", "z": "0.35"},
         "artemis": {"x": "2.5", "y": "1.6", "z": "0.35"},
     }
     world_type = context.launch_configurations.get("arena_type")
@@ -160,7 +162,7 @@ def generate_launch_description():
 
     declare_robot_heading = DeclareLaunchArgument(
         "robot_heading",
-        default_value="north",
+        default_value="east",
         choices=["north", "east", "south", "west"],
         description="Sets the starting orientation of the robot. Choose a cardinal direction.",
     )

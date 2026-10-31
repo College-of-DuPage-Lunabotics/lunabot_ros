@@ -46,7 +46,10 @@ private:
    */
   void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
-    cmd_vel_pub_->publish(*msg);
+    // base_link faces opposite the chassis
+    auto out = *msg;
+    out.linear.x = -msg->linear.x;
+    cmd_vel_pub_->publish(out);
   }
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
