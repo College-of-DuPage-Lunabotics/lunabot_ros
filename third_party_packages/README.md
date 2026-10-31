@@ -14,11 +14,15 @@ This directory contains third-party ROS2 packages integrated directly into the r
 - **Original source**: https://github.com/Livox-SDK/livox_laser_simulation
 - **Notes**: Modified for CustomMsg and PointCloud2 publishing
 
+### FAST-LIO
+- **Description**: FAST-LIO2 LiDAR-inertial odometry, the LIO used by the robot (`fastlio_launch.py`)
+- **Notes**: Added configurable `odom_frame_id`/`base_frame_id` params so the body cloud uses the TF frame published by `lio_odom_to_base`, TF publishing disabled. `lio_odom_to_base` shifts its odometry to base_link and publishes `/lio_odom`
+
 ### Point-LIO
-- **Description**: Point-LIO LiDAR-inertial odometry, publishes to `/lio_odom`
+- **Description**: Point-LIO LiDAR-inertial odometry, kept for comparison (`pointlio_launch.py`, not used by the GUI)
 - **Branch**: `grid_map_ros2` (commit `155f46d`)
 - **Original source**: https://github.com/LihanChen2004/Point-LIO
-- **Notes**: Modified for ROS2 Humble (`const SharedPtr` callbacks, C++17), added configurable `odom_frame_id`/`base_frame_id` params, TF publishing disabled, using UKF from robot_localization instead
+- **Notes**: Modified for ROS2 Humble (`const SharedPtr` callbacks, C++17), added configurable `odom_frame_id`/`base_frame_id` params, TF publishing disabled. `lio_odom_to_base` shifts its odometry to base_link and publishes `/lio_odom`
 
 ### rtabmap
 - **Description**: RTAB-Map core library for real-time SLAM

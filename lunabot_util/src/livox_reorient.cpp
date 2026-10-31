@@ -103,7 +103,7 @@ private:
     last_translation_ = tf2::Vector3(t.x, t.y, t.z);
     RCLCPP_INFO(
       get_logger(),
-      "%s -> %s: rpy [%.3f, %.3f, %.3f], translation [%.3f, %.3f, %.3f] (set as LIO extrinsic_T)",
+      "%s -> %s: rpy [%.3f, %.3f, %.3f], translation [%.3f, %.3f, %.3f]",
       source_frame.c_str(), target_frame_.c_str(), roll, pitch, yaw, t.x, t.y, t.z);
 
     return rotation;

@@ -3,8 +3,8 @@
         feature_extract_enable: false
         point_filter_num: 3
         max_iteration: 3
-        filter_size_surf: 0.5
-        filter_size_map: 0.5
+        filter_size_surf: 0.2
+        filter_size_map: 0.2
         cube_side_length: 1000.0
         runtime_pos_log_enable: false
         map_file_path: ""
@@ -30,7 +30,7 @@
             fov_degree: 360.0
             det_range: 100.0
             extrinsic_est_en: false
-            extrinsic_T: [-0.3, 0.0, 0.548]  # lidar position in base_link (from URDF)
+            extrinsic_T: [0.0, 0.0, 0.0]  # sim IMU sits at the lidar origin
             extrinsic_R: [1., 0., 0.,
                           0., 1., 0.,
                           0., 0., 1.]
@@ -42,9 +42,9 @@
             scan_publish_en: true
             dense_publish_en: false
             scan_bodyframe_pub_en: true
-            tf_send_en: true
-            odom_frame_id: "odom"
-            base_frame_id: "base_link"
+            tf_send_en: false
+            odom_frame_id: "lio_init"
+            base_frame_id: "lio_imu"
 
         pcd_save:
             pcd_save_en: false

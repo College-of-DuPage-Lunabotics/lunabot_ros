@@ -8,3 +8,4 @@ This package contains various utility nodes.
 - **power_monitor.py**: Monitors power consumption and publishes power data.
 - **topic_remapper.cpp**: Remaps Gazebo controller topic names.
 - **livox_reorient.cpp**: Rotates the Livox lidar and IMU data into the base_link orientation using the URDF mount transform and drops points inside the robot body box.
+- **lio_odom_to_base.cpp**: Shifts LIO odometry from the Mid-360 IMU to base_link using the IMU lever arm and publishes odom -> base_link.
