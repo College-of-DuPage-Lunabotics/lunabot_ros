@@ -13,10 +13,6 @@
   <depend>robot_state_publisher</depend>
   <depend>joint_state_publisher</depend>
   <depend>navigation2</depend>
-  <depend>robot_localization</depend>
-  <depend>imu_complementary_filter</depend>
-  <depend>laser_filters</depend>
-  <depend>foxglove_bridge</depend>
   <depend>ros2_control</depend>
   <depend>ros2_controllers</depend>
   <depend>gazebo_ros_pkgs</depend>
