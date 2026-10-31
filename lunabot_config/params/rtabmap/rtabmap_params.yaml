@@ -10,7 +10,7 @@ rtabmap:
     Grid/MaxGroundAngle: "30"
     Grid/MinGroundHeight: "-0.05"
     Grid/MaxGroundHeight: "0.0"
-    Grid/MinClusterSize: "40"
+    Grid/MinClusterSize: "15"
     Grid/Sensor: "2"
     Grid/RangeMin: "0.5"
     Grid/RangeMax: "30.0"

@@ -3,7 +3,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, GroupAction, SetLaunchConfiguration
 from launch.substitutions import LaunchConfiguration
 
 
@@ -130,6 +130,7 @@ def generate_launch_description():
         package="livox_ros_driver2",
         executable="livox_ros_driver2_node",
         name="livox_lidar_publisher",
+        prefix="nice -n -10",
         output="screen",
         parameters=[
             {"xfer_format": 1},  # 0 = PointCloud2 (PointXYZRTL), 1 = CustomMsg
@@ -146,6 +147,7 @@ def generate_launch_description():
         package="lunabot_util",
         executable="image_compressor.py",
         name="image_compressor",
+        prefix="nice -n 10",
         output="screen",
         parameters=[
             {"jpeg_quality": 25},
@@ -157,6 +159,7 @@ def generate_launch_description():
         package="rtabmap_sync",
         executable="rgbd_sync",
         name="rgbd_sync_front",
+        prefix="nice -n 10",
         output="screen",
         parameters=[
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 30,
@@ -177,6 +180,7 @@ def generate_launch_description():
         package="rtabmap_sync",
         executable="rgbd_sync",
         name="rgbd_sync_back",
+        prefix="nice -n 10",
         output="screen",
         parameters=[
             {"use_sim_time": False, "approx_sync": True, "sync_queue_size": 30,
@@ -197,8 +201,11 @@ def generate_launch_description():
         motor_controller_node,
         livox_driver,
         image_compressor_node,
-        d456_front_launch,
-        d456_back_launch,
+        # Cameras at lower priority than the lidar driver and FAST-LIO
+        GroupAction(
+            [SetLaunchConfiguration("launch-prefix", "nice -n 10"), d456_front_launch, d456_back_launch],
+            scoped=True,
+        ),
         actions_launch,
         controller_teleop_node,
         power_monitor_node,

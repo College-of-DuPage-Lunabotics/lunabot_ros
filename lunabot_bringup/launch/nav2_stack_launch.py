@@ -29,11 +29,11 @@ def generate_launch_description():
         
         if use_sim == "true":
             nav2_params_file = os.path.join(
-                config_dir, "params", "nav2", "nav2_v1_bot_params.yaml"
+                config_dir, "params", "nav2", "nav2_sim_params.yaml"
             )
         else:
             nav2_params_file = os.path.join(
-                config_dir, "params", "nav2", "nav2_real_bot_params.yaml"
+                config_dir, "params", "nav2", "nav2_real_params.yaml"
             )
         
         use_sim_time = use_sim == "true"
@@ -94,7 +94,8 @@ def generate_launch_description():
                     ]
                 },
                 {"node_timeout": 30.0},
-                {"bond_timeout": 10.0},
+                # No heartbeat, a busy CPU must not shut Nav2 down mid run
+                {"bond_timeout": 0.0},
                 {"attempt_respawn_reconnection": True},
             ],
         )
