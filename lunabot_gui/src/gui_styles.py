@@ -228,21 +228,21 @@ class Styles:
         
         return f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {bg}, stop:1 {bg_dark});
+                background-color: {bg};
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};
-                border: 1px solid {darken(bg, 0.3)};
-                border-radius: 4px;
+                border: none;
+                border-radius: 2px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {hover}, stop:1 {hover_dark});
-                border: 1px solid {darken(hover, 0.3)};
+                background-color: {hover};
+                border: none;
             }}
             QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {pressed}, stop:1 {pressed_dark});
-                border: 1px solid {darken(pressed, 0.3)};
+                background-color: {pressed};
+                border: none;
             }}
             {Styles._DISABLED_BTN_CSS}
         """
@@ -298,27 +298,27 @@ class Styles:
         """Teleop control button style with gradient"""
         return f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                background-color: #2e2e2e;
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: 10px 20px;
-                border: 1px solid #3e3e3e;
-                border-radius: 4px;
+                border: none;
+                border-radius: 2px;
                 min-width: 50px;
                 min-height: 50px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
-                border: 1px solid #484848;
+                background-color: #383838;
+                border: none;
             }}
             QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
-                border: 1px solid #2e2e2e;
+                background-color: #222222;
+                border: none;
             }}
             QPushButton:checked {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5a8fbf, stop:1 #4a7ba7);
-                border: 1px solid #3e6e97;
+                background-color: #5a8fbf;
+                border: none;
             }}
         """
     
@@ -327,21 +327,21 @@ class Styles:
         """Camera control button style with gradient"""
         return f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+                background-color: #2e2e2e;
                 color: white;
                 font-size: {size}px;
                 font-weight: bold;
                 padding: {padding};
-                border: 1px solid #3e3e3e;
-                border-radius: 4px;
+                border: none;
+                border-radius: 2px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
-                border: 1px solid #484848;
+                background-color: #383838;
+                border: none;
             }}
             QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
-                border: 1px solid #2e2e2e;
+                background-color: #222222;
+                border: none;
             }}
         """
     
@@ -364,30 +364,45 @@ class Styles:
 
 ACTION_BTN_CSS = f"""
     QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e2e2e, stop:1 #262626);
+        background-color: #2e2e2e;
         color: {Colors.TEXT_MAIN};
-        border: 1px solid #3e3e3e;
-        border-radius: 4px;
+        border: none;
+        border-radius: 2px;
         font-size: 13px;
         font-weight: bold;
         padding: 6px 8px;
     }}
     QPushButton:hover {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #383838, stop:1 #303030);
-        border: 1px solid #484848;
+        background-color: #383838;
+        border: none;
     }}
     QPushButton:pressed {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #222222, stop:1 #1a1a1a);
-        border: 1px solid #2e2e2e;
+        background-color: #222222;
+        border: none;
     }}
 """
 
 ACTION_BTN_ACTIVE_CSS = f"""
     QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff8a50, stop:1 #f57c00);
-        color: {Colors.STATUS_WARNING_TEXT};
-        border: 1px solid #e65100;
-        border-radius: 4px;
+        background-color: #4a2a2a;
+        color: #ffcdd2;
+        border: none;
+        border-radius: 2px;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 6px 8px;
+    }}
+    QPushButton:hover {{
+        background-color: #5a3232;
+    }}
+"""
+
+ACTION_BTN_ERROR_CSS = f"""
+    QPushButton {{
+        background-color: #e53935;
+        color: #ffebee;
+        border: none;
+        border-radius: 2px;
         font-size: 13px;
         font-weight: bold;
         padding: 6px 8px;
@@ -396,10 +411,10 @@ ACTION_BTN_ACTIVE_CSS = f"""
 
 ACTION_BTN_DISABLED_CSS = f"""
     QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1e1e1e, stop:1 #181818);
+        background-color: {Colors.BTN_DISABLED};
         color: #555555;
-        border: 1px solid #2e2e2e;
-        border-radius: 4px;
+        border: none;
+        border-radius: 2px;
         font-size: 13px;
         font-weight: bold;
         padding: 6px 8px;
@@ -411,7 +426,7 @@ ESTOP_BTN_NORMAL_CSS = """
         background-color: #d32f2f;
         color: white;
         border: none;
-        border-radius: 5px;
+        border-radius: 2px;
         font-size: 14px;
         font-weight: bold;
         padding: 10px 8px;
@@ -425,7 +440,7 @@ ESTOP_BTN_ACTIVE_CSS = """
         background-color: #f57c00;
         color: white;
         border: none;
-        border-radius: 5px;
+        border-radius: 2px;
         font-size: 14px;
         font-weight: bold;
         padding: 10px 8px;
@@ -436,20 +451,20 @@ ESTOP_BTN_ACTIVE_CSS = """
 
 CAN_RESTART_SUCCESS_CSS = f"""
     QPushButton {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2e3e2e, stop:1 #263626);
+        background-color: #2e3e2e;
         color: {Colors.STATUS_SUCCESS};
-        border: 1px solid #3e4e3e;
-        border-radius: 4px;
+        border: none;
+        border-radius: 2px;
         font-size: 13px;
         font-weight: bold;
         padding: 6px 8px;
     }}
     QPushButton:hover {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #384838, stop:1 #305030);
-        border: 1px solid #486048;
+        background-color: #384838;
+        border: none;
     }}
     QPushButton:pressed {{
-        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #223222, stop:1 #1a2a1a);
-        border: 1px solid #2e3e2e;
+        background-color: #223222;
+        border: none;
     }}
 """

@@ -4,12 +4,13 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 import rclpy
+from action_msgs.srv import CancelGoal
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from PyQt5.QtCore import QCoreApplication
 from rcl_interfaces.msg import Log
 from rclpy.action import ActionClient
 from rclpy.node import Node
@@ -19,7 +20,7 @@ from std_msgs.msg import Bool, Float32, Float64, Float64MultiArray
 
 from lunabot_logger import Logger
 from lunabot_msgs.action import Depositing, Excavation
-from lunabot_msgs.msg import ControlState, PowerMonitor
+from lunabot_msgs.msg import LaunchStatus, PowerMonitor
 from lunabot_msgs.srv import LaunchSystem, StopSystem
 
 try:
@@ -31,18 +32,28 @@ except ImportError:
     CV_AVAILABLE = False
 
 
-# Service / process timeout constants (seconds)
-_TIMEOUT_SERVICE_WAIT = 5.0
-_TIMEOUT_SERVICE_WAIT_LONG = 10.0
-_TIMEOUT_SERVICE_RESPONSE = 30.0
-_TIMEOUT_STOP_RESPONSE = 10.0
+# Service / process / SSH timeout constants (seconds)
+_TIMEOUT_SERVICE_WAIT = 10.0
+_TIMEOUT_SSH_COMMAND = 10
 _TIMEOUT_PROCESS_TERMINATE = 5
 
+# Fail fast instead of hanging on a password or host key prompt
+_SSH_OPTS = ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=3']
+
+_LAUNCH_FILES = {
+    'lio':          'fastlio_launch.py',
+    'mapping':      'mapping_launch.py',
+    'nav2':         'nav2_stack_launch.py',
+    'hardware':     'hardware_launch.py',
+    'record':       'record_launch.py',
+}
+
 _DISPLAY_NAMES = {
-    'pointlio':     'Point-LIO',
+    'lio':          'FAST-LIO',
     'mapping':      'RTAB-Map',
     'nav2':         'Navigation2',
     'hardware':     'Hardware',
+    'record':       'Recording',
 }
 
 class RobotInterface:
@@ -111,40 +122,45 @@ class RobotInterface:
         self.front_camera_sub = None
         self.rear_camera_sub = None
 
-        self.hardware_enabled = False
-        self.pointlio_enabled = False
-        self.mapping_enabled = False
-        self.nav2_enabled = False
-
         self.robot_mode = "MANUAL"
         self.is_excavating = False
         self.is_depositing = False
-        self.is_navigating = False
         self.robot_disabled = False
         self.vibration_duty_cycle = 0.0
         
-        # Launch process tracking (True = remote via service, Process = local subprocess)
+        # True = running on the robot, Popen = local subprocess
         self.launch_processes = {
             'hardware': None,
             'actions': None,
-            'pointlio': None,
+            'lio': None,
             'mapping': None,
-            'nav2': None
+            'nav2': None,
+            'record': None
         }
         
+        # Robot systems with a dead node, per /launch_manager/status
+        self.degraded_systems = set()
+
         self.excavation_client = ActionClient(self.node, Excavation, 'auto_excavation_action')
         self.depositing_client = ActionClient(self.node, Depositing, 'auto_depositing_action')
+
+        # Killing the navigation client does not cancel the goals it sent, so cancel them directly
+        self.auto_cancel_clients = [
+            self.node.create_client(CancelGoal, f'{action}/_action/cancel_goal')
+            for action in ('navigate_to_pose', 'drive_on_heading', 'spin', 'auto_excavation_action', 'auto_depositing_action')
+        ]
         
         self.excavation_goal_handle = None
         self.depositing_goal_handle = None
         self.navigation_client_process = None
+        self.auto_mode = 'ucf'
+        self.auto_dry_run = False
         
         self.emergency_stop_pub = self.node.create_publisher(Bool, '/emergency_stop', 10)
         self.mode_switch_pub = self.node.create_publisher(Bool, '/mode_switch', 10)
         self.position_cmd_pub = self.node.create_publisher(Float64MultiArray, '/position_controller/commands', 10)
         self.camera_cmd_pub = self.node.create_publisher(Float64MultiArray, '/camera_controller/commands', 10)
         self.cmd_vel_pub = self.node.create_publisher(Twist, '/cmd_vel', 10)
-        self.excavation_angle_pub = self.node.create_publisher(Float64, '/excavation_angle', 10)
         
         self.launch_client = self.node.create_client(LaunchSystem, 'launch_system')
         self.stop_client = self.node.create_client(StopSystem, 'stop_system')
@@ -153,7 +169,6 @@ class RobotInterface:
         
         # Callbacks for UI updates (set by GUI)
         self.on_robot_state_update = None
-        self.on_control_state_update = None
         self.on_realsense_toggle = None
         self.on_log = None
     
@@ -185,10 +200,7 @@ class RobotInterface:
                 lambda msg: self._camera_callback(msg, 'fisheye', 'fisheye_camera_image'), 1)
         
         self.node.create_subscription(
-            Odometry, '/odometry/filtered', self._odom_callback, 10)
-
-        self.node.create_subscription(
-            ControlState, '/control_state', self._control_state_callback, 10)
+            Odometry, '/lio_odom', self._odom_callback, 10)
 
         self.node.create_subscription(
             PowerMonitor, '/power_monitor', self._power_monitor_callback, 10)
@@ -211,6 +223,16 @@ class RobotInterface:
 
         self.node.create_subscription(
             JointState, '/joint_states', self._joint_states_callback, 10)
+
+        if self.is_remote:
+            status_qos = QoSProfile(
+                reliability=QoSReliabilityPolicy.RELIABLE,
+                durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+                history=QoSHistoryPolicy.KEEP_LAST,
+                depth=1
+            )
+            self.node.create_subscription(
+                LaunchStatus, '/launch_manager/status', self._launch_status_callback, status_qos)
         
         # /rosout publishers use RELIABLE + TRANSIENT_LOCAL
         rosout_qos = QoSProfile(
@@ -282,12 +304,12 @@ class RobotInterface:
             
             if self.is_remote:
                 self.log.action(f'Restarting CAN interface on {self.robot_user}@{self.robot_host}')
-                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
+                cmd = ['ssh', *_SSH_OPTS, f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
             else:
                 self.log.action(f'Restarting CAN interface: {script_path}')
                 cmd = ['bash', os.path.expanduser(script_path)]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=_TIMEOUT_SSH_COMMAND)
             
             if result.stdout:
                 for line in result.stdout.strip().split('\n'):
@@ -371,19 +393,19 @@ class RobotInterface:
             except Exception as e:
                 print(f"Failed to log message from {msg.name}: {e}", file=sys.stderr)
     
-    def _control_state_callback(self, msg):
-        self.robot_mode = "MANUAL" if msg.mode == 0 else "AUTO"
-        self.hardware_enabled = msg.hardware_enabled
-        self.pointlio_enabled = msg.pointlio_enabled
-        self.mapping_enabled = msg.mapping_enabled
-        self.nav2_enabled = msg.nav2_enabled
-        self.is_excavating = msg.is_excavating
-        self.is_depositing = msg.is_depositing
-        self.is_navigating = msg.is_navigating
-        
-        if self.on_control_state_update:
-            self.on_control_state_update(msg)
-    
+    def _launch_status_callback(self, msg):
+        changed = False
+        for name in _LAUNCH_FILES:
+            running = True if name in msg.running else None
+            if self.launch_processes[name] != running:
+                self.launch_processes[name] = running
+                changed = True
+        if set(msg.degraded) != self.degraded_systems:
+            self.degraded_systems = set(msg.degraded)
+            changed = True
+        if changed and self.on_robot_state_update:
+            self.on_robot_state_update()
+
     def _power_monitor_callback(self, msg):
         self.power_voltage = msg.voltage
         self.power_current = msg.current
@@ -419,11 +441,6 @@ class RobotInterface:
         msg.data = [position]
         self.position_cmd_pub.publish(msg)
     
-    def publish_excavation_angle(self, angle):
-        msg = Float64()
-        msg.data = angle
-        self.excavation_angle_pub.publish(msg)
-    
     def publish_camera_position(self, position):
         msg = Float64MultiArray()
         msg.data = [position]
@@ -435,12 +452,12 @@ class RobotInterface:
             
             if self.is_remote:
                 self.log.action(f'Running CAN interface on {self.robot_user}@{self.robot_host}')
-                cmd = ['ssh', f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
+                cmd = ['ssh', *_SSH_OPTS, f'{self.robot_user}@{self.robot_host}', f'bash -l {script_path}']
             else:
                 self.log.action(f'Running CAN interface script: {script_path}')
                 cmd = ['bash', os.path.expanduser(script_path)]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=int(_TIMEOUT_SERVICE_WAIT_LONG))
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=_TIMEOUT_SSH_COMMAND)
             
             if result.stdout:
                 for line in result.stdout.strip().split('\n'):
@@ -461,183 +478,114 @@ class RobotInterface:
             self.log.failure(f'Failed to start CAN interface: {str(e)}')
     
     def _kill_proc(self, process, name):
+        # Wait for the whole process group, nodes can outlive ros2 launch
+        pgid = process.pid
         try:
-            pgid = os.getpgid(process.pid)
+            for sig in (signal.SIGINT, signal.SIGKILL):   # SIGINT = graceful ROS 2 shutdown
+                os.killpg(pgid, sig)
+                deadline = time.monotonic() + _TIMEOUT_PROCESS_TERMINATE
+                while time.monotonic() < deadline:
+                    process.poll()
+                    os.killpg(pgid, 0)   # raises ProcessLookupError once the group is gone
+                    time.sleep(0.1)
+                self.log.warning(f'{name} still running after {sig.name}')
+            self.log.failure(f'Could not stop {name} process group')
         except ProcessLookupError:
-            return
-        try:
-            os.killpg(pgid, signal.SIGINT)   # SIGINT = graceful ROS 2 shutdown
-            process.wait(timeout=_TIMEOUT_PROCESS_TERMINATE)
             self.log.info(f'Terminated {name} process')
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            self.log.warning(f'Killed {name} process (force)')
         except Exception as e:
             self.log.warning(f'Error terminating {name}: {e}')
 
-    def _wait_for_service_response(self, future, timeout_sec):
-        start_time = time.time()
-        while not future.done() and (time.time() - start_time) < timeout_sec:
-            QCoreApplication.processEvents()
-            time.sleep(0.01)
-        if future.done() and future.result() is not None:
-            return future.result()
-        return None
+    def is_running(self, system_name):
+        process = self.launch_processes.get(system_name)
+        if isinstance(process, subprocess.Popen):
+            return process.poll() is None
+        return process is True
 
-    def _set_system_enabled(self, system_name, value):
-        flag_map = {
-            'pointlio':     'pointlio_enabled',
-            'mapping':      'mapping_enabled',
-            'nav2':         'nav2_enabled',
-            'hardware':     'hardware_enabled',
-        }
-        attr = flag_map.get(system_name)
-        if attr is not None:
-            setattr(self, attr, value)
+    def _call_launch_manager(self, client, request, verb):
+        """Send a launch manager request off the Qt thread. Service discovery over Wi-Fi can
+        take a few seconds after the GUI starts, so wait for it in the background instead of
+        failing right away. Button state follows /launch_manager/status, so the response is
+        only logged."""
+        display = _DISPLAY_NAMES.get(request.system_name, request.system_name)
 
-    def launch_hardware(self):
-        if self.launch_processes['hardware'] is not None:
-            self.log.warning('Hardware already running')
-            return
-        
-        try:
-            if self.is_remote:
-                request = LaunchSystem.Request()
-                request.system_name = 'hardware'
-                request.use_sim = False
+        def send():
+            if not client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
+                self.log.failure(f'Launch manager not available, cannot {verb} {display}')
+                return
+            client.call_async(request).add_done_callback(done)
 
-                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
-                    self.log.failure('Launch manager service not available')
-                    return
-
-                future = self.launch_client.call_async(request)
-                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
-                if response is not None:
-                    if response.success:
-                        self.log.success(f'Hardware launched: {response.message}')
-                        self.launch_processes['hardware'] = True
-                    else:
-                        self.log.failure(f'Failed to launch hardware: {response.message}')
-                        return
-                else:
-                    self.log.failure('Service call failed for hardware launch')
-                    return
+        def done(future):
+            try:
+                response = future.result()
+            except Exception as e:
+                self.log.failure(f'Failed to {verb} {display}: {e}')
+                return
+            if response.success:
+                self.log.success(response.message)
             else:
-                self.launch_processes['hardware'] = subprocess.Popen(
-                    ['ros2', 'launch', 'lunabot_bringup', 'hardware_launch.py'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    start_new_session=True)
+                self.log.failure(f'Failed to {verb} {display}: {response.message}')
 
-            self.hardware_enabled = True
-            self.log.success('Hardware launched')
+        threading.Thread(target=send, daemon=True).start()
 
-            if self.on_robot_state_update:
-                self.on_robot_state_update()
-        except Exception as e:
-            self.log.failure(f'Failed to launch hardware: {str(e)}')
-    
     def launch_system(self, system_name):
-        """Launch a system (PointLIO, mapping, Nav2)"""
+        """Launch a system (hardware, FAST-LIO, mapping, Nav2)"""
         display = _DISPLAY_NAMES.get(system_name, system_name)
         self.log.action(f'Launching {display}')
 
-        if self.launch_processes[system_name] is not None:
+        if self.is_running(system_name):
             self.log.warning(f'{display} already running')
             return
 
         try:
-            run_on_robot = self.is_real_mode and self.is_remote
             use_sim = not self.is_real_mode
 
-            if run_on_robot:
+            if self.is_remote:
                 request = LaunchSystem.Request()
                 request.system_name = system_name
                 request.use_sim = use_sim
+                self._call_launch_manager(self.launch_client, request, 'launch')
+                return
 
-                if not self.launch_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT_LONG):
-                    self.log.failure('Launch manager service not available')
-                    return
-
-                future = self.launch_client.call_async(request)
-                response = self._wait_for_service_response(future, _TIMEOUT_SERVICE_RESPONSE)
-                if response is not None:
-                    if response.success:
-                        self.log.success(f'{display} launched')
-                        self.launch_processes[system_name] = True
-                    else:
-                        self.log.failure(f'Failed to launch {display}: {response.message}')
-                        return
-                else:
-                    self.log.failure(f'Service call timed out for {display}')
-                    return
-
-                self._set_system_enabled(system_name, True)
-            else:
-                use_sim_arg = 'true' if use_sim else 'false'
-                launch_file = f'{system_name}_launch.py'
-                if system_name == 'nav2':
-                    launch_file = 'nav2_stack_launch.py'
-
-                self.launch_processes[system_name] = subprocess.Popen(
-                    ['ros2', 'launch', 'lunabot_bringup', launch_file, f'use_sim:={use_sim_arg}'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    start_new_session=True
-                )
-                self._set_system_enabled(system_name, True)
-
-            location = "via launch manager" if run_on_robot else "locally"
-            self.log.success(f'{display} launched {location}')
+            # Output goes to the GUI's terminal; an unread PIPE fills up and stalls the launch
+            use_sim_arg = 'true' if use_sim else 'false'
+            self.launch_processes[system_name] = subprocess.Popen(
+                ['ros2', 'launch', 'lunabot_bringup', _LAUNCH_FILES[system_name],
+                 f'use_sim:={use_sim_arg}'],
+                stdin=subprocess.DEVNULL,
+                start_new_session=True
+            )
+            self.log.success(f'{display} launched locally')
 
             if self.on_robot_state_update:
                 self.on_robot_state_update()
         except Exception as e:
             self.log.failure(f'Failed to launch {display}: {e}')
-    
+
     def stop_system(self, system_name):
         display = _DISPLAY_NAMES.get(system_name, system_name)
         self.log.action(f'Stopping {display}')
 
         try:
-            if self.launch_processes[system_name] is None:
+            if self.is_remote:
+                request = StopSystem.Request()
+                request.system_name = system_name
+                self._call_launch_manager(self.stop_client, request, 'stop')
+                return
+
+            process = self.launch_processes[system_name]
+            if not isinstance(process, subprocess.Popen):
                 self.log.warning(f'{display} is not running')
                 return
 
-            # If launch_processes is True, it's a remote process via service
-            if self.launch_processes[system_name] is True and self.is_remote:
-                request = StopSystem.Request()
-                request.system_name = system_name
-
-                if not self.stop_client.wait_for_service(timeout_sec=_TIMEOUT_SERVICE_WAIT):
-                    self.log.failure('Stop service not available')
-                    return
-
-                future = self.stop_client.call_async(request)
-                response = self._wait_for_service_response(future, _TIMEOUT_STOP_RESPONSE)
-                if response is not None:
-                    if response.success:
-                        self.log.success(f'{display} stopped')
-                    else:
-                        self.log.warning(f'Stop warning: {response.message}')
-                else:
-                    self.log.failure(f'Service call timed out for stopping {display}')
-
-            elif isinstance(self.launch_processes[system_name], subprocess.Popen):
-                self._kill_proc(self.launch_processes[system_name], system_name)
-
+            self._kill_proc(process, system_name)
             self.launch_processes[system_name] = None
-            self._set_system_enabled(system_name, False)
-
             self.log.success(f'{display} stopped')
 
             if self.on_robot_state_update:
                 self.on_robot_state_update()
         except Exception as e:
             self.log.failure(f'Error stopping {display}: {e}')
-    
-    
+
     def _get_workspace_setup_cmd(self):
         ament_prefix = os.environ.get('AMENT_PREFIX_PATH', '')
         if ament_prefix:
@@ -714,12 +662,14 @@ class RobotInterface:
             cancel_callback(None)
     
     def launch_navigation_client(self):
-        self.log.action('Starting navigation client')
+        dry_run = 'true' if self.auto_dry_run else 'false'
+        self.log.action(f'Starting navigation client ({self.auto_mode.upper()} mode, dry run {dry_run})')
         try:
             use_sim_arg = 'false' if self.is_real_mode else 'true'
             self.navigation_client_process = subprocess.Popen(
                 f'{self._get_workspace_setup_cmd()} && ros2 run lunabot_nav navigation_client'
-                f' --ros-args -p use_sim_time:={use_sim_arg}',
+                f' --ros-args -p use_sim_time:={use_sim_arg} -p mode:={self.auto_mode}'
+                f' -p dry_run:={dry_run}',
                 shell=True, executable='/bin/bash', preexec_fn=os.setsid)
             self.log.success('Navigation client launched')
             return True
@@ -735,29 +685,27 @@ class RobotInterface:
                 self.log.success('Navigation client stopped')
             except Exception as e:
                 self.log.failure(f'Failed to stop navigation client: {e}')
+
+        # An empty request (zero goal id and stamp) cancels every goal on the server
+        for client in self.auto_cancel_clients:
+            if client.service_is_ready():
+                client.call_async(CancelGoal.Request())
+        self.publish_velocity(0.0, 0.0)
     
     def shutdown(self):
         if self._shutdown:
             return
         self._shutdown = True
 
-        for name, process in self.launch_processes.items():
-            if isinstance(process, subprocess.Popen):
-                self._kill_proc(process, name)
-            elif process is True and self.is_remote:
-                # Remote process started via service -> send stop request
-                try:
-                    display = _DISPLAY_NAMES.get(name, name)
-                    if self.stop_client.service_is_ready():
-                        request = StopSystem.Request()
-                        request.system_name = name
-                        future = self.stop_client.call_async(request)
-                        start = time.time()
-                        while not future.done() and (time.time() - start) < 2.0:
-                            rclpy.spin_once(self.node, timeout_sec=0.05)
-                        self.log.info(f'Stop request sent for {display}')
-                except Exception as e:
-                    self.log.warning(f'Error sending stop for {name}: {e}')
+        # Signal every group first so they stop in parallel
+        local = [(n, p) for n, p in self.launch_processes.items() if isinstance(p, subprocess.Popen)]
+        for name, process in local:
+            try:
+                os.killpg(process.pid, signal.SIGINT)
+            except ProcessLookupError:
+                pass
+        for name, process in local:
+            self._kill_proc(process, name)
 
         self.stop_navigation_client()
 

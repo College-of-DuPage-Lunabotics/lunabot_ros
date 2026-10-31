@@ -1,5 +1,5 @@
 # Service to stop a running system on the robot
-string system_name  # pointlio, mapping, nav2, hardware
+string system_name  # lio, mapping, nav2, hardware, record
 ---
 bool success
 string message

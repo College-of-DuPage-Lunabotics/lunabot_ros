@@ -99,8 +99,8 @@ ros2 run lunabot_gui lunabot_gui.py \
 - Hardware drivers (cameras, LiDAR, IMU)
 - CAN interface
 - Controller teleop
-- Action servers (assisted excavation/depositing for teleop, auto excavation/depositing for autonomy)
-- SLAM (Point-LIO)
+- Action servers (auto excavation/depositing for autonomy)
+- SLAM (FAST-LIO)
 - Mapping (RTAB-Map)
 - Navigation (Nav2)
 
@@ -114,10 +114,8 @@ ros2 run lunabot_gui lunabot_gui.py \
 
 ## Action Servers
 
-The GUI interacts with the following action servers for manual operations:
-- **assisted_excavation_action**: Teleop-assisted excavation with full vibration control
-- **assisted_depositing_action**: Teleop-assisted depositing sequence
-
-For autonomous operations, the navigation client uses:
+For autonomous operations, the GUI and navigation client use:
 - **auto_excavation_action**: Autonomous excavation with minimal vibration
 - **auto_depositing_action**: Autonomous depositing with forward drive positioning
+
+**One Cycle Auto** runs `navigation_client` with the routine picked with the **UCF / KSC** toggle above it in the Auto group (default UCF). The **Dry run** toggle next to it drives the same route, including the excavation drive, but never moves the bucket and skips depositing (for testing travel off a sand pit). The mode and dry run are shown on the One Cycle Auto button and are locked while a cycle runs. **Record** and **RViz2** are in the Tools group below Launch. **Emergency Stop** and the status line are pinned at the bottom of the sidebar so they stay visible while it scrolls.
