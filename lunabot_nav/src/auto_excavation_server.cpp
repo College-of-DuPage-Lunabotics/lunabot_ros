@@ -16,8 +16,10 @@
 #include "lunabot_msgs/msg/motor_commands.hpp"
 #include "nav2_msgs/action/navigate_to_pose.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <memory>
@@ -50,6 +52,11 @@ public:
     action_server_ = rclcpp_action::create_server<Excavation>(
       this, "auto_excavation_action",
       [this](const auto &, const auto &) {
+        if (robot_disabled_)
+        {
+          LOGGER_WARN(this->get_logger(), "Robot disabled, rejecting auto excavation goal");
+          return rclcpp_action::GoalResponse::REJECT;
+        }
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
       [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
@@ -67,6 +74,12 @@ public:
       std::bind(&AutoExcavationServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
 
+    // Abort on e-stop so the goal does not resume on re-enable
+    robot_disabled_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
+      "/robot_disabled", 10,
+      [this](const std_msgs::msg::Bool::SharedPtr msg) { robot_disabled_ = msg->data; },
+      sub_options);
+
     motor_cmd_publisher_ =
       this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
@@ -75,6 +88,38 @@ public:
   }
 
 private:
+  /**
+   * @brief True when the goal must end early: canceled by the client or robot disabled.
+   */
+  bool should_stop(const std::shared_ptr<GoalHandleExcavation> goal_handle) const
+  {
+    return goal_handle->is_canceling() || robot_disabled_;
+  }
+
+  /**
+   * @brief Stops all motors and ends the goal as canceled or aborted (robot disabled).
+   * @param step Name of the step that was interrupted, for logging.
+   */
+  void end_goal_early(const std::shared_ptr<GoalHandleExcavation> goal_handle, const char * step)
+  {
+    motor_cmd_publisher_->publish(lunabot_msgs::msg::MotorCommands());
+
+    auto result = std::make_shared<Excavation::Result>();
+    result->success = false;
+    if (goal_handle->is_canceling())
+    {
+      result->message = "Auto excavation canceled";
+      goal_handle->canceled(result);
+      LOGGER_WARN(this->get_logger(), "Auto excavation canceled during %s", step);
+    } else
+    {
+      result->message = "Auto excavation aborted: robot disabled";
+      goal_handle->abort(result);
+      LOGGER_FAILURE(this->get_logger(), "Auto excavation aborted during %s: robot disabled", step);
+    }
+    goal_active_ = false;
+  }
+
   /**
    * @brief Lowers bucket for autonomous excavation.
    * @return true if successful, false if canceled
@@ -91,7 +136,7 @@ private:
 
     while (std::abs(target_position - current_encoder_position_) > 0.01)
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_actuator = 0.0;
         motor_cmd.right_actuator = 0.0;
@@ -131,7 +176,7 @@ private:
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(forward_seconds))
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_wheel = 0.0;
         motor_cmd.right_wheel = 0.0;
@@ -171,7 +216,7 @@ private:
 
     while (std::abs(target_position - current_encoder_position_) > 0.01)
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_actuator = 0.0;
         motor_cmd.right_actuator = 0.0;
@@ -217,61 +262,38 @@ private:
     auto feedback = std::make_shared<Excavation::Feedback>();
     auto result = std::make_shared<Excavation::Result>();
 
-    feedback->feedback_message = "Lowering bucket for autonomous pass";
-    goal_handle->publish_feedback(feedback);
-    if (!lower_bucket(goal_handle))
+    const bool drive_only = goal_handle->get_goal()->drive_only;
+    if (drive_only)
     {
-      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-      motor_cmd.left_wheel = 0.0;
-      motor_cmd.right_wheel = 0.0;
-      motor_cmd.left_actuator = 0.0;
-      motor_cmd.right_actuator = 0.0;
-      motor_cmd.vibration = 0.0;
-      motor_cmd_publisher_->publish(motor_cmd);
-      result->success = false;
-      result->message = "Auto excavation canceled";
-      goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Auto excavation canceled during lower_bucket");
-      goal_active_ = false;
-      return;
+      LOGGER_INFO(this->get_logger(), "Drive only, bucket stays in place");
+    } else
+    {
+      feedback->feedback_message = "Lowering bucket for autonomous pass";
+      goal_handle->publish_feedback(feedback);
+      if (!lower_bucket(goal_handle))
+      {
+        end_goal_early(goal_handle, "lower_bucket");
+        return;
+      }
     }
 
     feedback->feedback_message = "Autonomous pass with minimal vibration";
     goal_handle->publish_feedback(feedback);
     if (!drive_forward(goal_handle))
     {
-      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-      motor_cmd.left_wheel = 0.0;
-      motor_cmd.right_wheel = 0.0;
-      motor_cmd.left_actuator = 0.0;
-      motor_cmd.right_actuator = 0.0;
-      motor_cmd.vibration = 0.0;
-      motor_cmd_publisher_->publish(motor_cmd);
-      result->success = false;
-      result->message = "Auto excavation canceled";
-      goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Auto excavation canceled during drive_forward");
-      goal_active_ = false;
+      end_goal_early(goal_handle, "drive_forward");
       return;
     }
 
-    feedback->feedback_message = "Lifting bucket to travel position";
-    goal_handle->publish_feedback(feedback);
-    if (!lift_bucket(goal_handle))
+    if (!drive_only)
     {
-      auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-      motor_cmd.left_wheel = 0.0;
-      motor_cmd.right_wheel = 0.0;
-      motor_cmd.left_actuator = 0.0;
-      motor_cmd.right_actuator = 0.0;
-      motor_cmd.vibration = 0.0;
-      motor_cmd_publisher_->publish(motor_cmd);
-      result->success = false;
-      result->message = "Auto excavation canceled";
-      goal_handle->canceled(result);
-      LOGGER_WARN(this->get_logger(), "Auto excavation canceled during lift_bucket");
-      goal_active_ = false;
-      return;
+      feedback->feedback_message = "Lifting bucket to travel position";
+      goal_handle->publish_feedback(feedback);
+      if (!lift_bucket(goal_handle))
+      {
+        end_goal_early(goal_handle, "lift_bucket");
+        return;
+      }
     }
 
     result->success = true;
@@ -289,11 +311,13 @@ private:
   rclcpp_action::Server<Excavation>::SharedPtr action_server_;
   rclcpp_action::Client<NavigateToPose>::SharedPtr navigation_client_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr robot_disabled_subscriber_;
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
   bool goal_active_ = false;
+  std::atomic<bool> robot_disabled_{false};
 };
 
 int main(int argc, char ** argv)

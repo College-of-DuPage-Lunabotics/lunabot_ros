@@ -7,11 +7,8 @@
 #include "lunabot_logger/logger.hpp"
 
 #include <rclcpp/rclcpp.hpp>
-#include <rclcpp_action/rclcpp_action.hpp>
 
 #include <geometry_msgs/msg/twist.hpp>
-#include <lunabot_msgs/action/depositing.hpp>
-#include <lunabot_msgs/action/excavation.hpp>
 #include <lunabot_msgs/msg/motor_commands.hpp>
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -67,11 +64,6 @@ public:
       create_publisher<std_msgs::msg::Float64MultiArray>("/camera_controller/commands", 10);
     motor_cmd_publisher_ =
       create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
-
-    excavation_client_ = rclcpp_action::create_client<lunabot_msgs::action::Excavation>(
-      this, "assisted_excavation_action");
-    depositing_client_ = rclcpp_action::create_client<lunabot_msgs::action::Depositing>(
-      this, "assisted_depositing_action");
 
     state_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&ControllerTeleop::publish_state, this));
@@ -194,10 +186,6 @@ private:
     // R4/L4 triggers for camera servo toggle (axis 6: -1 = L4, 1 = R4)
     bool r4_pressed = detect_button_press(msg->axes[6] > 0.5, prev_r4_);
 
-    // X/Y buttons for assisted excavate/deposit actions
-    bool x_pressed = detect_button_press(msg->buttons[2], prev_x_button_);
-    bool y_pressed = detect_button_press(msg->buttons[3], prev_y_button_);
-
     if (plus_pressed)
     {
       manual_enabled_ = true;
@@ -276,86 +264,6 @@ private:
 
       LOGGER_INFO(get_logger(), "Servo position: %.0f°", target_angle_rad * 180.0 / M_PI);
     }
-
-    if (x_pressed)
-    {
-      send_excavate_goal();
-    }
-
-    if (y_pressed)
-    {
-      send_deposit_goal();
-    }
-  }
-
-  void send_excavate_goal()
-  {
-    if (!excavation_client_->wait_for_action_server(std::chrono::seconds(0)))
-    {
-      LOGGER_WARN(get_logger(), "Excavation action server not available");
-      return;
-    }
-
-    auto goal_msg = lunabot_msgs::action::Excavation::Goal();
-    LOGGER_INFO(get_logger(), CYAN "Sending excavation goal" RESET);
-
-    auto send_goal_options =
-      rclcpp_action::Client<lunabot_msgs::action::Excavation>::SendGoalOptions();
-    send_goal_options.goal_response_callback = [this](auto goal_handle) {
-      if (!goal_handle)
-      {
-        LOGGER_FAILURE(get_logger(), "Excavation goal rejected");
-      } else
-      {
-        LOGGER_SUCCESS(get_logger(), "Excavation goal accepted");
-      }
-    };
-    send_goal_options.result_callback = [this](const auto & result) {
-      if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-      {
-        LOGGER_SUCCESS(get_logger(), "Excavation completed");
-      } else
-      {
-        LOGGER_FAILURE(get_logger(), "Excavation failed");
-      }
-    };
-
-    excavation_client_->async_send_goal(goal_msg, send_goal_options);
-  }
-
-  void send_deposit_goal()
-  {
-    if (!depositing_client_->wait_for_action_server(std::chrono::seconds(0)))
-    {
-      LOGGER_WARN(get_logger(), "Depositing action server not available");
-      return;
-    }
-
-    auto goal_msg = lunabot_msgs::action::Depositing::Goal();
-    LOGGER_INFO(get_logger(), CYAN "Sending deposit goal" RESET);
-
-    auto send_goal_options =
-      rclcpp_action::Client<lunabot_msgs::action::Depositing>::SendGoalOptions();
-    send_goal_options.goal_response_callback = [this](auto goal_handle) {
-      if (!goal_handle)
-      {
-        LOGGER_FAILURE(get_logger(), "Deposit goal rejected");
-      } else
-      {
-        LOGGER_SUCCESS(get_logger(), "Deposit goal accepted");
-      }
-    };
-    send_goal_options.result_callback = [this](const auto & result) {
-      if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
-      {
-        LOGGER_SUCCESS(get_logger(), "Deposit completed");
-      } else
-      {
-        LOGGER_FAILURE(get_logger(), "Deposit failed");
-      }
-    };
-
-    depositing_client_->async_send_goal(goal_msg, send_goal_options);
   }
 
   /**
@@ -380,8 +288,9 @@ private:
   {
     if (manual_enabled_) return;
 
-    double left_cmd = -0.35 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
-    double right_cmd = -0.35 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    // Positive angular.z turns counter clockwise
+    double left_cmd = -0.35 * (msg->linear.x - msg->angular.z * wheel_base / 2.0) / wheel_radius;
+    double right_cmd = -0.35 * (msg->linear.x + msg->angular.z * wheel_base / 2.0) / wheel_radius;
 
     auto motor_cmd = lunabot_msgs::msg::MotorCommands();
     motor_cmd.left_wheel = clamp(left_cmd);
@@ -476,9 +385,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr camera_position_publisher_;
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
 
-  rclcpp_action::Client<lunabot_msgs::action::Excavation>::SharedPtr excavation_client_;
-  rclcpp_action::Client<lunabot_msgs::action::Depositing>::SharedPtr depositing_client_;
-
   rclcpp::TimerBase::SharedPtr state_timer_;
   rclcpp::TimerBase::SharedPtr control_timer_;
 
@@ -494,8 +400,6 @@ private:
   bool prev_dpad_up_ = false;
   bool prev_dpad_down_ = false;
   bool prev_r4_ = false;
-  bool prev_x_button_ = false;
-  bool prev_y_button_ = false;
   bool prev_btn_minus_ = false;
   bool prev_btn_plus__ = false;
 

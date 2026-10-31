@@ -10,8 +10,10 @@
 
 #include "lunabot_msgs/action/depositing.hpp"
 #include "lunabot_msgs/msg/motor_commands.hpp"
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -42,6 +44,11 @@ public:
     action_server_ = rclcpp_action::create_server<Depositing>(
       this, "auto_depositing_action",
       [this](const auto &, const auto &) {
+        if (robot_disabled_)
+        {
+          LOGGER_WARN(this->get_logger(), "Robot disabled, rejecting auto depositing goal");
+          return rclcpp_action::GoalResponse::REJECT;
+        }
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },
       [this](const auto &) { return rclcpp_action::CancelResponse::ACCEPT; },
@@ -57,6 +64,12 @@ public:
       std::bind(&AutoDepositingServer::encoder_position_callback, this, std::placeholders::_1),
       sub_options);
 
+    // Abort on e-stop so the goal does not resume on re-enable
+    robot_disabled_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
+      "/robot_disabled", 10,
+      [this](const std_msgs::msg::Bool::SharedPtr msg) { robot_disabled_ = msg->data; },
+      sub_options);
+
     motor_cmd_publisher_ =
       this->create_publisher<lunabot_msgs::msg::MotorCommands>("/motor_commands", 10);
 
@@ -64,6 +77,38 @@ public:
   }
 
 private:
+  /**
+   * @brief True when the goal must end early: canceled by the client or robot disabled.
+   */
+  bool should_stop(const std::shared_ptr<GoalHandleDepositing> goal_handle) const
+  {
+    return goal_handle->is_canceling() || robot_disabled_;
+  }
+
+  /**
+   * @brief Stops all motors and ends the goal as canceled or aborted (robot disabled).
+   * @param step Name of the step that was interrupted, for logging.
+   */
+  void end_goal_early(const std::shared_ptr<GoalHandleDepositing> goal_handle, const char * step)
+  {
+    motor_cmd_publisher_->publish(lunabot_msgs::msg::MotorCommands());
+
+    auto result = std::make_shared<Depositing::Result>();
+    result->success = false;
+    if (goal_handle->is_canceling())
+    {
+      result->message = "Auto depositing canceled";
+      goal_handle->canceled(result);
+      LOGGER_WARN(this->get_logger(), "Auto depositing canceled during %s", step);
+    } else
+    {
+      result->message = "Auto depositing aborted: robot disabled";
+      goal_handle->abort(result);
+      LOGGER_FAILURE(this->get_logger(), "Auto depositing aborted during %s: robot disabled", step);
+    }
+    goal_active_ = false;
+  }
+
   /**
    * @brief Drives robot forward to position over construction zone.
    * @return true if successful, false if canceled
@@ -80,7 +125,7 @@ private:
     auto start_time = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start_time < std::chrono::seconds(forward_seconds))
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_wheel = 0.0;
         motor_cmd.right_wheel = 0.0;
@@ -121,7 +166,7 @@ private:
 
     while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_actuator = 0.0;
         motor_cmd.right_actuator = 0.0;
@@ -148,7 +193,7 @@ private:
 
     while (vibration_on)
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.vibration = 0.0;
         motor_cmd_publisher_->publish(motor_cmd);
@@ -192,7 +237,7 @@ private:
 
     while (std::abs(current_encoder_position_ - target_position) > 0.2)
     {
-      if (goal_handle->is_canceling())
+      if (should_stop(goal_handle))
       {
         motor_cmd.left_actuator = 0.0;
         motor_cmd.right_actuator = 0.0;
@@ -238,41 +283,25 @@ private:
 
     try
     {
-      feedback->feedback_message = "Driving forward to construction zone";
-      goal_handle->publish_feedback(feedback);
-      if (!drive_forward(goal_handle))
+      if (goal_handle->get_goal()->dump_only)
       {
-        auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-        motor_cmd.left_wheel = 0.0;
-        motor_cmd.right_wheel = 0.0;
-        motor_cmd.left_actuator = 0.0;
-        motor_cmd.right_actuator = 0.0;
-        motor_cmd.vibration = 0.0;
-        motor_cmd_publisher_->publish(motor_cmd);
-        result->success = false;
-        result->message = "Auto depositing canceled";
-        goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Auto depositing canceled");
-        goal_active_ = false;
-        return;
+        LOGGER_INFO(this->get_logger(), "Dump only, skipping drive forward");
+      } else
+      {
+        feedback->feedback_message = "Driving forward to construction zone";
+        goal_handle->publish_feedback(feedback);
+        if (!drive_forward(goal_handle))
+        {
+          end_goal_early(goal_handle, "drive_forward");
+          return;
+        }
       }
 
       feedback->feedback_message = "Lifting bucket to deposit position";
       goal_handle->publish_feedback(feedback);
       if (!lift_bucket(goal_handle))
       {
-        auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-        motor_cmd.left_wheel = 0.0;
-        motor_cmd.right_wheel = 0.0;
-        motor_cmd.left_actuator = 0.0;
-        motor_cmd.right_actuator = 0.0;
-        motor_cmd.vibration = 0.0;
-        motor_cmd_publisher_->publish(motor_cmd);
-        result->success = false;
-        result->message = "Auto depositing canceled";
-        goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Auto depositing canceled");
-        goal_active_ = false;
+        end_goal_early(goal_handle, "lift_bucket");
         return;
       }
 
@@ -280,18 +309,7 @@ private:
       goal_handle->publish_feedback(feedback);
       if (!lower_bucket(goal_handle))
       {
-        auto motor_cmd = lunabot_msgs::msg::MotorCommands();
-        motor_cmd.left_wheel = 0.0;
-        motor_cmd.right_wheel = 0.0;
-        motor_cmd.left_actuator = 0.0;
-        motor_cmd.right_actuator = 0.0;
-        motor_cmd.vibration = 0.0;
-        motor_cmd_publisher_->publish(motor_cmd);
-        result->success = false;
-        result->message = "Auto depositing canceled";
-        goal_handle->canceled(result);
-        LOGGER_WARN(this->get_logger(), "Auto depositing canceled");
-        goal_active_ = false;
+        end_goal_early(goal_handle, "lower_bucket");
         return;
       }
 
@@ -324,11 +342,13 @@ private:
 
   rclcpp_action::Server<Depositing>::SharedPtr action_server_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr encoder_position_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr robot_disabled_subscriber_;
   rclcpp::Publisher<lunabot_msgs::msg::MotorCommands>::SharedPtr motor_cmd_publisher_;
   rclcpp::CallbackGroup::SharedPtr encoder_callback_group_;
 
   double current_encoder_position_ = 0.0;
   bool goal_active_ = false;
+  std::atomic<bool> robot_disabled_{false};
 };
 
 int main(int argc, char ** argv)

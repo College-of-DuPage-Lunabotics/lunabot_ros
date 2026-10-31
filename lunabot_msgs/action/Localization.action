@@ -1,8 +1,0 @@
-# Localization action - performs localization sequence
----
-bool success
-float64 x
-float64 y
-float64 yaw
----
-string feedback_message

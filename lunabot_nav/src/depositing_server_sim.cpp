@@ -34,7 +34,7 @@ public:
   DepositingServerSim() : Node("depositing_server")
   {
     action_server_ = rclcpp_action::create_server<Depositing>(
-      this, "depositing_action",
+      this, "auto_depositing_action",
       [this](const auto &, const auto &) {
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
       },

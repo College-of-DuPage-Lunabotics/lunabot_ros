@@ -4,10 +4,6 @@ This package contains action servers and clients required for autonomous navigat
 
 ## Source Files
 
-### Assisted Servers (Teleop)
-- **assisted_excavation_server.cpp**: Assisted excavation server for teleop that controls bucket actuators and manages excavation workflow with vibration.
-- **assisted_depositing_server.cpp**: Assisted depositing server for teleop that controls bucket actuators for depositing operations.
-
 ### Autonomous Servers
 - **auto_excavation_server.cpp**: Autonomous excavation server that drives forward with minimal vibration for quick excavation passes.
 - **auto_depositing_server.cpp**: Autonomous depositing server that drives forward to position over construction zone before depositing.
